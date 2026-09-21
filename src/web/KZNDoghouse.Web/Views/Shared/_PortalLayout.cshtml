@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0" />
+
+    <title>
+        @ViewData["Title"] - KZN Doghouse Portal
+    </title>
+
+    <link rel="stylesheet"
+          href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+
+    <link rel="stylesheet"
+          href="~/css/site.css"
+          asp-append-version="true" />
+
+    <link rel="stylesheet"
+          href="~/KZNDoghouse.Web.styles.css"
+          asp-append-version="true" />
+</head>
+
+<body>
+
+    <div class="d-flex min-vh-100">
+
+        <aside class="border-end bg-light"
+               style="width: 240px;">
+
+            <partial name="_PortalSidebar" />
+
+        </aside>
+
+        <div class="flex-grow-1">
+
+            <header class="border-bottom bg-white px-4 py-3">
+                <div class="d-flex justify-content-between align-items-center">
+
+                    <span class="fw-semibold">
+                        Internal Management System
+                    </span>
+
+                    <span class="text-muted">
+                        KZN Doghouse
+                    </span>
+
+                </div>
+            </header>
+
+            <main class="p-4">
+                @RenderBody()
+            </main>
+
+        </div>
+
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script src="~/js/site.js"
+            asp-append-version="true">
+    </script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+
+</body>
+</html>
