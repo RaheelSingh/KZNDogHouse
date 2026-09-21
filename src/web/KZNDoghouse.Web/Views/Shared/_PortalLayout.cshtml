@@ -7,9 +7,7 @@
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0" />
 
-    <title>
-        @ViewData["Title"] - KZN Doghouse Portal
-    </title>
+    <title>@ViewData["Title"] - KZN Doghouse Portal</title>
 
     <link rel="stylesheet"
           href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
@@ -23,40 +21,89 @@
           asp-append-version="true" />
 </head>
 
-<body>
+<body class="portal-body">
 
-    <div class="d-flex min-vh-100">
+    <div class="portal-wrapper">
 
-        <aside class="border-end bg-light"
-               style="width: 240px;">
-
+        <!-- Desktop sidebar -->
+        <aside class="portal-sidebar portal-sidebar-desktop">
             <partial name="_PortalSidebar" />
-
         </aside>
 
-        <div class="flex-grow-1">
+        <div class="portal-content-wrapper">
 
-            <header class="border-bottom bg-white px-4 py-3">
+            <header class="portal-header">
+
                 <div class="d-flex justify-content-between align-items-center">
 
-                    <span class="fw-semibold">
-                        Internal Management System
-                    </span>
+                    <div class="d-flex align-items-center gap-3">
 
-                    <span class="text-muted">
+                        <!-- Mobile menu button -->
+                        <button class="portal-menu-button"
+                                type="button"
+                                data-bs-toggle="offcanvas"
+                                data-bs-target="#portalMobileMenu"
+                                aria-controls="portalMobileMenu"
+                                aria-label="Open navigation menu">
+
+                            <span class="portal-menu-icon"></span>
+                            <span class="portal-menu-icon"></span>
+                            <span class="portal-menu-icon"></span>
+
+                        </button>
+
+                        <span class="fw-semibold">
+                            Internal Management System
+                        </span>
+
+                    </div>
+
+                    <span class="text-muted portal-header-name">
                         KZN Doghouse
                     </span>
 
                 </div>
+
             </header>
 
-            <main class="p-4">
+            <main class="portal-main">
                 @RenderBody()
             </main>
 
         </div>
 
     </div>
+
+
+    <!-- Mobile portal navigation -->
+    <div class="offcanvas offcanvas-start portal-mobile-menu"
+         tabindex="-1"
+         id="portalMobileMenu"
+         aria-labelledby="portalMobileMenuLabel">
+
+        <div class="offcanvas-header">
+
+            <h5 class="offcanvas-title"
+                id="portalMobileMenuLabel">
+                KZN Doghouse
+            </h5>
+
+            <button type="button"
+                    class="btn-close btn-close-white"
+                    data-bs-dismiss="offcanvas"
+                    aria-label="Close">
+            </button>
+
+        </div>
+
+        <div class="offcanvas-body p-0">
+
+            <partial name="_PortalSidebar" />
+
+        </div>
+
+    </div>
+
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
 

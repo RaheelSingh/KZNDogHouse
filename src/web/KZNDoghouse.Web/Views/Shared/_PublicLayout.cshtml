@@ -7,9 +7,7 @@
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0" />
 
-    <title>
-        @ViewData["Title"] - KZN Doghouse
-    </title>
+    <title>@ViewData["Title"] - KZN Doghouse</title>
 
     <link rel="stylesheet"
           href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
@@ -23,19 +21,19 @@
           asp-append-version="true" />
 </head>
 
-<body>
+<body class="public-body">
 
     <header>
         <partial name="_PublicNavigation" />
     </header>
 
-    <main role="main">
+    <main role="main" class="public-main">
         @RenderBody()
     </main>
 
-    <footer class="border-top mt-5 py-4">
+    <footer class="public-footer">
         <div class="container">
-            <p class="mb-0">
+            <p>
                 &copy; @DateTime.Now.Year KZN Doghouse
             </p>
         </div>
