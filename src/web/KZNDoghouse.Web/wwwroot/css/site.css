@@ -188,6 +188,10 @@ a:hover {
     color: var(--kzn-white);
 }
 
+button.public-sign-in {
+    background-color: transparent;
+}
+
 
 /* Public page sections */
 

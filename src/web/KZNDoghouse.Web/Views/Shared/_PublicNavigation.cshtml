@@ -81,13 +81,35 @@
                     </a>
                 </li>
 
-                <li class="nav-item ms-lg-2">
-                    <a class="public-sign-in disabled"
-                       href="#"
-                       aria-disabled="true">
-                        Sign In
-                    </a>
-                </li>
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <li class="nav-item ms-lg-2">
+
+                        <form asp-controller="Auth"
+                            asp-action="Logout"
+                            method="post">
+
+                            <button type="submit"
+                                    class="public-sign-in">
+                                Sign Out
+                            </button>
+
+                        </form>
+
+                    </li>
+                }
+                else
+                {
+                    <li class="nav-item ms-lg-2">
+
+                        <a class="public-sign-in"
+                        asp-controller="Auth"
+                        asp-action="Login">
+                            Sign In
+                        </a>
+
+                    </li>
+                }
 
             </ul>
 
