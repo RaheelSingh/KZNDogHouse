@@ -1,4 +1,5 @@
 using KZNDoghouse.Web.Configuration;
+using KZNDoghouse.Web.Repositories;
 using KZNDoghouse.Web.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 
@@ -17,6 +18,10 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     IAuthService,
     AuthService>();
+
+builder.Services.AddScoped<
+    IUserProfileRepository,
+    UserProfileRepository>();
 
 builder.Services
     .AddAuthentication(
