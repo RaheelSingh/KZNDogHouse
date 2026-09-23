@@ -24,6 +24,10 @@ builder.Services.AddScoped<
     IUserProfileRepository,
     UserProfileRepository>();
 
+builder.Services.AddScoped<
+    IUserService,
+    UserService>();
+
 builder.Services
     .AddAuthentication(
         CookieAuthenticationDefaults.AuthenticationScheme)
