@@ -1,4 +1,5 @@
 using KZNDoghouse.Web.Configuration;
+using KZNDoghouse.Web.Constants;
 using KZNDoghouse.Web.Repositories;
 using KZNDoghouse.Web.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -29,9 +30,22 @@ builder.Services
     .AddCookie(options =>
     {
         options.LoginPath = "/Auth/Login";
+        options.AccessDeniedPath = "/Auth/AccessDenied";
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
         options.SlidingExpiration = true;
     });
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(
+        AuthorizationPolicies.PortalAccess,
+        policy =>
+        {
+            policy.RequireRole(
+                UserRoles.Staff,
+                UserRoles.Administrator);
+        });
+});
 
 var app = builder.Build();
 

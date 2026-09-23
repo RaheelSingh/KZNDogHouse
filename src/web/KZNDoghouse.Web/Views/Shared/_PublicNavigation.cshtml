@@ -83,6 +83,24 @@
 
                 @if (User.Identity?.IsAuthenticated == true)
                 {
+                    @if (User.IsInRole(UserRoles.Staff)
+                        || User.IsInRole(UserRoles.Administrator))
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link"
+                            asp-controller="Portal"
+                            asp-action="Index">
+                                Portal
+                            </a>
+                        </li>
+                    }
+
+                    <li class="nav-item d-flex align-items-center ms-lg-2">
+                        <span class="nav-link">
+                            @User.Identity.Name
+                        </span>
+                    </li>
+
                     <li class="nav-item ms-lg-2">
 
                         <form asp-controller="Auth"

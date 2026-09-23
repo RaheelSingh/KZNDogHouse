@@ -31,10 +31,12 @@ public class UserProfileRepository : IUserProfileRepository
         var client =
             await _supabaseClientFactory.CreateServiceClientAsync();
 
-        return await client
+        var response = await client
             .From<UserProfile>()
             .Where(x => x.AuthUserId == parsedAuthUserId)
-            .Single();
+            .Get();
+
+        return response.Models.FirstOrDefault();
     }
 
     public async Task<UserProfile?> CreateAsync(
@@ -43,10 +45,9 @@ public class UserProfileRepository : IUserProfileRepository
         var client =
             await _supabaseClientFactory.CreateServiceClientAsync();
 
-        var response =
-            await client
-                .From<UserProfile>()
-                .Insert(profile);
+        var response = await client
+            .From<UserProfile>()
+            .Insert(profile);
 
         return response.Models.FirstOrDefault();
     }

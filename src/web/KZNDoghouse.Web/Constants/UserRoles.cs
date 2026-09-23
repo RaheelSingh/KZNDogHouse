@@ -17,3 +17,8 @@ public static class UserRoles
         Vet
     ];
 }
+
+public static class AuthorizationPolicies
+{
+    public const string PortalAccess = "PortalAccess";
+}

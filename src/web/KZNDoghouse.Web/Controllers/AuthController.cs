@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using KZNDoghouse.Web.Constants;
 using KZNDoghouse.Web.Models;
 using KZNDoghouse.Web.Services;
 using Microsoft.AspNetCore.Authentication;
@@ -50,7 +51,7 @@ public class AuthController : Controller
         {
             ModelState.AddModelError(
                 string.Empty,
-                "Invalid email or password.");
+                "Unable to sign in with this account.");
 
             return View(model);
         }
@@ -67,7 +68,11 @@ public class AuthController : Controller
 
             new(
                 ClaimTypes.Name,
-                result.Email)
+                result.DisplayName),
+
+            new(
+                ClaimTypes.Role,
+                result.Role)
         };
 
         var identity = new ClaimsIdentity(
@@ -93,9 +98,24 @@ public class AuthController : Controller
             return LocalRedirect(model.ReturnUrl);
         }
 
+        if (result.Role == UserRoles.Staff
+            || result.Role == UserRoles.Administrator)
+        {
+            return RedirectToAction(
+                "Index",
+                "Portal");
+        }
+
         return RedirectToAction(
             "Index",
             "Home");
+    }
+
+    [AllowAnonymous]
+    [HttpGet]
+    public IActionResult AccessDenied()
+    {
+        return View();
     }
 
     [Authorize]
