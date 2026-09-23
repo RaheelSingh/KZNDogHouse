@@ -113,6 +113,51 @@ public class AuthController : Controller
 
     [AllowAnonymous]
     [HttpGet]
+    public IActionResult Register()
+    {
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            return RedirectToAction("Index", "Home");
+        }
+
+        return View(new RegisterViewModel());
+    }
+
+    [AllowAnonymous]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Register(
+        RegisterViewModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        var success =
+            await _authService.RegisterPublicAsync(
+                model.FirstName,
+                model.LastName,
+                model.Email,
+                model.Password);
+
+        if (!success)
+        {
+            ModelState.AddModelError(
+                string.Empty,
+                "Unable to create the account. Please check your details and try again.");
+
+            return View(model);
+        }
+
+        TempData["RegistrationMessage"] =
+            "Your account has been created. Please confirm your email if required, then sign in.";
+
+        return RedirectToAction(nameof(Login));
+    }
+
+    [AllowAnonymous]
+    [HttpGet]
     public IActionResult AccessDenied()
     {
         return View();

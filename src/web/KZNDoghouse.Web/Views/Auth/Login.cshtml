@@ -12,7 +12,16 @@
 
             <div class="kzn-card">
 
+                @if (TempData["RegistrationMessage"] is string message)
+                {
+                    <div class="alert alert-success"
+                         role="alert">
+                        @message
+                    </div>
+                }
+
                 <div class="mb-4">
+
                     <h1 class="h3 kzn-card-title">
                         Sign In
                     </h1>
@@ -20,6 +29,7 @@
                     <p class="text-muted mb-0">
                         Sign in to your KZN Doghouse account.
                     </p>
+
                 </div>
 
                 <form asp-controller="Auth"
@@ -82,6 +92,15 @@
                     </button>
 
                 </form>
+
+                <p class="text-center text-muted mt-4 mb-0">
+                    Don't have an account?
+
+                    <a asp-controller="Auth"
+                       asp-action="Register">
+                        Create one
+                    </a>
+                </p>
 
             </div>
 

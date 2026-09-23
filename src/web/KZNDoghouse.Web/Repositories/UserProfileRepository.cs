@@ -6,8 +6,6 @@ namespace KZNDoghouse.Web.Repositories;
 public interface IUserProfileRepository
 {
     Task<UserProfile?> GetByAuthUserIdAsync(string authUserId);
-
-    Task<UserProfile?> CreateAsync(UserProfile profile);
 }
 
 public class UserProfileRepository : IUserProfileRepository
@@ -35,19 +33,6 @@ public class UserProfileRepository : IUserProfileRepository
             .From<UserProfile>()
             .Where(x => x.AuthUserId == parsedAuthUserId)
             .Get();
-
-        return response.Models.FirstOrDefault();
-    }
-
-    public async Task<UserProfile?> CreateAsync(
-        UserProfile profile)
-    {
-        var client =
-            await _supabaseClientFactory.CreateServiceClientAsync();
-
-        var response = await client
-            .From<UserProfile>()
-            .Insert(profile);
 
         return response.Models.FirstOrDefault();
     }

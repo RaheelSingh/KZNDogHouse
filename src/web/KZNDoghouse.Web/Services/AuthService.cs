@@ -1,4 +1,5 @@
 using KZNDoghouse.Web.Repositories;
+using Supabase.Gotrue;
 using Supabase.Gotrue.Exceptions;
 
 namespace KZNDoghouse.Web.Services;
@@ -6,6 +7,12 @@ namespace KZNDoghouse.Web.Services;
 public interface IAuthService
 {
     Task<AuthLoginResult?> SignInAsync(
+        string email,
+        string password);
+
+    Task<bool> RegisterPublicAsync(
+        string firstName,
+        string lastName,
         string email,
         string password);
 }
@@ -71,6 +78,40 @@ public class AuthService : IAuthService
         catch (GotrueException)
         {
             return null;
+        }
+    }
+
+    public async Task<bool> RegisterPublicAsync(
+        string firstName,
+        string lastName,
+        string email,
+        string password)
+    {
+        try
+        {
+            var client =
+                await _supabaseClientFactory.CreateAnonClientAsync();
+
+            var options = new SignUpOptions
+            {
+                Data = new Dictionary<string, object>
+                {
+                    { "first_name", firstName.Trim() },
+                    { "last_name", lastName.Trim() }
+                }
+            };
+
+            var session = await client.Auth.SignUp(
+                email.Trim(),
+                password,
+                options);
+
+            return session?.User != null;
+        }
+        catch (GotrueException ex)
+        {
+            Console.WriteLine($"Supabase registration error: {ex.Message}");
+            return false;
         }
     }
 }
