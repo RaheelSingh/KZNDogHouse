@@ -1,4 +1,5 @@
 using KZNDoghouse.Web.Configuration;
+using KZNDoghouse.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,6 +9,9 @@ builder.Services.AddControllersWithViews();
 // Load Supabase configuration
 builder.Services.Configure<SupabaseSettings>(
     builder.Configuration.GetSection(SupabaseSettings.SectionName));
+
+// Add Supabase client factory
+builder.Services.AddScoped<ISupabaseClientFactory, SupabaseClientFactory>();
 
 var app = builder.Build();
 
