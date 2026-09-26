@@ -1,0 +1,99 @@
+using KZNDoghouse.Web.Models;
+using KZNDoghouse.Web.Services;
+
+namespace KZNDoghouse.Web.Repositories;
+
+public interface IUserProfileRepository
+{
+    Task<UserProfile?> GetByAuthUserIdAsync(string authUserId);
+
+    Task<UserProfile?> GetByIdAsync(Guid profileId);
+
+    Task<IReadOnlyList<UserProfile>> GetAllAsync();
+
+    Task UpdateAccessAsync(
+        Guid profileId,
+        string role,
+        bool isActive);
+}
+
+public class UserProfileRepository : IUserProfileRepository
+{
+    private readonly ISupabaseClientFactory _supabaseClientFactory;
+
+    public UserProfileRepository(
+        ISupabaseClientFactory supabaseClientFactory)
+    {
+        _supabaseClientFactory = supabaseClientFactory;
+    }
+
+    public async Task<UserProfile?> GetByAuthUserIdAsync(
+        string authUserId)
+    {
+        if (!Guid.TryParse(authUserId, out var parsedAuthUserId))
+        {
+            return null;
+        }
+
+        var client =
+            await _supabaseClientFactory.CreateServiceClientAsync();
+
+        var response = await client
+            .From<UserProfile>()
+            .Where(x => x.AuthUserId == parsedAuthUserId)
+            .Get();
+
+        return response.Models?.FirstOrDefault();
+    }
+
+    public async Task<UserProfile?> GetByIdAsync(
+        Guid profileId)
+    {
+        var client =
+            await _supabaseClientFactory.CreateServiceClientAsync();
+
+        var response = await client
+            .From<UserProfile>()
+            .Where(x => x.Id == profileId)
+            .Get();
+
+        return response.Models?.FirstOrDefault();
+    }
+
+    public async Task<IReadOnlyList<UserProfile>> GetAllAsync()
+    {
+        var client =
+            await _supabaseClientFactory.CreateServiceClientAsync();
+
+        var response = await client
+            .From<UserProfile>()
+            .Get();
+
+        if (response.Models == null)
+        {
+            return Array.Empty<UserProfile>();
+        }
+
+        return response.Models
+            .OrderBy(x => x.LastName)
+            .ThenBy(x => x.FirstName)
+            .ToList();
+    }
+
+    public async Task UpdateAccessAsync(
+        Guid profileId,
+        string role,
+        bool isActive)
+    {
+        var client =
+            await _supabaseClientFactory.CreateServiceClientAsync();
+
+        await client
+            .From<UserProfile>()
+            .Where(x => x.Id == profileId)
+            .Set(x => x.Role, role)
+            .Set(x => x.IsActive, isActive)
+            .Set(x => x.UpdatedAt!, DateTime.UtcNow)
+            .Update();
+    }
+}

@@ -1,0 +1,75 @@
+@{
+    var currentController =
+        ViewContext.RouteData.Values["controller"]
+            ?.ToString();
+
+    var dashboardActive =
+        currentController == "Portal";
+
+    var userAccessActive =
+        currentController == "UserAccess";
+}
+
+<div class="p-3">
+
+    <a asp-controller="Home"
+    asp-action="Index"
+    class="portal-sidebar-brand"
+    title="Return to public website">
+
+        <h5 class="mb-4">
+            KZN Doghouse
+        </h5>
+
+    </a>
+
+    <nav class="nav flex-column gap-1">
+
+        <a class="nav-link @(dashboardActive ? "active" : "")"
+           asp-controller="Portal"
+           asp-action="Index">
+            Dashboard
+        </a>
+
+        <a class="nav-link disabled"
+           href="#"
+           aria-disabled="true">
+            Dogs
+        </a>
+
+        <a class="nav-link disabled"
+           href="#"
+           aria-disabled="true">
+            Calendar
+        </a>
+
+        <a class="nav-link disabled"
+           href="#"
+           aria-disabled="true">
+            Availability
+        </a>
+
+        <a class="nav-link disabled"
+           href="#"
+           aria-disabled="true">
+            Inventory
+        </a>
+
+        <a class="nav-link disabled"
+           href="#"
+           aria-disabled="true">
+            Notifications
+        </a>
+
+        @if (User.IsInRole(UserRoles.Administrator))
+        {
+            <a class="nav-link @(userAccessActive ? "active" : "")"
+               asp-controller="UserAccess"
+               asp-action="Index">
+                Users & Access
+            </a>
+        }
+
+    </nav>
+
+</div>

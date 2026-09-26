@@ -1,0 +1,138 @@
+<nav class="navbar navbar-expand-lg public-navbar">
+
+    <div class="container">
+
+        <a class="navbar-brand"
+           asp-controller="Home"
+           asp-action="Index">
+            KZN Doghouse
+        </a>
+
+        <button class="navbar-toggler"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#publicNavbar"
+                aria-controls="publicNavbar"
+                aria-expanded="false"
+                aria-label="Toggle navigation">
+
+            <span class="navbar-toggler-icon"></span>
+
+        </button>
+
+        <div class="collapse navbar-collapse"
+             id="publicNavbar">
+
+            <ul class="navbar-nav ms-auto align-items-lg-center">
+
+                <li class="nav-item">
+                    <a class="nav-link"
+                       asp-controller="Home"
+                       asp-action="Index">
+                        Home
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link disabled"
+                       href="#"
+                       aria-disabled="true">
+                        Foster
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link disabled"
+                       href="#"
+                       aria-disabled="true">
+                        Get Involved
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link disabled"
+                       href="#"
+                       aria-disabled="true">
+                        Events
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link disabled"
+                       href="#"
+                       aria-disabled="true">
+                        Dogs
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link disabled"
+                       href="#"
+                       aria-disabled="true">
+                        Contact
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link disabled"
+                       href="#"
+                       aria-disabled="true">
+                        Donate
+                    </a>
+                </li>
+
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    @if (User.IsInRole(UserRoles.Staff)
+                        || User.IsInRole(UserRoles.Administrator))
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link"
+                            asp-controller="Portal"
+                            asp-action="Index">
+                                Portal
+                            </a>
+                        </li>
+                    }
+
+                    <li class="nav-item d-flex align-items-center ms-lg-2">
+                        <span class="nav-link">
+                            @User.Identity.Name
+                        </span>
+                    </li>
+
+                    <li class="nav-item ms-lg-2">
+
+                        <form asp-controller="Auth"
+                            asp-action="Logout"
+                            method="post">
+
+                            <button type="submit"
+                                    class="public-sign-in">
+                                Sign Out
+                            </button>
+
+                        </form>
+
+                    </li>
+                }
+                else
+                {
+                    <li class="nav-item ms-lg-2">
+
+                        <a class="public-sign-in"
+                        asp-controller="Auth"
+                        asp-action="Login">
+                            Sign In
+                        </a>
+
+                    </li>
+                }
+
+            </ul>
+
+        </div>
+
+    </div>
+
+</nav>
