@@ -25,7 +25,18 @@ language plpgsql
 security definer
 set search_path = ''
 as $$
+declare
+    requested_role text;
+    resolved_role text := 'Public';
 begin
+    requested_role := new.raw_user_meta_data ->> 'role';
+
+    -- Self-registration (mobile app) can only ever grant 'Volunteer'.
+    -- Staff/Administrator/Vet are assigned internally, never from client input.
+    if lower(coalesce(requested_role, '')) = 'volunteer' then
+        resolved_role := 'Volunteer';
+    end if;
+
     insert into public.user_profiles (
         auth_user_id,
         first_name,
@@ -38,7 +49,7 @@ begin
         coalesce(new.raw_user_meta_data ->> 'first_name', ''),
         coalesce(new.raw_user_meta_data ->> 'last_name', ''),
         coalesce(new.email, ''),
-        'Public'
+        resolved_role
     );
 
     return new;
