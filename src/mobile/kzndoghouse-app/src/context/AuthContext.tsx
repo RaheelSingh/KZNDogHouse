@@ -4,10 +4,10 @@ import { supabase } from '@/lib/supabase';
 export type UserRole = 'volunteer' | 'staff';
 
 export type AppUser = {
-  id: string; // Supabase auth user id
+  id: string; 
   name: string;
   email: string;
-  role: UserRole; // looked up from the backend, never from client input
+  role: UserRole; 
 };
 
 export type RegisterDetails = {
@@ -30,12 +30,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
-// TODO: confirm the exact route + response shape with Raheel once /api/me
-// exists on web-foundation. Expected: GET /api/me with an
-// "Authorization: Bearer <supabase access token>" header, returning
-// something like { id, name, role, isActive }.
-// Until then, this falls back to a safe default so the app doesn't crash —
-// it just won't have a real role yet.
+
 async function fetchProfile(
   accessToken: string,
   fallback: { id: string; email: string }
@@ -79,7 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     mounted.current = true;
 
-    // Restore session on app start
+
     supabase.auth.getSession().then(async ({ data }) => {
       const supaSession = data.session;
       if (supaSession) {
@@ -92,7 +87,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (mounted.current) setIsLoading(false);
     });
 
-    // Keep session in sync with Supabase auth events (sign in, sign out, token refresh)
     const { data: listener } = supabase.auth.onAuthStateChange(async (_event, supaSession) => {
       if (!supaSession) {
         if (mounted.current) setSession(null);
@@ -120,11 +114,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = async (details: RegisterDetails) => {
     const { firstName, lastName, email, phone, password } = details;
 
-    // NOTE: per the web-foundation team plan, the Supabase signup trigger
-    // currently forces every self-registered account to role = Public.
-    // Confirm with Raheel whether Volunteer role is set by that trigger
-    // based on this metadata, or only later when Staff approve the
-    // application. Sign-up itself works either way.
     const { error } = await supabase.auth.signUp({
       email,
       password,
