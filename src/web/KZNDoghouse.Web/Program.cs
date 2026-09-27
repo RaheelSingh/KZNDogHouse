@@ -62,6 +62,8 @@ builder.Services.AddScoped<IAvailabilitySlotRepository, AvailabilitySlotReposito
 builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
 builder.Services.AddScoped<ICalendarEventRepository, CalendarEventRepository>();
 builder.Services.AddScoped<ICalendarEventService, CalendarEventService>();
+builder.Services.AddScoped<IFosterApplicationRepository, FosterApplicationRepository>();
+builder.Services.AddScoped<IFosterApplicationService, FosterApplicationService>();
 
 var app = builder.Build();
 
