@@ -38,9 +38,9 @@
              Dogs
         </a>
 
-        <a class="nav-link disabled"
-           href="#"
-           aria-disabled="true">
+        <a class="nav-link @(currentController == "Calendar" ? "active" : "")"
+            asp-controller="Calendar"
+            asp-action="Index">
             Calendar
         </a>
 
