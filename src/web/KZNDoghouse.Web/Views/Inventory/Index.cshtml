@@ -1,0 +1,162 @@
+@model IReadOnlyList<InventoryItem>
+@using KZNDoghouse.Web.Constants
+
+@{
+    ViewData["Title"] = "Inventory";
+    Layout = "_PortalLayout";
+
+    var lowStockItems = Model.Where(x => x.IsLowStock()).ToList();
+}
+
+<div class="mb-4">
+    <h1 class="portal-page-title mb-2">Inventory</h1>
+    <p class="text-muted mb-0">Track stock levels, deliveries and usage.</p>
+</div>
+
+@if (TempData["SuccessMessage"] is string successMessage)
+{
+    <div class="alert alert-success" role="alert">@successMessage</div>
+}
+
+@if (TempData["ErrorMessage"] is string errorMessage)
+{
+    <div class="alert alert-danger" role="alert">@errorMessage</div>
+}
+
+@if (lowStockItems.Any())
+{
+    <div class="alert alert-warning">
+        <strong>Low stock:</strong> @string.Join(", ", lowStockItems.Select(x => x.Name))
+    </div>
+}
+
+<div class="row g-4">
+
+    <div class="col-lg-8">
+
+        <div class="portal-card">
+
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Category</th>
+                            <th>Quantity</th>
+                            <th>Threshold</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>@item.Name</td>
+                                <td>@(item.Category ?? "—")</td>
+                                <td>
+                                    @item.Quantity @item.Unit
+                                    @if (item.IsLowStock())
+                                    {
+                                        <span class="kzn-status-badge kzn-status-under-treatment ms-1">Low</span>
+                                    }
+                                </td>
+                                <td>@item.LowStockThreshold</td>
+                                <td class="text-end">
+                                    <button type="button" class="btn btn-kzn-outline btn-sm" data-bs-toggle="collapse" data-bs-target="#txn-@item.Id">
+                                        Record transaction
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr class="collapse" id="txn-@item.Id">
+                                <td colspan="5">
+                                    <form asp-controller="Inventory" asp-action="RecordTransaction" method="post" class="row g-2 align-items-end">
+                                        <input type="hidden" name="itemId" value="@item.Id" />
+
+                                        <div class="col-md-3">
+                                            <label class="form-label">Type</label>
+                                            <select name="transactionType" class="form-select">
+                                                @foreach (var type in InventoryTransactionTypes.All)
+                                                {
+                                                    <option value="@type">@type</option>
+                                                }
+                                            </select>
+                                        </div>
+
+                                        <div class="col-md-2">
+                                            <label class="form-label">Quantity</label>
+                                            <input type="number" name="quantityChange" class="form-control" required />
+                                        </div>
+
+                                        <div class="col-md-3">
+                                            <label class="form-label">Expiry date</label>
+                                            <input type="date" name="expiryDate" class="form-control" />
+                                        </div>
+
+                                        <div class="col-md-3">
+                                            <label class="form-label">Notes</label>
+                                            <input name="notes" class="form-control" />
+                                        </div>
+
+                                        <div class="col-md-1">
+                                            <button type="submit" class="btn btn-kzn-primary w-100">Save</button>
+                                        </div>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+
+                        @if (!Model.Any())
+                        {
+                            <tr><td colspan="5" class="text-center text-muted py-4">No inventory items yet.</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="col-lg-4">
+
+        <div class="portal-card">
+
+            <h5 class="kzn-card-title">Add item</h5>
+
+            <form asp-controller="Inventory" asp-action="CreateItem" method="post">
+
+                <div class="mb-3">
+                    <label class="form-label">Name</label>
+                    <input name="name" class="form-control" required />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Category</label>
+                    <input name="category" class="form-control" />
+                </div>
+
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label">Unit</label>
+                        <input name="unit" class="form-control" placeholder="e.g. kg, bags" />
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">Starting quantity</label>
+                        <input type="number" name="initialQuantity" class="form-control" value="0" />
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Low stock threshold</label>
+                    <input type="number" name="lowStockThreshold" class="form-control" value="0" />
+                </div>
+
+                <button type="submit" class="btn btn-kzn-primary w-100">Add item</button>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>

@@ -30,5 +30,5 @@ public class InventoryItem : BaseModel
     [Column("updated_at")]
     public DateTime? UpdatedAt { get; set; }
 
-    public bool IsLowStock => Quantity <= LowStockThreshold;
+    public bool IsLowStock() => Quantity <= LowStockThreshold;
 }

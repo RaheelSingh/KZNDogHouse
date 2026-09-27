@@ -50,9 +50,10 @@
             Availability
         </a>
 
-        <a class="nav-link disabled"
-           href="#"
-           aria-disabled="true">
+
+        <a class="nav-link @(currentController == "Inventory" ? "active" : "")"
+            asp-controller="Inventory"
+            asp-action="Index">
             Inventory
         </a>
 
