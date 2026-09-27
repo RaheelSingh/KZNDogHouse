@@ -51,6 +51,9 @@ builder.Services.AddAuthorization(options =>
         });
 });
 
+builder.Services.AddScoped<IDogRepository, DogRepository>();
+builder.Services.AddScoped<IDogService, DogService>();
+
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
