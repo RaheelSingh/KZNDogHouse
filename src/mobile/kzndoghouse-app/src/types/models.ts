@@ -86,6 +86,7 @@ export interface EventAssignment {
   event_id: string;
   profile_id: string;
   status: 'Assigned' | 'Registered' | 'Confirmed' | 'Cancelled';
+  checked_in_at: string | null;
   created_at: string;
 }
 
