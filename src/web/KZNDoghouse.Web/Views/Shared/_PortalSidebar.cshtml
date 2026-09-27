@@ -44,9 +44,9 @@
             Calendar
         </a>
 
-        <a class="nav-link disabled"
-           href="#"
-           aria-disabled="true">
+        <a class="nav-link @(currentController == "Availability" ? "active" : "")"
+            asp-controller="Availability"
+            asp-action="Index">
             Availability
         </a>
 
