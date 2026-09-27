@@ -56,6 +56,8 @@ builder.Services.AddScoped<IDogService, DogService>();
 builder.Services.AddScoped<IDogMedicalRecordRepository, DogMedicalRecordRepository>();
 builder.Services.AddScoped<IDogNoteRepository, DogNoteRepository>();
 builder.Services.AddScoped<IDogMedicalService, DogMedicalService>();
+builder.Services.AddScoped<IFosteringRecordRepository, FosteringRecordRepository>();
+builder.Services.AddScoped<IFosteringService, FosteringService>();
 
 var app = builder.Build();
 
