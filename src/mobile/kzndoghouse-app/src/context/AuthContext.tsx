@@ -31,15 +31,23 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
 
+async function resolveRoleFromSupabase(): Promise<UserRole> {
+  const { data, error } = await supabase.rpc('current_profile_role');
+  if (error) {
+    console.warn('[auth] Could not resolve current_profile_role from Supabase:', error);
+    return 'volunteer';
+  }
+  const roleLower = String(data).toLowerCase();
+  return roleLower === 'staff' || roleLower === 'administrator' ? 'staff' : 'volunteer';
+}
+
 async function fetchProfile(
   accessToken: string,
   fallback: { id: string; email: string }
 ): Promise<AppUser> {
   if (!API_BASE_URL) {
-    console.warn(
-      '[auth] EXPO_PUBLIC_API_BASE_URL not set — using fallback profile, role defaults to "volunteer".'
-    );
-    return { id: fallback.id, name: fallback.email, email: fallback.email, role: 'volunteer' };
+    const role = await resolveRoleFromSupabase();
+    return { id: fallback.id, name: fallback.email, email: fallback.email, role };
   }
 
   try {
@@ -62,8 +70,9 @@ async function fetchProfile(
       role,
     };
   } catch (err) {
-    console.warn('[auth] Could not reach /api/me, using fallback profile:', err);
-    return { id: fallback.id, name: fallback.email, email: fallback.email, role: 'volunteer' };
+    console.warn('[auth] Could not reach /api/me, falling back to Supabase role lookup:', err);
+    const role = await resolveRoleFromSupabase();
+    return { id: fallback.id, name: fallback.email, email: fallback.email, role };
   }
 }
 
