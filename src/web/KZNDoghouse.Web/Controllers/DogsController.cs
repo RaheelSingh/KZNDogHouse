@@ -275,4 +275,16 @@ public async Task<IActionResult> UpdateStatus(Guid id, string status)
 
         return await _userProfileRepository.GetByAuthUserIdAsync(currentAuthUserId);
     }
+    
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> ReturnFromFostering(
+    Guid dogId, Guid fosteringRecordId, string? feedback)
+{
+    await _fosteringService.ReturnDogAsync(fosteringRecordId, dogId, feedback);
+
+    TempData["SuccessMessage"] = $"Dog marked as returned and status set to Available.";
+
+    return RedirectToAction(nameof(Details), new { id = dogId });
+}
 }

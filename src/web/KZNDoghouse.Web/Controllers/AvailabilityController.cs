@@ -21,13 +21,27 @@ public class AvailabilityController : Controller
         _userProfileRepository = userProfileRepository;
     }
 
-    [HttpGet]
-    public async Task<IActionResult> Index()
-    {
-        var pending = await _availabilityService.GetPendingAsync();
+[HttpGet]
+public async Task<IActionResult> Index()
+{
+    var pending = await _availabilityService.GetPendingAsync();
 
-        return View(pending);
+    var items = new List<AvailabilitySlotListItem>();
+
+    foreach (var slot in pending)
+    {
+        var volunteerProfile =
+            await _userProfileRepository.GetByIdAsync(slot.VolunteerId);
+
+        items.Add(new AvailabilitySlotListItem
+        {
+            Slot = slot,
+            VolunteerName = volunteerProfile?.FullName ?? "Unknown volunteer"
+        });
     }
+
+    return View(items);
+}
 
     [HttpPost]
     [ValidateAntiForgeryToken]

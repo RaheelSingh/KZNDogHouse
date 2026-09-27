@@ -1,4 +1,4 @@
-@model IReadOnlyList<FosterApplication>
+@model IReadOnlyList<FosterApplicationListItem>
 
 @{
     ViewData["Title"] = "Foster Applications";
@@ -34,46 +34,48 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach (var application in Model)
-                {
-                    <tr>
-                        <td>
-                            <div class="fw-semibold">@application.ApplicantName</div>
-                            <div class="text-muted small">@application.ApplicantEmail</div>
-                        </td>
-                        <td>@(application.DogId?.ToString() ?? "—")</td>
-                        <td>@application.SubmittedAt.ToString("dd MMM yyyy")</td>
-                        <td>
-                            <span class="kzn-status-badge @(application.Status == "Approved" ? "kzn-status-available" : application.Status == "Rejected" ? "kzn-status-under-treatment" : "kzn-status-in-care")">
-                                @application.Status
-                            </span>
-                        </td>
-                        <td class="text-end">
-                            @if (application.Status == "Submitted" || application.Status == "Under Review")
-                            {
-                                <form asp-controller="FosterApplications" asp-action="Approve" asp-route-id="@application.Id" method="post" class="d-inline">
-                                    <button type="submit" class="btn btn-kzn-primary btn-sm">Approve</button>
-                                </form>
+@foreach (var item in Model)
+{
+    var application = item.Application;
 
-                                <button type="button" class="btn btn-kzn-outline btn-sm" data-bs-toggle="collapse" data-bs-target="#reject-@application.Id">
-                                    Reject
-                                </button>
+    <tr>
+        <td>
+            <div class="fw-semibold">@application.ApplicantName</div>
+            <div class="text-muted small">@application.ApplicantEmail</div>
+        </td>
+        <td>@item.DogName</td>
+        <td>@application.SubmittedAt.ToString("dd MMM yyyy")</td>
+        <td>
+            <span class="kzn-status-badge @(application.Status == "Approved" ? "kzn-status-available" : application.Status == "Rejected" ? "kzn-status-under-treatment" : "kzn-status-in-care")">
+                @application.Status
+            </span>
+        </td>
+        <td class="text-end">
+            @if (application.Status == "Submitted" || application.Status == "Under Review")
+            {
+                <form asp-controller="FosterApplications" asp-action="Approve" asp-route-id="@application.Id" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-kzn-primary btn-sm">Approve</button>
+                </form>
 
-                                <div class="collapse mt-2" id="reject-@application.Id">
-                                    <form asp-controller="FosterApplications" asp-action="Reject" asp-route-id="@application.Id" method="post" class="d-flex gap-2">
-                                        <input name="rejectionReason" class="form-control form-control-sm" placeholder="Reason" required />
-                                        <button type="submit" class="btn btn-kzn-outline btn-sm">Confirm</button>
-                                    </form>
-                                </div>
-                            }
-                        </td>
-                    </tr>
-                }
+                <button type="button" class="btn btn-kzn-outline btn-sm" data-bs-toggle="collapse" data-bs-target="#reject-@application.Id">
+                    Reject
+                </button>
 
-                @if (!Model.Any())
-                {
-                    <tr><td colspan="5" class="text-center text-muted py-4">No applications yet.</td></tr>
-                }
+                <div class="collapse mt-2" id="reject-@application.Id">
+                    <form asp-controller="FosterApplications" asp-action="Reject" asp-route-id="@application.Id" method="post" class="d-flex gap-2">
+                        <input name="rejectionReason" class="form-control form-control-sm" placeholder="Reason" required />
+                        <button type="submit" class="btn btn-kzn-outline btn-sm">Confirm</button>
+                    </form>
+                </div>
+            }
+        </td>
+    </tr>
+}
+
+@if (!Model.Any())
+{
+    <tr><td colspan="5" class="text-center text-muted py-4">No applications yet.</td></tr>
+}
             </tbody>
         </table>
     </div>

@@ -12,13 +12,16 @@ public class FosterApplicationsController : Controller
 {
     private readonly IFosterApplicationService _fosterApplicationService;
     private readonly IUserProfileRepository _userProfileRepository;
+    private readonly IDogService _dogService;
 
     public FosterApplicationsController(
         IFosterApplicationService fosterApplicationService,
-        IUserProfileRepository userProfileRepository)
+        IUserProfileRepository userProfileRepository,
+        IDogService dogService)
     {
         _fosterApplicationService = fosterApplicationService;
         _userProfileRepository = userProfileRepository;
+        _dogService = dogService;
     }
 
     [HttpGet]
@@ -26,7 +29,26 @@ public class FosterApplicationsController : Controller
     {
         var applications = await _fosterApplicationService.GetAllAsync();
 
-        return View(applications);
+        var items = new List<FosterApplicationListItem>();
+
+        foreach (var application in applications)
+        {
+            var dogName = "No dog assigned";
+
+            if (application.DogId.HasValue)
+            {
+                var dog = await _dogService.GetDogAsync(application.DogId.Value);
+                dogName = dog?.Name ?? "Unknown dog";
+            }
+
+            items.Add(new FosterApplicationListItem
+            {
+                Application = application,
+                DogName = dogName
+            });
+        }
+
+        return View(items);
     }
 
     [HttpPost]

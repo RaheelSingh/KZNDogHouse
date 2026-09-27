@@ -1,4 +1,4 @@
-@model IReadOnlyList<AvailabilitySlot>
+@model IReadOnlyList<AvailabilitySlotListItem>
 
 @{
     ViewData["Title"] = "Availability";
@@ -30,29 +30,32 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach (var slot in Model)
-                {
-                    <tr>
-                        <td>@slot.VolunteerId</td>
-                        <td>@slot.WeekStart.ToString("dd MMM yyyy")</td>
-                        <td>@slot.DayDate.ToString("ddd dd MMM")</td>
-                        <td>@slot.Slot</td>
-                        <td>@slot.SubmittedAt.ToString("dd MMM, HH:mm")</td>
-                        <td class="text-end d-flex gap-2 justify-content-end">
-                            <form asp-controller="Availability" asp-action="Approve" asp-route-id="@slot.Id" method="post">
-                                <button type="submit" class="btn btn-kzn-primary btn-sm">Approve</button>
-                            </form>
-                            <form asp-controller="Availability" asp-action="Reject" asp-route-id="@slot.Id" method="post">
-                                <button type="submit" class="btn btn-kzn-outline btn-sm">Reject</button>
-                            </form>
-                        </td>
-                    </tr>
-                }
+                
+@foreach (var item in Model)
+{
+    var slot = item.Slot;
 
-                @if (!Model.Any())
-                {
-                    <tr><td colspan="6" class="text-center text-muted py-4">No pending submissions.</td></tr>
-                }
+    <tr>
+        <td>@item.VolunteerName</td>
+        <td>@slot.WeekStart.ToString("dd MMM yyyy")</td>
+        <td>@slot.DayDate.ToString("ddd dd MMM")</td>
+        <td>@slot.Slot</td>
+        <td>@slot.SubmittedAt.ToString("dd MMM, HH:mm")</td>
+        <td class="text-end d-flex gap-2 justify-content-end">
+            <form asp-controller="Availability" asp-action="Approve" asp-route-id="@slot.Id" method="post">
+                <button type="submit" class="btn btn-kzn-primary btn-sm">Approve</button>
+            </form>
+            <form asp-controller="Availability" asp-action="Reject" asp-route-id="@slot.Id" method="post">
+                <button type="submit" class="btn btn-kzn-outline btn-sm">Reject</button>
+            </form>
+        </td>
+    </tr>
+}
+
+@if (!Model.Any())
+{
+    <tr><td colspan="6" class="text-center text-muted py-4">No pending submissions.</td></tr>
+}
             </tbody>
         </table>
     </div>

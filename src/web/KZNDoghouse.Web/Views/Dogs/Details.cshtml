@@ -202,21 +202,47 @@
                         <p class="text-muted mb-0">No fostering history yet.</p>
                     }
 
-                    @foreach (var record in Model.FosteringHistory)
-                    {
-                        <div class="border-bottom py-2 small">
-                            <div class="fw-semibold">@(record.FosterName ?? "Unnamed foster")</div>
-                            <div class="text-muted">
-                                @record.StartDate.ToString("dd MMM yyyy")
-                                – @(record.EndDate?.ToString("dd MMM yyyy") ?? "ongoing")
-                                · @record.Status
-                            </div>
-                            @if (!string.IsNullOrWhiteSpace(record.Feedback))
-                            {
-                                <div class="mt-1">@record.Feedback</div>
-                            }
-                        </div>
-                    }
+                    
+@foreach (var record in Model.FosteringHistory)
+{
+    <div class="d-flex justify-content-between align-items-start border-bottom py-2">
+
+        <div class="small">
+            <div class="fw-semibold">@(record.FosterName ?? "Unnamed foster")</div>
+            <div class="text-muted">
+                @record.StartDate.ToString("dd MMM yyyy")
+                – @(record.EndDate?.ToString("dd MMM yyyy") ?? "ongoing")
+                · @record.Status
+            </div>
+            @if (!string.IsNullOrWhiteSpace(record.Feedback))
+            {
+                <div class="mt-1">@record.Feedback</div>
+            }
+        </div>
+
+        @if (record.Status == FosteringRecordStatuses.Active)
+        {
+            <form asp-controller="Dogs"
+                  asp-action="ReturnFromFostering"
+                  method="post"
+                  class="d-flex gap-2">
+
+                <input type="hidden" name="dogId" value="@dog.Id" />
+                <input type="hidden" name="fosteringRecordId" value="@record.Id" />
+
+                <input name="feedback"
+                       class="form-control form-control-sm"
+                       placeholder="Return feedback (optional)" />
+
+                <button type="submit" class="btn btn-kzn-outline btn-sm">
+                    Mark returned
+                </button>
+
+            </form>
+        }
+
+    </div>
+}
                 </div>
             </div>
 
