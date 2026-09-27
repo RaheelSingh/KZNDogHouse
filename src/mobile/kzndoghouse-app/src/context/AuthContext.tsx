@@ -52,7 +52,8 @@ async function fetchProfile(
     }
 
     const data = await res.json();
-    const role: UserRole = String(data.role).toLowerCase() === 'staff' ? 'staff' : 'volunteer';
+    const roleLower = String(data.role).toLowerCase();
+    const role: UserRole = roleLower === 'staff' || roleLower === 'administrator' ? 'staff' : 'volunteer';
 
     return {
       id: data.id ?? fallback.id,
