@@ -53,6 +53,9 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services.AddScoped<IDogRepository, DogRepository>();
 builder.Services.AddScoped<IDogService, DogService>();
+builder.Services.AddScoped<IDogMedicalRecordRepository, DogMedicalRecordRepository>();
+builder.Services.AddScoped<IDogNoteRepository, DogNoteRepository>();
+builder.Services.AddScoped<IDogMedicalService, DogMedicalService>();
 
 var app = builder.Build();
 
