@@ -9,7 +9,8 @@ function RootNavigator() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Protected guard={!!session}>
-        <Stack.Screen name="(tabs)" />
+       <Stack.Screen name="(tabs)" />
+       <Stack.Screen name="availability" options={{ presentation: 'modal', headerShown: true, title: 'Availability' }} />
       </Stack.Protected>
       <Stack.Protected guard={!session}>
         <Stack.Screen name="(auth)" />
