@@ -13,15 +13,20 @@ public class DogsController : Controller
 {
     private readonly IDogService _dogService;
     private readonly IUserProfileRepository _userProfileRepository;
+    private readonly IDogMedicalService _dogMedicalService;
+    private readonly IFosteringService _fosteringService;
 
     public DogsController(
         IDogService dogService,
-        IUserProfileRepository userProfileRepository)
+        IUserProfileRepository userProfileRepository,
+        IDogMedicalService dogMedicalService,
+        IFosteringService fosteringService)
     {
         _dogService = dogService;
         _userProfileRepository = userProfileRepository;
+        _dogMedicalService = dogMedicalService;
+        _fosteringService = fosteringService;
     }
-
     [HttpGet]
     public async Task<IActionResult> Index(string? status)
     {
@@ -188,16 +193,86 @@ public async Task<IActionResult> UpdateStatus(Guid id, string status)
     return RedirectToAction(nameof(Details), new { id });
 }
 
-[HttpGet]
-public async Task<IActionResult> Details(Guid id)
-{
-    var dog = await _dogService.GetDogAsync(id);
 
-    if (dog == null)
+ [HttpGet]
+    public async Task<IActionResult> Details(Guid id)
     {
-        return NotFound();
+        var dog = await _dogService.GetDogAsync(id);
+
+        if (dog == null)
+        {
+            return NotFound();
+        }
+
+        var model = new DogDetailsViewModel
+        {
+            Dog = dog,
+            MedicalRecords = await _dogMedicalService.GetRecordsAsync(id),
+            Notes = await _dogMedicalService.GetNotesAsync(id),
+            FosteringHistory = await _fosteringService.GetHistoryForDogAsync(id)
+        };
+
+        return View(model);
     }
 
-    return View(dog);
-}
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AddMedicalRecord(
+        Guid dogId,
+        string recordType,
+        string title,
+        string? details,
+        string? vetName,
+        DateTime? nextActionDate)
+    {
+        var currentProfile = await GetCurrentProfileAsync();
+
+        if (currentProfile == null)
+        {
+            return Challenge();
+        }
+
+        await _dogMedicalService.AddRecordAsync(
+            dogId, recordType, title, details, vetName, nextActionDate, currentProfile.Id);
+
+        TempData["SuccessMessage"] = "Medical record added.";
+
+        return RedirectToAction(nameof(Details), new { id = dogId });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResolveMedicalRecord(Guid dogId, Guid recordId)
+    {
+        await _dogMedicalService.ResolveRecordAsync(recordId);
+
+        TempData["SuccessMessage"] = "Medical record marked as resolved.";
+
+        return RedirectToAction(nameof(Details), new { id = dogId });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AddNote(Guid dogId, string note)
+    {
+        var currentProfile = await GetCurrentProfileAsync();
+
+        await _dogMedicalService.AddNoteAsync(dogId, note, currentProfile?.Id);
+
+        TempData["SuccessMessage"] = "Note saved.";
+
+        return RedirectToAction(nameof(Details), new { id = dogId });
+    }
+
+    private async Task<UserProfile?> GetCurrentProfileAsync()
+    {
+        var currentAuthUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (string.IsNullOrWhiteSpace(currentAuthUserId))
+        {
+            return null;
+        }
+
+        return await _userProfileRepository.GetByAuthUserIdAsync(currentAuthUserId);
+    }
 }

@@ -1,8 +1,10 @@
-@model Dog
+@model DogDetailsViewModel
+@using KZNDoghouse.Web.Constants
 
 @{
-    ViewData["Title"] = Model.Name;
+    ViewData["Title"] = Model.Dog.Name;
     Layout = "_PortalLayout";
+    var dog = Model.Dog;
 }
 
 <div class="mb-3">
@@ -19,74 +21,44 @@
 
             <div class="kzn-dog-avatar mx-auto mb-3"
                  style="width:96px;height:96px;font-size:2.5rem;">
-                @Model.Name.Substring(0, 1).ToUpper()
+                @dog.Name.Substring(0, 1).ToUpper()
             </div>
 
-            <h4 class="mb-1">@Model.Name</h4>
+            <h4 class="mb-1">@dog.Name</h4>
 
             <p class="text-muted mb-2">
-                @(Model.Breed ?? "Mixed breed")
-                @if (Model.EstimatedAgeYears.HasValue)
+                @(dog.Breed ?? "Mixed breed")
+                @if (dog.EstimatedAgeYears.HasValue)
                 {
-                    <text> · @Model.EstimatedAgeYears years</text>
+                    <text> · @dog.EstimatedAgeYears years</text>
                 }
-                · @Model.Gender
+                · @dog.Gender
             </p>
 
-            <partial name="_DogStatusBadge" model="@Model.Status" />
+            <partial name="_DogStatusBadge" model="@dog.Status" />
 
             <hr />
 
             <dl class="row text-start small mb-0">
                 <dt class="col-5">Kennel</dt>
-                <dd class="col-7">@(Model.KennelLocation ?? "—")</dd>
+                <dd class="col-7">@(dog.KennelLocation ?? "—")</dd>
 
                 <dt class="col-5">Intake date</dt>
-                <dd class="col-7">@Model.IntakeDate.ToString("dd MMM yyyy")</dd>
+                <dd class="col-7">@dog.IntakeDate.ToString("dd MMM yyyy")</dd>
 
                 <dt class="col-5">Intake type</dt>
-                <dd class="col-7">@(Model.IntakeType ?? "—")</dd>
+                <dd class="col-7">@(dog.IntakeType ?? "—")</dd>
 
                 <dt class="col-5">Vaccinated</dt>
-                <dd class="col-7">@(Model.IsVaccinated ? "Yes" : "No")</dd>
+                <dd class="col-7">@(dog.IsVaccinated ? "Yes" : "No")</dd>
             </dl>
 
             <a asp-controller="Dogs"
                asp-action="Edit"
-               asp-route-id="@Model.Id"
+               asp-route-id="@dog.Id"
                class="btn btn-kzn-outline btn-sm mt-3">
                 Edit profile
             </a>
-
-        </div>
-
-        <div class="portal-card mt-3">
-
-            <label class="form-label">Change status</label>
-
-            <form asp-controller="Dogs"
-                  asp-action="UpdateStatus"
-                  asp-route-id="@Model.Id"
-                  method="post"
-                  class="d-flex gap-2">
-
-                <select name="status" class="form-select">
-                    @foreach (var status in KZNDoghouse.Web.Constants.DogStatuses.All)
-                    {
-                        if (status == Model.Status)
-                        {
-                            <option value="@status" selected>@status</option>
-                        }
-                        else
-                        {
-                            <option value="@status">@status</option>
-                        }
-                    }
-                </select>
-
-                <button type="submit" class="btn btn-kzn-primary">Save</button>
-
-            </form>
 
         </div>
 
@@ -95,43 +67,156 @@
     <div class="col-lg-8">
 
         <ul class="nav nav-tabs mb-3">
-            <li class="nav-item">
-                <a class="nav-link active" data-bs-toggle="tab" href="#about-tab">About</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" data-bs-toggle="tab" href="#medical-tab">Medical</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" data-bs-toggle="tab" href="#fostering-tab">Fostering</a>
-            </li>
+            <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#about-tab">About</a></li>
+            <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#medical-tab">Medical</a></li>
+            <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#fostering-tab">Fostering</a></li>
         </ul>
 
         <div class="tab-content">
 
             <div class="tab-pane fade show active" id="about-tab">
-                <div class="portal-card">
-                    <h5 class="kzn-card-title">About @Model.Name</h5>
-                    <p class="mb-0">@(Model.About ?? "No description added yet.")</p>
-                    @if (!string.IsNullOrWhiteSpace(Model.Temperament))
+
+                <div class="portal-card mb-3">
+                    <h5 class="kzn-card-title">About @dog.Name</h5>
+                    <p class="mb-0">@(dog.About ?? "No description added yet.")</p>
+                    @if (!string.IsNullOrWhiteSpace(dog.Temperament))
                     {
-                        <p class="text-muted mt-2 mb-0">Temperament: @Model.Temperament</p>
+                        <p class="text-muted mt-2 mb-0">Temperament: @dog.Temperament</p>
                     }
                 </div>
+
+                <div class="portal-card">
+                    <h5 class="kzn-card-title">Staff notes</h5>
+
+                    @foreach (var note in Model.Notes)
+                    {
+                        <div class="border-bottom py-2 small">
+                            <div>@note.Note</div>
+                            <div class="text-muted">@note.CreatedAt.ToString("dd MMM yyyy HH:mm")</div>
+                        </div>
+                    }
+
+                    <form asp-controller="Dogs" asp-action="AddNote" method="post" class="d-flex gap-2 mt-2">
+                        <input type="hidden" name="dogId" value="@dog.Id" />
+                        <input name="note" class="form-control" placeholder="Log a staff note about @dog.Name..." required />
+                        <button type="submit" class="btn btn-kzn-primary">Save note</button>
+                    </form>
+                </div>
+
             </div>
 
             <div class="tab-pane fade" id="medical-tab">
-                <div class="portal-card">
-                    <p class="text-muted mb-0">
-                        Medical record management is coming in the next update.
-                    </p>
+
+                <div class="portal-card mb-3">
+                    <h5 class="kzn-card-title">Medical flags</h5>
+
+                    @if (!Model.MedicalRecords.Any())
+                    {
+                        <p class="text-muted mb-0">No medical records yet.</p>
+                    }
+
+                    @foreach (var record in Model.MedicalRecords)
+                    {
+                        <div class="d-flex justify-content-between align-items-start border-bottom py-2">
+                            <div>
+                                <div class="fw-semibold">@record.Title</div>
+                                <div class="text-muted small">
+                                    @record.RecordType
+                                    @if (!string.IsNullOrWhiteSpace(record.VetName))
+                                    {
+                                        <text> · @record.VetName</text>
+                                    }
+                                    @if (record.NextActionDate.HasValue)
+                                    {
+                                        <text> · due @record.NextActionDate.Value.ToString("dd MMM")</text>
+                                    }
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(record.Details))
+                                {
+                                    <div class="small mt-1">@record.Details</div>
+                                }
+                            </div>
+                            <div class="text-end">
+                                <span class="kzn-status-badge @(record.Status == MedicalRecordStatuses.Active ? "kzn-status-under-treatment" : "kzn-status-available")">
+                                    @record.Status
+                                </span>
+                                @if (record.Status == MedicalRecordStatuses.Active)
+                                {
+                                    <form asp-controller="Dogs" asp-action="ResolveMedicalRecord" method="post" class="mt-1">
+                                        <input type="hidden" name="dogId" value="@dog.Id" />
+                                        <input type="hidden" name="recordId" value="@record.Id" />
+                                        <button type="submit" class="btn btn-kzn-outline btn-sm">Mark resolved</button>
+                                    </form>
+                                }
+                            </div>
+                        </div>
+                    }
                 </div>
+
+                <div class="portal-card">
+                    <h5 class="kzn-card-title">Log a new medical record</h5>
+
+                    <form asp-controller="Dogs" asp-action="AddMedicalRecord" method="post">
+                        <input type="hidden" name="dogId" value="@dog.Id" />
+
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Type</label>
+                                <select name="recordType" class="form-select">
+                                    @foreach (var type in MedicalRecordTypes.All)
+                                    {
+                                        <option value="@type">@type</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-8">
+                                <label class="form-label">Title</label>
+                                <input name="title" class="form-control" required />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Vet name</label>
+                                <input name="vetName" class="form-control" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Next action date</label>
+                                <input type="date" name="nextActionDate" class="form-control" />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Details</label>
+                                <textarea name="details" class="form-control" rows="2"></textarea>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-kzn-primary mt-3">Add record</button>
+                    </form>
+                </div>
+
             </div>
 
             <div class="tab-pane fade" id="fostering-tab">
                 <div class="portal-card">
-                    <p class="text-muted mb-0">
-                        Fostering history is coming in the next update.
-                    </p>
+                    <h5 class="kzn-card-title">Fostering history</h5>
+
+                    @if (!Model.FosteringHistory.Any())
+                    {
+                        <p class="text-muted mb-0">No fostering history yet.</p>
+                    }
+
+                    @foreach (var record in Model.FosteringHistory)
+                    {
+                        <div class="border-bottom py-2 small">
+                            <div class="fw-semibold">@(record.FosterName ?? "Unnamed foster")</div>
+                            <div class="text-muted">
+                                @record.StartDate.ToString("dd MMM yyyy")
+                                – @(record.EndDate?.ToString("dd MMM yyyy") ?? "ongoing")
+                                · @record.Status
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(record.Feedback))
+                            {
+                                <div class="mt-1">@record.Feedback</div>
+                            }
+                        </div>
+                    }
                 </div>
             </div>
 
