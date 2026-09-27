@@ -187,4 +187,17 @@ public async Task<IActionResult> UpdateStatus(Guid id, string status)
 
     return RedirectToAction(nameof(Details), new { id });
 }
+
+[HttpGet]
+public async Task<IActionResult> Details(Guid id)
+{
+    var dog = await _dogService.GetDogAsync(id);
+
+    if (dog == null)
+    {
+        return NotFound();
+    }
+
+    return View(dog);
+}
 }
