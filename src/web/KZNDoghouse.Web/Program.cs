@@ -58,6 +58,8 @@ builder.Services.AddScoped<IDogNoteRepository, DogNoteRepository>();
 builder.Services.AddScoped<IDogMedicalService, DogMedicalService>();
 builder.Services.AddScoped<IFosteringRecordRepository, FosteringRecordRepository>();
 builder.Services.AddScoped<IFosteringService, FosteringService>();
+builder.Services.AddScoped<IAvailabilitySlotRepository, AvailabilitySlotRepository>();
+builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
 
 var app = builder.Build();
 
