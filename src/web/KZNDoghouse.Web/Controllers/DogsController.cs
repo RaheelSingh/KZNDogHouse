@@ -94,4 +94,97 @@ public IActionResult Create()
 
         return RedirectToAction(nameof(Index));
     }
+
+    [HttpGet]
+public async Task<IActionResult> Edit(Guid id)
+{
+    var dog = await _dogService.GetDogAsync(id);
+
+    if (dog == null)
+    {
+        return NotFound();
+    }
+
+    var model = new DogFormViewModel
+    {
+        Name = dog.Name,
+        Breed = dog.Breed,
+        DateOfBirth = dog.DateOfBirth,
+        EstimatedAgeYears = dog.EstimatedAgeYears,
+        Gender = dog.Gender,
+        Size = dog.Size,
+        WeightKg = dog.WeightKg,
+        EyeColour = dog.EyeColour,
+        Temperament = dog.Temperament,
+        About = dog.About,
+        KennelLocation = dog.KennelLocation,
+        IntakeDate = dog.IntakeDate,
+        IntakeType = dog.IntakeType,
+        Status = dog.Status,
+        IsVaccinated = dog.IsVaccinated
+    };
+
+    ViewData["DogId"] = dog.Id;
+    ViewData["DogName"] = dog.Name;
+
+    return View(model);
+}
+
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> Edit(Guid id, DogFormViewModel model)
+{
+    if (!ModelState.IsValid)
+    {
+        ViewData["DogId"] = id;
+        return View(model);
+    }
+
+    var dog = await _dogService.GetDogAsync(id);
+
+    if (dog == null)
+    {
+        return NotFound();
+    }
+
+    dog.Name = model.Name;
+    dog.Breed = model.Breed;
+    dog.DateOfBirth = model.DateOfBirth;
+    dog.EstimatedAgeYears = model.EstimatedAgeYears;
+    dog.Gender = model.Gender;
+    dog.Size = model.Size;
+    dog.WeightKg = model.WeightKg;
+    dog.EyeColour = model.EyeColour;
+    dog.Temperament = model.Temperament;
+    dog.About = model.About;
+    dog.KennelLocation = model.KennelLocation;
+    dog.IntakeDate = model.IntakeDate;
+    dog.IntakeType = model.IntakeType;
+    dog.Status = model.Status;
+    dog.IsVaccinated = model.IsVaccinated;
+    dog.UpdatedAt = DateTime.UtcNow;
+
+    await _dogService.UpdateDogAsync(dog);
+
+    TempData["SuccessMessage"] = $"{dog.Name}'s profile has been updated.";
+
+    return RedirectToAction(nameof(Details), new { id = dog.Id });
+}
+
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> UpdateStatus(Guid id, string status)
+{
+    if (!DogStatuses.All.Contains(status))
+    {
+        TempData["ErrorMessage"] = "The selected status is invalid.";
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    await _dogService.ChangeStatusAsync(id, status);
+
+    TempData["SuccessMessage"] = "Status updated.";
+
+    return RedirectToAction(nameof(Details), new { id });
+}
 }

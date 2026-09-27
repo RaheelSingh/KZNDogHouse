@@ -1,0 +1,35 @@
+@model DogFormViewModel
+@using KZNDoghouse.Web.Constants
+
+@{
+    ViewData["Title"] = "Edit Dog";
+    Layout = "_PortalLayout";
+    var dogId = ViewData["DogId"];
+}
+
+<div class="mb-4">
+    <h1 class="portal-page-title mb-2">Edit dog</h1>
+</div>
+
+<div class="portal-card">
+
+    <form asp-controller="Dogs"
+          asp-action="Edit"
+          asp-route-id="@dogId"
+          method="post">
+
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+        
+
+        <div class="mt-4 d-flex gap-2">
+            <button type="submit" class="btn btn-kzn-primary">Save changes</button>
+            <a asp-controller="Dogs" asp-action="Details" asp-route-id="@dogId" class="btn btn-kzn-outline">Cancel</a>
+        </div>
+
+    </form>
+
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

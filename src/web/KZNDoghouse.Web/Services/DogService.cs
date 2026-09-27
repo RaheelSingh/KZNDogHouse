@@ -12,6 +12,8 @@ public interface IDogService
     Task<Dog> RegisterDogAsync(Dog dog, Guid createdByUserId);
 
     Task ChangeStatusAsync(Guid dogId, string newStatus);
+
+    Task UpdateDogAsync(Dog dog);
 }
 
 public class DogService : IDogService
@@ -40,4 +42,11 @@ public class DogService : IDogService
 
     public Task ChangeStatusAsync(Guid dogId, string newStatus) =>
         _dogRepository.UpdateStatusAsync(dogId, newStatus);
+
+        public Task UpdateDogAsync(Dog dog) =>
+    _dogRepository.UpdateAsync(dog);
 }
+
+
+
+
