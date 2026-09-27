@@ -64,6 +64,8 @@ builder.Services.AddScoped<ICalendarEventRepository, CalendarEventRepository>();
 builder.Services.AddScoped<ICalendarEventService, CalendarEventService>();
 builder.Services.AddScoped<IFosterApplicationRepository, FosterApplicationRepository>();
 builder.Services.AddScoped<IFosterApplicationService, FosterApplicationService>();
+builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
+builder.Services.AddScoped<IInventoryService, InventoryService>();
 
 var app = builder.Build();
 
