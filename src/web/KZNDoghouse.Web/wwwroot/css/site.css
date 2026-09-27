@@ -431,3 +431,86 @@ button.public-sign-in {
         display: none;
     }
 }
+
+/* Dog status badges (list + profile) */
+
+.kzn-status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.kzn-status-available,
+.kzn-status-ready-to-adopt {
+    background-color: rgba(51, 122, 77, 0.15);
+    color: var(--kzn-success);
+}
+
+.kzn-status-in-care {
+    background-color: var(--kzn-gold-light);
+    color: var(--kzn-green-dark);
+}
+
+.kzn-status-under-treatment {
+    background-color: rgba(181, 66, 66, 0.15);
+    color: var(--kzn-danger);
+}
+
+.kzn-status-fostered {
+    background-color: var(--kzn-green-light);
+    color: var(--kzn-green-dark);
+}
+
+.kzn-status-reserved {
+    background-color: rgba(200, 150, 46, 0.15);
+    color: var(--kzn-gold);
+}
+
+.kzn-status-adopted {
+    background-color: var(--kzn-cream-dark);
+    color: var(--kzn-text-muted);
+}
+
+
+/* Avatar square for dog initials in tables/cards */
+
+.kzn-dog-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background-color: var(--kzn-green-light);
+    color: var(--kzn-green-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+
+/* Filter pills used on list pages (Dogs, future Calendar/Availability/Inventory) */
+
+.kzn-filter-pill {
+    border: 1px solid var(--kzn-border);
+    border-radius: 999px;
+    padding: 0.35rem 0.9rem;
+    background-color: var(--kzn-white);
+    color: var(--kzn-text);
+    font-size: 0.85rem;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.kzn-filter-pill:hover {
+    color: var(--kzn-green-dark);
+    border-color: var(--kzn-green);
+}
+
+.kzn-filter-pill.active {
+    background-color: var(--kzn-green-dark);
+    border-color: var(--kzn-green-dark);
+    color: var(--kzn-white);
+}

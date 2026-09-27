@@ -31,10 +31,11 @@
             Dashboard
         </a>
 
-        <a class="nav-link disabled"
-           href="#"
-           aria-disabled="true">
-            Dogs
+        
+        <a class="nav-link @(currentController == "Dogs" ? "active" : "")"
+            asp-controller="Dogs"
+            asp-action="Index">
+             Dogs
         </a>
 
         <a class="nav-link disabled"
