@@ -31,14 +31,17 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
 
-async function resolveRoleFromSupabase(): Promise<UserRole> {
-  const { data, error } = await supabase.rpc('current_profile_role');
-  if (error) {
-    console.warn('[auth] Could not resolve current_profile_role from Supabase:', error);
-    return 'volunteer';
+async function resolveProfileFromSupabase(fallback: { id: string; email: string }): Promise<AppUser> {
+  const { data, error } = await supabase.rpc('current_profile_info');
+  if (error || !data || data.length === 0) {
+    console.warn('[auth] Could not resolve current_profile_info from Supabase:', error);
+    return { id: fallback.id, name: fallback.email, email: fallback.email, role: 'volunteer' };
   }
-  const roleLower = String(data).toLowerCase();
-  return roleLower === 'staff' || roleLower === 'administrator' ? 'staff' : 'volunteer';
+  const row = Array.isArray(data) ? data[0] : data;
+  const roleLower = String(row.role).toLowerCase();
+  const role: UserRole = roleLower === 'staff' || roleLower === 'administrator' ? 'staff' : 'volunteer';
+  const name = `${row.first_name} ${row.last_name}`.trim() || fallback.email;
+  return { id: row.id ?? fallback.id, name, email: row.email ?? fallback.email, role };
 }
 
 async function fetchProfile(
@@ -46,8 +49,7 @@ async function fetchProfile(
   fallback: { id: string; email: string }
 ): Promise<AppUser> {
   if (!API_BASE_URL) {
-    const role = await resolveRoleFromSupabase();
-    return { id: fallback.id, name: fallback.email, email: fallback.email, role };
+    return resolveProfileFromSupabase(fallback);
   }
 
   try {
@@ -70,9 +72,8 @@ async function fetchProfile(
       role,
     };
   } catch (err) {
-    console.warn('[auth] Could not reach /api/me, falling back to Supabase role lookup:', err);
-    const role = await resolveRoleFromSupabase();
-    return { id: fallback.id, name: fallback.email, email: fallback.email, role };
+    console.warn('[auth] Could not reach /api/me, falling back to Supabase profile lookup:', err);
+    return resolveProfileFromSupabase(fallback);
   }
 }
 
