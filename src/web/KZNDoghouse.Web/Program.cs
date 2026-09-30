@@ -66,6 +66,8 @@ builder.Services.AddScoped<IFosterApplicationRepository, FosterApplicationReposi
 builder.Services.AddScoped<IFosterApplicationService, FosterApplicationService>();
 builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
+builder.Services.AddScoped<IAppNotificationRepository, AppNotificationRepository>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
 var app = builder.Build();
 

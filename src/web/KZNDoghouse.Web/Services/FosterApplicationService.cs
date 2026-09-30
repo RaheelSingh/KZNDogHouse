@@ -1,3 +1,4 @@
+using KZNDoghouse.Web.Constants;
 using KZNDoghouse.Web.Models;
 using KZNDoghouse.Web.Repositories;
 
@@ -15,17 +16,21 @@ public interface IFosterApplicationService
 
 public record FosterApplicationDecisionResult(bool Success, string Message);
 
+// Services/FosterApplicationService.cs — updated constructor and Approve/Reject
 public class FosterApplicationService : IFosterApplicationService
 {
     private readonly IFosterApplicationRepository _applicationRepository;
     private readonly IFosteringService _fosteringService;
+    private readonly INotificationService _notificationService;
 
     public FosterApplicationService(
         IFosterApplicationRepository applicationRepository,
-        IFosteringService fosteringService)
+        IFosteringService fosteringService,
+        INotificationService notificationService)
     {
         _applicationRepository = applicationRepository;
         _fosteringService = fosteringService;
+        _notificationService = notificationService;
     }
 
     public Task<IReadOnlyList<FosterApplication>> GetAllAsync() =>
@@ -57,6 +62,15 @@ public class FosterApplicationService : IFosterApplicationService
         await _applicationRepository.ApproveAsync(
             applicationId, reviewedByStaffId, fosteringRecord.Id);
 
+        if (application.ApplicantUserId.HasValue)
+        {
+            await _notificationService.NotifyUserAsync(
+                application.ApplicantUserId.Value,
+                NotificationCategories.General,
+                "Foster application approved",
+                "Your foster application has been approved. We'll be in touch with next steps.");
+        }
+
         return new FosterApplicationDecisionResult(true, "Application approved and dog assigned.");
     }
 
@@ -64,6 +78,17 @@ public class FosterApplicationService : IFosterApplicationService
         Guid applicationId, Guid reviewedByStaffId, string rejectionReason)
     {
         await _applicationRepository.RejectAsync(applicationId, reviewedByStaffId, rejectionReason);
+
+        var application = await _applicationRepository.GetByIdAsync(applicationId);
+
+        if (application?.ApplicantUserId != null)
+        {
+            await _notificationService.NotifyUserAsync(
+                application.ApplicantUserId.Value,
+                NotificationCategories.General,
+                "Foster application update",
+                rejectionReason);
+        }
 
         return new FosterApplicationDecisionResult(true, "Application rejected.");
     }

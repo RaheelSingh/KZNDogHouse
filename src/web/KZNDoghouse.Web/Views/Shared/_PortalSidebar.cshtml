@@ -56,11 +56,11 @@
             asp-action="Index">
             Inventory
         </a>
-
-        <a class="nav-link disabled"
-           href="#"
-           aria-disabled="true">
-            Notifications
+        
+        <a class="nav-link @(currentController == "Notifications" ? "active" : "")"
+            asp-controller="Notifications"
+             asp-action="Index">
+             Notifications
         </a>
 
         @if (User.IsInRole(UserRoles.Administrator))

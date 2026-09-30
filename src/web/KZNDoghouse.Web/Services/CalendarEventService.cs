@@ -28,12 +28,15 @@ public interface ICalendarEventService
 public class CalendarEventService : ICalendarEventService
 {
     private readonly ICalendarEventRepository _repository;
+    private readonly INotificationService _notificationService;
 
-    public CalendarEventService(ICalendarEventRepository repository)
+    public CalendarEventService(
+        ICalendarEventRepository repository,
+        INotificationService notificationService)
     {
         _repository = repository;
+        _notificationService = notificationService;
     }
-
     public Task<IReadOnlyList<CalendarEvent>> GetAllAsync() =>
         _repository.GetAllAsync();
 
@@ -47,7 +50,7 @@ public class CalendarEventService : ICalendarEventService
             .ToList();
     }
 
-    public Task CreateAsync(
+     public async Task CreateAsync(
         string title,
         string category,
         string? description,
@@ -83,7 +86,12 @@ public class CalendarEventService : ICalendarEventService
             CreatedAt = DateTime.UtcNow
         };
 
-        return _repository.CreateAsync(calendarEvent);
+        await _repository.CreateAsync(calendarEvent);
+
+        await _notificationService.NotifyActiveVolunteersAsync(
+            NotificationCategories.Calendar,
+            title,
+            $"New {category.ToLowerInvariant()} on {startAt:dd MMM} at {startAt:HH:mm}.");
     }
 
     public Task DeleteAsync(Guid id) => _repository.DeleteAsync(id);

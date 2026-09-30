@@ -11,6 +11,8 @@ public interface IUserProfileRepository
 
     Task<IReadOnlyList<UserProfile>> GetAllAsync();
 
+    Task<IReadOnlyList<UserProfile>> GetActiveByRoleAsync(string role);
+
     Task UpdateAccessAsync(
         Guid profileId,
         string role,
@@ -96,4 +98,22 @@ public class UserProfileRepository : IUserProfileRepository
             .Set(x => x.UpdatedAt!, DateTime.UtcNow)
             .Update();
     }
+
+    public async Task<IReadOnlyList<UserProfile>> GetActiveByRoleAsync(string role)
+{
+    var client = await _supabaseClientFactory.CreateServiceClientAsync();
+
+    var response = await client
+        .From<UserProfile>()
+        .Where(x => x.Role == role)
+        .Where(x => x.IsActive == true)
+        .Get();
+
+    if (response.Models == null)
+    {
+        return Array.Empty<UserProfile>();
+    }
+
+    return response.Models.ToList();
+}
 }
