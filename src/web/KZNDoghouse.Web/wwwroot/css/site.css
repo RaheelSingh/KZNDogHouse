@@ -227,6 +227,103 @@ button.public-sign-in {
     color: var(--kzn-green-dark);
 }
 
+.public-section {
+    padding: 4rem 0;
+}
+
+.public-section-alt {
+    background-color: var(--kzn-cream);
+}
+
+.public-section-heading {
+    max-width: 640px;
+    margin: 0 auto 2.5rem;
+    text-align: center;
+}
+
+.public-section-label {
+    color: var(--kzn-green);
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.04rem;
+    text-transform: uppercase;
+}
+
+.public-section-title {
+    color: var(--kzn-green-dark);
+    font-weight: 700;
+}
+
+.public-section-text {
+    color: var(--kzn-text-muted);
+}
+
+.public-page-header {
+    padding: 3rem 0;
+    background-color: var(--kzn-cream);
+    border-bottom: 1px solid var(--kzn-border);
+}
+
+.public-page-title {
+    margin: 0;
+    color: var(--kzn-green-dark);
+    font-weight: 700;
+}
+
+.public-page-subtitle {
+    max-width: 640px;
+    margin: 0.75rem 0 0;
+    color: var(--kzn-text-muted);
+    font-size: 1.1rem;
+}
+
+.public-feature-card {
+    height: 100%;
+    padding: 1.5rem;
+    background-color: var(--kzn-white);
+    border: 1px solid var(--kzn-border);
+    border-radius: var(--kzn-radius);
+}
+
+.public-feature-card h3 {
+    color: var(--kzn-green-dark);
+    font-size: 1.15rem;
+    font-weight: 600;
+}
+
+.public-feature-card p {
+    margin-bottom: 0;
+    color: var(--kzn-text-muted);
+}
+
+.public-feature-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    margin-bottom: 1rem;
+    border-radius: 50%;
+    background-color: var(--kzn-gold-light);
+    color: var(--kzn-green-dark);
+    font-weight: 700;
+}
+
+.public-cta {
+    padding: 3.5rem 0;
+    background-color: var(--kzn-green-dark);
+    color: var(--kzn-white);
+    text-align: center;
+}
+
+.public-cta h2 {
+    font-weight: 700;
+}
+
+.public-cta p {
+    color: rgba(255, 255, 255, 0.8);
+}
+
 
 /* Public footer */
 
@@ -409,6 +506,18 @@ button.public-sign-in {
 
     .public-hero-title {
         font-size: 2.2rem;
+    }
+
+    .public-section {
+        padding: 2.5rem 0;
+    }
+
+    .public-page-header {
+        padding: 2rem 0;
+    }
+
+    .public-cta {
+        padding: 2.5rem 0;
     }
 
     .portal-sidebar-desktop {
