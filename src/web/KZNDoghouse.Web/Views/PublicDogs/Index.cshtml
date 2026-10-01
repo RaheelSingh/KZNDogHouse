@@ -60,7 +60,13 @@
 
                             <div class="public-dog-body">
 
-                                <h2 class="public-dog-name">@dog.Name</h2>
+                                <h2 class="public-dog-name">
+                                    <a asp-action="Details"
+                                       asp-route-id="@dog.Id"
+                                       class="public-dog-link stretched-link">
+                                        @dog.Name
+                                    </a>
+                                </h2>
 
                                 @if (!string.IsNullOrWhiteSpace(dog.Breed))
                                 {

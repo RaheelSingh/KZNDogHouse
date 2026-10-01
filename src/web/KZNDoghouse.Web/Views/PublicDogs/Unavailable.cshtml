@@ -1,0 +1,22 @@
+@model PublicMessageViewModel
+
+@{
+    ViewData["Title"] = "Our Dogs";
+}
+
+<section class="public-section">
+
+    <div class="container">
+
+        <partial name="_PublicEmptyState" model="Model" />
+
+        <p class="text-center mt-4">
+            <a asp-action="Index"
+               class="btn btn-kzn-primary">
+                View all dogs
+            </a>
+        </p>
+
+    </div>
+
+</section>

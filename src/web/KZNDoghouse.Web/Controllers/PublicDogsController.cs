@@ -36,4 +36,38 @@ public class PublicDogsController : Controller
             return View(Array.Empty<PublicDogListItem>());
         }
     }
+
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> Details(Guid id)
+    {
+        try
+        {
+            var dog = await _dogService.GetPublicDogAsync(id);
+
+            if (dog == null)
+            {
+                Response.StatusCode = StatusCodes.Status404NotFound;
+
+                return View("Unavailable", new PublicMessageViewModel
+                {
+                    Title = "This dog is not available",
+                    Message = "They may have found a home, or the link may be incorrect."
+                });
+            }
+
+            return View(dog);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Public dog {DogId} could not be loaded.", id);
+
+            Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+
+            return View("Unavailable", new PublicMessageViewModel
+            {
+                Title = "We could not load this dog",
+                Message = "Please try again in a few minutes."
+            });
+        }
+    }
 }
