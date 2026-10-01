@@ -338,6 +338,10 @@ button.public-sign-in {
     margin: 0;
 }
 
+.public-main:has(.public-cta) + .public-footer {
+    margin-top: 0;
+}
+
 
 /* Internal portal */
 
