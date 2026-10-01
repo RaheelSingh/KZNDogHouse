@@ -14,6 +14,8 @@ public interface IDogRepository
     Task UpdateAsync(Dog dog);
 
     Task UpdateStatusAsync(Guid dogId, string status);
+
+    Task<IReadOnlyList<Dog>> GetByStatusAsync(string status);
 }
 
 public class DogRepository : IDogRepository
@@ -31,6 +33,25 @@ public class DogRepository : IDogRepository
 
         var response = await client
             .From<Dog>()
+            .Get();
+
+        if (response.Models == null)
+        {
+            return Array.Empty<Dog>();
+        }
+
+        return response.Models
+            .OrderBy(x => x.Name)
+            .ToList();
+    }
+
+    public async Task<IReadOnlyList<Dog>> GetByStatusAsync(string status)
+    {
+        var client = await _supabaseClientFactory.CreateServiceClientAsync();
+
+        var response = await client
+            .From<Dog>()
+            .Where(x => x.Status == status)
             .Get();
 
         if (response.Models == null)

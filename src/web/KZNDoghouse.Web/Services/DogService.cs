@@ -1,3 +1,4 @@
+using KZNDoghouse.Web.Constants;
 using KZNDoghouse.Web.Models;
 using KZNDoghouse.Web.Repositories;
 
@@ -14,6 +15,10 @@ public interface IDogService
     Task ChangeStatusAsync(Guid dogId, string newStatus);
 
     Task UpdateDogAsync(Dog dog);
+
+    Task<IReadOnlyList<PublicDogListItem>> GetPublicDogsAsync();
+
+    Task<PublicDogDetails?> GetPublicDogAsync(Guid dogId);
 }
 
 public class DogService : IDogService
@@ -45,6 +50,27 @@ public class DogService : IDogService
 
         public Task UpdateDogAsync(Dog dog) =>
     _dogRepository.UpdateAsync(dog);
+
+    public async Task<IReadOnlyList<PublicDogListItem>> GetPublicDogsAsync()
+    {
+        var dogs = await _dogRepository.GetByStatusAsync(DogStatuses.Available);
+
+        return dogs
+            .Select(PublicDogListItem.FromDog)
+            .ToList();
+    }
+
+    public async Task<PublicDogDetails?> GetPublicDogAsync(Guid dogId)
+    {
+        var dog = await _dogRepository.GetByIdAsync(dogId);
+
+        if (dog == null || dog.Status != DogStatuses.Available)
+        {
+            return null;
+        }
+
+        return PublicDogDetails.FromDog(dog);
+    }
 }
 
 
