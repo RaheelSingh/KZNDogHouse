@@ -51,6 +51,24 @@ builder.Services.AddAuthorization(options =>
         });
 });
 
+builder.Services.AddScoped<IDogRepository, DogRepository>();
+builder.Services.AddScoped<IDogService, DogService>();
+builder.Services.AddScoped<IDogMedicalRecordRepository, DogMedicalRecordRepository>();
+builder.Services.AddScoped<IDogNoteRepository, DogNoteRepository>();
+builder.Services.AddScoped<IDogMedicalService, DogMedicalService>();
+builder.Services.AddScoped<IFosteringRecordRepository, FosteringRecordRepository>();
+builder.Services.AddScoped<IFosteringService, FosteringService>();
+builder.Services.AddScoped<IAvailabilitySlotRepository, AvailabilitySlotRepository>();
+builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
+builder.Services.AddScoped<ICalendarEventRepository, CalendarEventRepository>();
+builder.Services.AddScoped<ICalendarEventService, CalendarEventService>();
+builder.Services.AddScoped<IFosterApplicationRepository, FosterApplicationRepository>();
+builder.Services.AddScoped<IFosterApplicationService, FosterApplicationService>();
+builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
+builder.Services.AddScoped<IInventoryService, InventoryService>();
+builder.Services.AddScoped<IAppNotificationRepository, AppNotificationRepository>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())

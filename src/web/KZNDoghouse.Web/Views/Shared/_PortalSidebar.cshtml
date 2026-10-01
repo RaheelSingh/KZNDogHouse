@@ -31,34 +31,36 @@
             Dashboard
         </a>
 
-        <a class="nav-link disabled"
-           href="#"
-           aria-disabled="true">
-            Dogs
+        
+        <a class="nav-link @(currentController == "Dogs" ? "active" : "")"
+            asp-controller="Dogs"
+            asp-action="Index">
+             Dogs
         </a>
 
-        <a class="nav-link disabled"
-           href="#"
-           aria-disabled="true">
+        <a class="nav-link @(currentController == "Calendar" ? "active" : "")"
+            asp-controller="Calendar"
+            asp-action="Index">
             Calendar
         </a>
 
-        <a class="nav-link disabled"
-           href="#"
-           aria-disabled="true">
+        <a class="nav-link @(currentController == "Availability" ? "active" : "")"
+            asp-controller="Availability"
+            asp-action="Index">
             Availability
         </a>
 
-        <a class="nav-link disabled"
-           href="#"
-           aria-disabled="true">
+
+        <a class="nav-link @(currentController == "Inventory" ? "active" : "")"
+            asp-controller="Inventory"
+            asp-action="Index">
             Inventory
         </a>
-
-        <a class="nav-link disabled"
-           href="#"
-           aria-disabled="true">
-            Notifications
+        
+        <a class="nav-link @(currentController == "Notifications" ? "active" : "")"
+            asp-controller="Notifications"
+             asp-action="Index">
+             Notifications
         </a>
 
         @if (User.IsInRole(UserRoles.Administrator))
@@ -69,6 +71,12 @@
                 Users & Access
             </a>
         }
+
+        <a class="nav-link @(currentController == "FosterApplications" ? "active" : "")"
+            asp-controller="FosterApplications"
+            asp-action="Index">
+            Foster Applications
+        </a>
 
     </nav>
 

@@ -1,0 +1,25 @@
+namespace KZNDoghouse.Web.Constants;
+
+public static class DogStatuses
+{
+    public const string Available = "Available";
+    public const string InCare = "In Care";
+    public const string UnderTreatment = "Under Treatment";
+    public const string Fostered = "Fostered";
+    public const string Reserved = "Reserved";
+    public const string Adopted = "Adopted";
+
+    public static readonly string[] All =
+    [
+        Available, InCare, UnderTreatment, Fostered, Reserved, Adopted
+    ];
+}
+
+public static class DogGenders
+{
+    public const string Male = "Male";
+    public const string Female = "Female";
+    public const string Unknown = "Unknown";
+
+    public static readonly string[] All = [Male, Female, Unknown];
+}
