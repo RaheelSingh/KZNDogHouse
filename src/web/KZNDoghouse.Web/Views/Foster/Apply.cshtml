@@ -1,0 +1,196 @@
+@model FosterApplicationFormViewModel
+
+@{
+    ViewData["Title"] = "Apply to Foster";
+    ViewData["Subtitle"] = "Tell us about your home and when you could foster. All fields marked * are required.";
+
+    var dogs = ViewData["DogOptions"] as IReadOnlyList<PublicDogListItem>
+        ?? Array.Empty<PublicDogListItem>();
+}
+
+<partial name="_PublicPageHeader" />
+
+<section class="public-section">
+
+    <div class="container">
+
+        <form asp-action="Apply"
+              method="post"
+              class="public-form-card"
+              novalidate>
+
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+            <fieldset class="public-form-section">
+
+                <legend>Your details</legend>
+
+                <div class="row g-3">
+
+                    <div class="col-md-6">
+                        <label asp-for="FullName" class="form-label"></label>
+                        <input asp-for="FullName" class="form-control" autocomplete="name" />
+                        <span asp-validation-for="FullName" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Email" class="form-label"></label>
+                        <input asp-for="Email" type="email" class="form-control" autocomplete="email" />
+                        <span asp-validation-for="Email" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Phone" class="form-label"></label>
+                        <input asp-for="Phone" type="tel" class="form-control" autocomplete="tel" />
+                        <span asp-validation-for="Phone" class="text-danger"></span>
+                    </div>
+
+                </div>
+
+            </fieldset>
+
+            <fieldset class="public-form-section">
+
+                <legend>Fostering preferences</legend>
+
+                <div class="row g-3">
+
+                    <div class="col-md-6">
+
+                        <label asp-for="DogId" class="form-label"></label>
+
+                        <select asp-for="DogId" class="form-select">
+
+                            <option value="">No preference</option>
+
+                            @foreach (var dog in dogs)
+                            {
+                                <option value="@dog.Id"
+                                        selected="@(Model.DogId == dog.Id)">
+                                    @dog.Name
+                                </option>
+                            }
+
+                        </select>
+
+                        <span asp-validation-for="DogId" class="text-danger"></span>
+
+                    </div>
+
+                    <div class="col-md-6">
+
+                        <label asp-for="FosterPeriod" class="form-label"></label>
+
+                        <select asp-for="FosterPeriod" class="form-select">
+
+                            <option value="">Choose a period</option>
+
+                            @foreach (var period in FosterPeriods.All)
+                            {
+                                <option value="@period"
+                                        selected="@(Model.FosterPeriod == period)">
+                                    @period
+                                </option>
+                            }
+
+                        </select>
+
+                        <span asp-validation-for="FosterPeriod" class="text-danger"></span>
+
+                    </div>
+
+                </div>
+
+            </fieldset>
+
+            <fieldset class="public-form-section">
+
+                <legend>Your home</legend>
+
+                <div class="public-question">
+                    <p class="form-label">Is your property fully fenced? *</p>
+                    <div class="public-radio-group">
+                        <label><input type="radio" asp-for="HasFullyFencedProperty" value="true" /> Yes</label>
+                        <label><input type="radio" asp-for="HasFullyFencedProperty" value="false" /> No</label>
+                    </div>
+                    <span asp-validation-for="HasFullyFencedProperty" class="text-danger"></span>
+                </div>
+
+                <div class="public-question">
+                    <p class="form-label">Is there grass, or could the dog be walked on grass every day? *</p>
+                    <div class="public-radio-group">
+                        <label><input type="radio" asp-for="HasGrassOrDailyWalks" value="true" /> Yes</label>
+                        <label><input type="radio" asp-for="HasGrassOrDailyWalks" value="false" /> No</label>
+                    </div>
+                    <span asp-validation-for="HasGrassOrDailyWalks" class="text-danger"></span>
+                </div>
+
+                <div class="public-question">
+                    <p class="form-label">Will someone be home during the day and night? *</p>
+                    <div class="public-radio-group">
+                        <label><input type="radio" asp-for="SomeoneHomeDayAndNight" value="true" /> Yes</label>
+                        <label><input type="radio" asp-for="SomeoneHomeDayAndNight" value="false" /> No</label>
+                    </div>
+                    <span asp-validation-for="SomeoneHomeDayAndNight" class="text-danger"></span>
+                </div>
+
+                <div class="public-question">
+                    <p class="form-label">Does the dog have an indoor place to sleep? *</p>
+                    <div class="public-radio-group">
+                        <label><input type="radio" asp-for="HasIndoorSleepingArea" value="true" /> Yes</label>
+                        <label><input type="radio" asp-for="HasIndoorSleepingArea" value="false" /> No</label>
+                    </div>
+                    <span asp-validation-for="HasIndoorSleepingArea" class="text-danger"></span>
+                </div>
+
+            </fieldset>
+
+            <fieldset class="public-form-section">
+
+                <legend>About you</legend>
+
+                <div class="mb-3">
+                    <label asp-for="Experience" class="form-label"></label>
+                    <textarea asp-for="Experience" class="form-control" rows="3"></textarea>
+                    <span asp-validation-for="Experience" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Motivation" class="form-label"></label>
+                    <textarea asp-for="Motivation" class="form-control" rows="4"></textarea>
+                    <span asp-validation-for="Motivation" class="text-danger"></span>
+                </div>
+
+                <div class="form-check">
+                    <input asp-for="ConfirmAccurate" class="form-check-input" />
+                    <label asp-for="ConfirmAccurate" class="form-check-label">
+                        I confirm that the information I have provided is accurate. *
+                    </label>
+                    <div>
+                        <span asp-validation-for="ConfirmAccurate" class="text-danger"></span>
+                    </div>
+                </div>
+
+            </fieldset>
+
+            <div class="d-flex gap-2">
+
+                <button type="submit" class="btn btn-kzn-primary">
+                    Submit application
+                </button>
+
+                <a asp-action="Index" class="btn btn-kzn-outline">
+                    Cancel
+                </a>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

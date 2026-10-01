@@ -1,0 +1,30 @@
+@{
+    ViewData["Title"] = "Application received";
+}
+
+<section class="public-section">
+
+    <div class="container">
+
+        <div class="public-empty-state" role="status">
+
+            <h1 class="public-info-title">Thank you for applying to foster</h1>
+
+            <p class="mt-3">
+                Our team will review your application and be in touch.
+                You will receive an update once a decision has been made.
+            </p>
+
+            <p class="mt-4">
+                <a asp-controller="PublicDogs"
+                   asp-action="Index"
+                   class="btn btn-kzn-primary">
+                    Meet our dogs
+                </a>
+            </p>
+
+        </div>
+
+    </div>
+
+</section>

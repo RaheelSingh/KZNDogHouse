@@ -349,6 +349,45 @@ button.public-sign-in {
     font-weight: 700;
 }
 
+.public-form-card {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+    background-color: var(--kzn-white);
+    border: 1px solid var(--kzn-border);
+    border-radius: var(--kzn-radius);
+}
+
+.public-form-section {
+    margin-bottom: 2rem;
+}
+
+.public-form-section legend {
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--kzn-border);
+    color: var(--kzn-green-dark);
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+.public-question {
+    margin-bottom: 1.25rem;
+}
+
+.public-question .form-label {
+    margin-bottom: 0.4rem;
+}
+
+.public-radio-group {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.public-radio-group label {
+    cursor: pointer;
+}
+
 .public-empty-state {
     padding: 3rem 1.5rem;
     background-color: var(--kzn-cream);
