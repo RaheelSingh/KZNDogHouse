@@ -1,10 +1,11 @@
-@model IReadOnlyList<PublicDogListItem>
+@model PublicDogListViewModel
 
 @{
     ViewData["Title"] = "Our Dogs";
     ViewData["Subtitle"] = "Meet the dogs currently looking for a loving home.";
 
     var loadFailed = ViewData["LoadFailed"] as bool? == true;
+    var filter = Model.Filter;
 
     var failedMessage = new PublicMessageViewModel
     {
@@ -16,6 +17,12 @@
     {
         Title = "No dogs available right now",
         Message = "Please check back soon, as new dogs arrive regularly."
+    };
+
+    var noMatchMessage = new PublicMessageViewModel
+    {
+        Title = "No dogs match your search",
+        Message = "Try a different search or clear the filters to see everyone."
     };
 }
 
@@ -29,73 +36,165 @@
         {
             <partial name="_PublicEmptyState" model="failedMessage" />
         }
-        else if (Model.Count == 0)
+        else if (Model.TotalCount == 0)
         {
             <partial name="_PublicEmptyState" model="emptyMessage" />
         }
         else
         {
-            <div class="row g-4">
+            <form asp-action="Index"
+                  method="get"
+                  class="public-filter-bar"
+                  role="search">
 
-                @foreach (var dog in Model)
-                {
-                    <div class="col-sm-6 col-lg-4">
+                <div class="row g-3 align-items-end">
 
-                        <div class="public-dog-card">
+                    <div class="col-md-5">
 
-                            @if (!string.IsNullOrWhiteSpace(dog.PhotoUrl))
+                        <label for="search" class="form-label">Search</label>
+
+                        <input id="search"
+                               name="search"
+                               type="search"
+                               class="form-control"
+                               maxlength="@PublicDogFilter.MaxTextLength"
+                               placeholder="Name, breed or temperament"
+                               value="@filter.Search" />
+
+                    </div>
+
+                    <div class="col-6 col-md-2">
+
+                        <label for="gender" class="form-label">Gender</label>
+
+                        <select id="gender" name="gender" class="form-select">
+
+                            <option value="">Any</option>
+
+                            @foreach (var option in PublicDogFilter.GenderOptions)
                             {
-                                <img class="public-dog-photo"
-                                     src="@dog.PhotoUrl"
-                                     alt="Photo of @dog.Name"
-                                     loading="lazy" />
+                                <option value="@option"
+                                        selected="@(filter.Gender == option)">
+                                    @option
+                                </option>
                             }
-                            else
+
+                        </select>
+
+                    </div>
+
+                    <div class="col-6 col-md-2">
+
+                        <label for="size" class="form-label">Size</label>
+
+                        <select id="size" name="size" class="form-select">
+
+                            <option value="">Any</option>
+
+                            @foreach (var option in Model.SizeOptions)
                             {
-                                <div class="public-dog-photo public-dog-photo-placeholder"
-                                     aria-hidden="true">
-                                    @dog.Name.Substring(0, 1).ToUpperInvariant()
-                                </div>
+                                <option value="@option"
+                                        selected="@string.Equals(filter.Size, option, StringComparison.OrdinalIgnoreCase)">
+                                    @option
+                                </option>
                             }
 
-                            <div class="public-dog-body">
+                        </select>
 
-                                <h2 class="public-dog-name">
-                                    <a asp-action="Details"
-                                       asp-route-id="@dog.Id"
-                                       class="public-dog-link stretched-link">
-                                        @dog.Name
-                                    </a>
-                                </h2>
+                    </div>
 
-                                @if (!string.IsNullOrWhiteSpace(dog.Breed))
+                    <div class="col-md-3 d-flex gap-2">
+
+                        <button type="submit" class="btn btn-kzn-primary">
+                            Search
+                        </button>
+
+                        @if (filter.IsActive)
+                        {
+                            <a asp-action="Index" class="btn btn-kzn-outline">
+                                Clear
+                            </a>
+                        }
+
+                    </div>
+
+                </div>
+
+            </form>
+
+            <p class="public-result-count" aria-live="polite">
+                Showing @Model.Dogs.Count of @Model.TotalCount
+                @(Model.TotalCount == 1 ? "dog" : "dogs")
+            </p>
+
+            @if (Model.Dogs.Count == 0)
+            {
+                <partial name="_PublicEmptyState" model="noMatchMessage" />
+            }
+            else
+            {
+                <div class="row g-4">
+
+                    @foreach (var dog in Model.Dogs)
+                    {
+                        <div class="col-sm-6 col-lg-4">
+
+                            <div class="public-dog-card">
+
+                                @if (!string.IsNullOrWhiteSpace(dog.PhotoUrl))
                                 {
-                                    <p class="public-dog-breed">@dog.Breed</p>
+                                    <img class="public-dog-photo"
+                                         src="@dog.PhotoUrl"
+                                         alt="Photo of @dog.Name"
+                                         loading="lazy" />
+                                }
+                                else
+                                {
+                                    <div class="public-dog-photo public-dog-photo-placeholder"
+                                         aria-hidden="true">
+                                        @dog.Name.Substring(0, 1).ToUpperInvariant()
+                                    </div>
                                 }
 
-                                <ul class="public-dog-tags">
-                                    <li>@dog.Gender</li>
-                                    <li>@dog.AgeText</li>
+                                <div class="public-dog-body">
 
-                                    @if (!string.IsNullOrWhiteSpace(dog.Size))
+                                    <h2 class="public-dog-name">
+                                        <a asp-action="Details"
+                                           asp-route-id="@dog.Id"
+                                           class="public-dog-link stretched-link">
+                                            @dog.Name
+                                        </a>
+                                    </h2>
+
+                                    @if (!string.IsNullOrWhiteSpace(dog.Breed))
                                     {
-                                        <li>@dog.Size</li>
+                                        <p class="public-dog-breed">@dog.Breed</p>
                                     }
-                                </ul>
 
-                                @if (!string.IsNullOrWhiteSpace(dog.Temperament))
-                                {
-                                    <p class="public-dog-text">@dog.Temperament</p>
-                                }
+                                    <ul class="public-dog-tags">
+                                        <li>@dog.Gender</li>
+                                        <li>@dog.AgeText</li>
+
+                                        @if (!string.IsNullOrWhiteSpace(dog.Size))
+                                        {
+                                            <li>@dog.Size</li>
+                                        }
+                                    </ul>
+
+                                    @if (!string.IsNullOrWhiteSpace(dog.Temperament))
+                                    {
+                                        <p class="public-dog-text">@dog.Temperament</p>
+                                    }
+
+                                </div>
 
                             </div>
 
                         </div>
+                    }
 
-                    </div>
-                }
-
-            </div>
+                </div>
+            }
         }
 
     </div>

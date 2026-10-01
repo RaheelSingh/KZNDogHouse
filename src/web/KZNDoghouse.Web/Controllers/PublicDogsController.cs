@@ -19,13 +19,29 @@ public class PublicDogsController : Controller
     }
 
     [HttpGet("")]
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(string? search, string? gender, string? size)
     {
+        var filter = PublicDogFilter.Create(search, gender, size);
+
         try
         {
             var dogs = await _dogService.GetPublicDogsAsync();
 
-            return View(dogs);
+            var model = new PublicDogListViewModel
+            {
+                Dogs = filter.Apply(dogs),
+                TotalCount = dogs.Count,
+                Filter = filter,
+                SizeOptions = dogs
+                    .Select(x => x.Size)
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .Select(x => x!)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(x => x)
+                    .ToList()
+            };
+
+            return View(model);
         }
         catch (Exception ex)
         {
@@ -33,7 +49,7 @@ public class PublicDogsController : Controller
 
             ViewData["LoadFailed"] = true;
 
-            return View(Array.Empty<PublicDogListItem>());
+            return View(new PublicDogListViewModel { Filter = filter });
         }
     }
 

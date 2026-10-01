@@ -343,6 +343,19 @@ button.public-sign-in {
     color: var(--kzn-text-muted);
 }
 
+.public-filter-bar {
+    margin-bottom: 1.5rem;
+    padding: 1.25rem;
+    background-color: var(--kzn-cream);
+    border: 1px solid var(--kzn-border);
+    border-radius: var(--kzn-radius);
+}
+
+.public-result-count {
+    margin-bottom: 1.25rem;
+    color: var(--kzn-text-muted);
+}
+
 .public-dog-card {
     position: relative;
     height: 100%;
