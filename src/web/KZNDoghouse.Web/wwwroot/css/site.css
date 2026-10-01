@@ -324,6 +324,31 @@ button.public-sign-in {
     color: rgba(255, 255, 255, 0.8);
 }
 
+.public-info-title {
+    color: var(--kzn-green-dark);
+    font-size: 1.35rem;
+    font-weight: 700;
+}
+
+.public-check-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.public-check-list li {
+    position: relative;
+    padding: 0.35rem 0 0.35rem 1.75rem;
+}
+
+.public-check-list li::before {
+    content: "\2713";
+    position: absolute;
+    left: 0;
+    color: var(--kzn-success);
+    font-weight: 700;
+}
+
 .public-empty-state {
     padding: 3rem 1.5rem;
     background-color: var(--kzn-cream);
