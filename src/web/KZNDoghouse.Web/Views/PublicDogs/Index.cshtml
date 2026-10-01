@@ -1,0 +1,97 @@
+@model IReadOnlyList<PublicDogListItem>
+
+@{
+    ViewData["Title"] = "Our Dogs";
+    ViewData["Subtitle"] = "Meet the dogs currently looking for a loving home.";
+
+    var loadFailed = ViewData["LoadFailed"] as bool? == true;
+
+    var failedMessage = new PublicMessageViewModel
+    {
+        Title = "We could not load our dogs",
+        Message = "Please try again in a few minutes."
+    };
+
+    var emptyMessage = new PublicMessageViewModel
+    {
+        Title = "No dogs available right now",
+        Message = "Please check back soon, as new dogs arrive regularly."
+    };
+}
+
+<partial name="_PublicPageHeader" />
+
+<section class="public-section">
+
+    <div class="container">
+
+        @if (loadFailed)
+        {
+            <partial name="_PublicEmptyState" model="failedMessage" />
+        }
+        else if (Model.Count == 0)
+        {
+            <partial name="_PublicEmptyState" model="emptyMessage" />
+        }
+        else
+        {
+            <div class="row g-4">
+
+                @foreach (var dog in Model)
+                {
+                    <div class="col-sm-6 col-lg-4">
+
+                        <div class="public-dog-card">
+
+                            @if (!string.IsNullOrWhiteSpace(dog.PhotoUrl))
+                            {
+                                <img class="public-dog-photo"
+                                     src="@dog.PhotoUrl"
+                                     alt="Photo of @dog.Name"
+                                     loading="lazy" />
+                            }
+                            else
+                            {
+                                <div class="public-dog-photo public-dog-photo-placeholder"
+                                     aria-hidden="true">
+                                    @dog.Name.Substring(0, 1).ToUpperInvariant()
+                                </div>
+                            }
+
+                            <div class="public-dog-body">
+
+                                <h2 class="public-dog-name">@dog.Name</h2>
+
+                                @if (!string.IsNullOrWhiteSpace(dog.Breed))
+                                {
+                                    <p class="public-dog-breed">@dog.Breed</p>
+                                }
+
+                                <ul class="public-dog-tags">
+                                    <li>@dog.Gender</li>
+                                    <li>@dog.AgeText</li>
+
+                                    @if (!string.IsNullOrWhiteSpace(dog.Size))
+                                    {
+                                        <li>@dog.Size</li>
+                                    }
+                                </ul>
+
+                                @if (!string.IsNullOrWhiteSpace(dog.Temperament))
+                                {
+                                    <p class="public-dog-text">@dog.Temperament</p>
+                                }
+
+                            </div>
+
+                        </div>
+
+                    </div>
+                }
+
+            </div>
+        }
+
+    </div>
+
+</section>

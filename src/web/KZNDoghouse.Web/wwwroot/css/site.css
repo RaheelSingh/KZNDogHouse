@@ -324,6 +324,89 @@ button.public-sign-in {
     color: rgba(255, 255, 255, 0.8);
 }
 
+.public-empty-state {
+    padding: 3rem 1.5rem;
+    background-color: var(--kzn-cream);
+    border: 1px dashed var(--kzn-border);
+    border-radius: var(--kzn-radius);
+    text-align: center;
+}
+
+.public-empty-state h2 {
+    color: var(--kzn-green-dark);
+    font-size: 1.35rem;
+    font-weight: 600;
+}
+
+.public-empty-state p {
+    margin-bottom: 0;
+    color: var(--kzn-text-muted);
+}
+
+.public-dog-card {
+    height: 100%;
+    overflow: hidden;
+    background-color: var(--kzn-white);
+    border: 1px solid var(--kzn-border);
+    border-radius: var(--kzn-radius);
+}
+
+.public-dog-photo {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+}
+
+.public-dog-photo-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--kzn-green-light);
+    color: var(--kzn-green-dark);
+    font-size: 3rem;
+    font-weight: 700;
+}
+
+.public-dog-body {
+    padding: 1.25rem;
+}
+
+.public-dog-name {
+    margin: 0;
+    color: var(--kzn-green-dark);
+    font-size: 1.3rem;
+    font-weight: 700;
+}
+
+.public-dog-breed {
+    margin: 0.25rem 0 0;
+    color: var(--kzn-text-muted);
+}
+
+.public-dog-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: 0.9rem 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.public-dog-tags li {
+    padding: 0.2rem 0.65rem;
+    background-color: var(--kzn-green-light);
+    border-radius: 999px;
+    color: var(--kzn-green-dark);
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.public-dog-text {
+    margin: 0.9rem 0 0;
+    color: var(--kzn-text-muted);
+}
+
 
 /* Public footer */
 
