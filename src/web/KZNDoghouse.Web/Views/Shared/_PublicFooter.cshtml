@@ -1,0 +1,77 @@
+<footer class="public-footer">
+
+    <div class="container">
+
+        <div class="row g-4">
+
+            <div class="col-lg-6">
+
+                <h2 class="public-footer-title">@PublicSiteInfo.Name</h2>
+
+                <p class="public-footer-text public-footer-about">
+                    @PublicSiteInfo.Description
+                </p>
+
+            </div>
+
+            <div class="col-6 col-lg-3">
+
+                <h2 class="public-footer-title">Explore</h2>
+
+                <ul class="public-footer-list">
+
+                    <li>
+                        <a asp-controller="PublicDogs"
+                           asp-action="Index">
+                            Meet the Dogs
+                        </a>
+                    </li>
+
+                    <li>
+                        <a asp-controller="Foster"
+                           asp-action="Index">
+                            Foster a Dog
+                        </a>
+                    </li>
+
+                </ul>
+
+            </div>
+
+            <div class="col-6 col-lg-3">
+
+                <h2 class="public-footer-title">Contact</h2>
+
+                <ul class="public-footer-list">
+
+                    <li>@PublicSiteInfo.Address</li>
+
+                    <li>
+                        <a href="mailto:@PublicSiteInfo.Email">
+                            @PublicSiteInfo.Email
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="tel:@PublicSiteInfo.PhoneLink">
+                            @PublicSiteInfo.Phone
+                        </a>
+                    </li>
+
+                </ul>
+
+            </div>
+
+        </div>
+
+        <div class="public-footer-bottom">
+
+            <p>
+                &copy; @DateTime.Now.Year The KZN Doghouse NPO. All rights reserved.
+            </p>
+
+        </div>
+
+    </div>
+
+</footer>

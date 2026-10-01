@@ -1,4 +1,6 @@
 @{
+    var eyebrow = ViewData["Eyebrow"] as string;
+    var heading = ViewData["Heading"] as string ?? ViewData["Title"] as string;
     var subtitle = ViewData["Subtitle"] as string;
 }
 
@@ -6,8 +8,15 @@
 
     <div class="container">
 
+        @if (!string.IsNullOrWhiteSpace(eyebrow))
+        {
+            <p class="public-page-eyebrow">
+                @eyebrow
+            </p>
+        }
+
         <h1 class="public-page-title">
-            @ViewData["Title"]
+            @heading
         </h1>
 
         @if (!string.IsNullOrWhiteSpace(subtitle))

@@ -1,11 +1,27 @@
+@{
+    var current = ViewContext.RouteData.Values["controller"]?.ToString() ?? string.Empty;
+
+    string Active(string controller) =>
+        string.Equals(current, controller, StringComparison.OrdinalIgnoreCase)
+            ? " active"
+            : string.Empty;
+}
+
 <nav class="navbar navbar-expand-lg public-navbar">
 
     <div class="container">
 
-        <a class="navbar-brand"
+        <a class="navbar-brand public-brand"
            asp-controller="Home"
            asp-action="Index">
-            KZN Doghouse
+
+            <img src="~/images/logo-placeholder.svg"
+                 alt=""
+                 width="40"
+                 height="40" />
+
+            <span>@PublicSiteInfo.Name</span>
+
         </a>
 
         <button class="navbar-toggler"
@@ -26,7 +42,7 @@
             <ul class="navbar-nav ms-auto align-items-lg-center">
 
                 <li class="nav-item">
-                    <a class="nav-link"
+                    <a class="nav-link@(Active("Home"))"
                        asp-controller="Home"
                        asp-action="Index">
                         Home
@@ -34,7 +50,7 @@
                 </li>
 
                 <li class="nav-item">
-                    <a class="nav-link"
+                    <a class="nav-link@(Active("Foster"))"
                        asp-controller="Foster"
                        asp-action="Index">
                         Foster
@@ -58,7 +74,7 @@
                 </li>
 
                 <li class="nav-item">
-                    <a class="nav-link"
+                    <a class="nav-link@(Active("PublicDogs"))"
                        asp-controller="PublicDogs"
                        asp-action="Index">
                         Dogs
@@ -73,14 +89,6 @@
                     </a>
                 </li>
 
-                <li class="nav-item">
-                    <a class="nav-link disabled"
-                       href="#"
-                       aria-disabled="true">
-                        Donate
-                    </a>
-                </li>
-
                 @if (User.Identity?.IsAuthenticated == true)
                 {
                     @if (User.IsInRole(UserRoles.Staff)
@@ -88,28 +96,22 @@
                     {
                         <li class="nav-item">
                             <a class="nav-link"
-                            asp-controller="Portal"
-                            asp-action="Index">
+                               asp-controller="Portal"
+                               asp-action="Index">
                                 Portal
                             </a>
                         </li>
                     }
 
-                    <li class="nav-item d-flex align-items-center ms-lg-2">
-                        <span class="nav-link">
-                            @User.Identity.Name
-                        </span>
-                    </li>
-
-                    <li class="nav-item ms-lg-2">
+                    <li class="nav-item ms-lg-3">
 
                         <form asp-controller="Auth"
-                            asp-action="Logout"
-                            method="post">
+                              asp-action="Logout"
+                              method="post">
 
                             <button type="submit"
                                     class="public-sign-in">
-                                Sign Out
+                                Log out
                             </button>
 
                         </form>
@@ -118,11 +120,11 @@
                 }
                 else
                 {
-                    <li class="nav-item ms-lg-2">
+                    <li class="nav-item ms-lg-3">
 
                         <a class="public-sign-in"
-                        asp-controller="Auth"
-                        asp-action="Login">
+                           asp-controller="Auth"
+                           asp-action="Login">
                             Sign In
                         </a>
 
