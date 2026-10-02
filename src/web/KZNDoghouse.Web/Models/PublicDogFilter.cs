@@ -1,35 +1,45 @@
-using KZNDoghouse.Web.Constants;
-
 namespace KZNDoghouse.Web.Models;
 
 public class PublicDogFilter
 {
-    public const int MaxTextLength = 50;
+    public const int PageSize = 8;
 
-    public static readonly string[] GenderOptions =
-    [
-        DogGenders.Male, DogGenders.Female
-    ];
+    public const int MaxTake = 200;
 
-    public string? Search { get; set; }
+    public const string StatusReady = "ready";
 
-    public string? Gender { get; set; }
+    public const string StatusFoster = "foster";
+
+    public const string SortNewest = "newest";
+
+    public const string SortName = "name";
+
+    public static readonly string[] SizeOptions = ["Small", "Medium", "Large"];
+
+    public static readonly string[] StatusOptions = [StatusReady, StatusFoster];
 
     public string? Size { get; set; }
 
-    public bool IsActive =>
-        !string.IsNullOrEmpty(Search)
-        || !string.IsNullOrEmpty(Gender)
-        || !string.IsNullOrEmpty(Size);
+    public string? Status { get; set; }
 
-    public static PublicDogFilter Create(string? search, string? gender, string? size)
+    public string Sort { get; set; } = SortNewest;
+
+    public int Take { get; set; } = PageSize;
+
+    public bool IsActive => Size != null || Status != null;
+
+    public static PublicDogFilter Create(string? size, string? status, string? sort, int? take)
     {
         return new PublicDogFilter
         {
-            Search = Clean(search),
-            Gender = GenderOptions.FirstOrDefault(
-                x => string.Equals(x, gender?.Trim(), StringComparison.OrdinalIgnoreCase)),
-            Size = Clean(size)
+            Size = SizeOptions.FirstOrDefault(
+                x => string.Equals(x, size?.Trim(), StringComparison.OrdinalIgnoreCase)),
+            Status = StatusOptions.FirstOrDefault(
+                x => string.Equals(x, status?.Trim(), StringComparison.OrdinalIgnoreCase)),
+            Sort = string.Equals(sort?.Trim(), SortName, StringComparison.OrdinalIgnoreCase)
+                ? SortName
+                : SortNewest,
+            Take = Math.Clamp(take ?? PageSize, PageSize, MaxTake)
         };
     }
 
@@ -37,45 +47,25 @@ public class PublicDogFilter
     {
         var query = dogs;
 
-        if (!string.IsNullOrEmpty(Search))
-        {
-            query = query.Where(x =>
-                Contains(x.Name, Search)
-                || Contains(x.Breed, Search)
-                || Contains(x.Temperament, Search));
-        }
-
-        if (!string.IsNullOrEmpty(Gender))
-        {
-            query = query.Where(x => x.Gender == Gender);
-        }
-
-        if (!string.IsNullOrEmpty(Size))
+        if (Size != null)
         {
             query = query.Where(x =>
                 string.Equals(x.Size, Size, StringComparison.OrdinalIgnoreCase));
         }
 
-        return query.ToList();
-    }
-
-    private static string? Clean(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
+        if (Status == StatusReady)
         {
-            return null;
+            query = query.Where(x => !x.IsFostered);
+        }
+        else if (Status == StatusFoster)
+        {
+            query = query.Where(x => x.IsFostered);
         }
 
-        var trimmed = value.Trim();
+        query = Sort == SortName
+            ? query.OrderBy(x => x.Name)
+            : query.OrderByDescending(x => x.IntakeDate).ThenBy(x => x.Name);
 
-        return trimmed.Length > MaxTextLength
-            ? trimmed[..MaxTextLength]
-            : trimmed;
-    }
-
-    private static bool Contains(string? text, string search)
-    {
-        return text != null
-            && text.Contains(search, StringComparison.OrdinalIgnoreCase);
+        return query.ToList();
     }
 }

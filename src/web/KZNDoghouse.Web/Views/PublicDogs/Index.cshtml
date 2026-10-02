@@ -1,11 +1,19 @@
 @model PublicDogListViewModel
 
 @{
-    ViewData["Title"] = "Our Dogs";
-    ViewData["Subtitle"] = "Meet the dogs currently looking for a loving home.";
+    ViewData["Title"] = "Meet the Dogs";
 
     var loadFailed = ViewData["LoadFailed"] as bool? == true;
     var filter = Model.Filter;
+    var sortRoute = filter.Sort == PublicDogFilter.SortNewest ? null : filter.Sort;
+
+    string ChipUrl(string? chipSize, string? chipStatus) =>
+        Url.Action("Index", "PublicDogs", new
+        {
+            size = chipSize,
+            status = chipStatus,
+            sort = sortRoute
+        }) ?? "#";
 
     var failedMessage = new PublicMessageViewModel
     {
@@ -21,12 +29,59 @@
 
     var noMatchMessage = new PublicMessageViewModel
     {
-        Title = "No dogs match your search",
-        Message = "Try a different search or clear the filters to see everyone."
+        Title = "No dogs match these filters",
+        Message = "Try a different filter, or show all dogs to see everyone."
     };
 }
 
-<partial name="_PublicPageHeader" />
+<section class="public-page-header">
+
+    <div class="container">
+
+        <p class="public-page-eyebrow">Meet the Dogs</p>
+
+        <h1 class="public-page-title">Looking for a home.</h1>
+
+        <p class="public-page-subtitle">
+            Every dog here has been vet-checked, sterilised, and is ready to
+            meet their new family. Tap a face to learn their story.
+        </p>
+
+        @if (!loadFailed && Model.OverallCount > 0)
+        {
+            <nav class="public-chip-row" aria-label="Filter dogs">
+
+                <a href="@ChipUrl(null, null)"
+                   class="public-chip@(filter.IsActive ? string.Empty : " active")">
+                    All dogs
+                </a>
+
+                @foreach (var option in PublicDogFilter.SizeOptions)
+                {
+                    var isActive = filter.Size == option;
+
+                    <a href="@ChipUrl(isActive ? null : option, filter.Status)"
+                       class="public-chip@(isActive ? " active" : string.Empty)">
+                        @option
+                    </a>
+                }
+
+                <a href="@ChipUrl(filter.Size, filter.Status == PublicDogFilter.StatusReady ? null : PublicDogFilter.StatusReady)"
+                   class="public-chip@(filter.Status == PublicDogFilter.StatusReady ? " active" : string.Empty)">
+                    Ready to adopt
+                </a>
+
+                <a href="@ChipUrl(filter.Size, filter.Status == PublicDogFilter.StatusFoster ? null : PublicDogFilter.StatusFoster)"
+                   class="public-chip@(filter.Status == PublicDogFilter.StatusFoster ? " active" : string.Empty)">
+                    In foster care
+                </a>
+
+            </nav>
+        }
+
+    </div>
+
+</section>
 
 <section class="public-section">
 
@@ -36,100 +91,69 @@
         {
             <partial name="_PublicEmptyState" model="failedMessage" />
         }
-        else if (Model.TotalCount == 0)
+        else if (Model.OverallCount == 0)
         {
             <partial name="_PublicEmptyState" model="emptyMessage" />
         }
         else
         {
-            <form asp-action="Index"
-                  method="get"
-                  class="public-filter-bar"
-                  role="search">
+            <div class="public-list-bar">
 
-                <div class="row g-3 align-items-end">
+                <p class="public-result-count" aria-live="polite">
+                    Showing @Model.Dogs.Count of @Model.MatchCount
+                    @(Model.MatchCount == 1 ? "dog" : "dogs") looking for a home
+                </p>
 
-                    <div class="col-md-5">
+                <form asp-action="Index"
+                      method="get"
+                      class="public-sort">
 
-                        <label for="search" class="form-label">Search</label>
+                    @if (filter.Size != null)
+                    {
+                        <input type="hidden" name="size" value="@filter.Size" />
+                    }
 
-                        <input id="search"
-                               name="search"
-                               type="search"
-                               class="form-control"
-                               maxlength="@PublicDogFilter.MaxTextLength"
-                               placeholder="Name, breed or temperament"
-                               value="@filter.Search" />
+                    @if (filter.Status != null)
+                    {
+                        <input type="hidden" name="status" value="@filter.Status" />
+                    }
 
-                    </div>
+                    <label for="sort" class="visually-hidden">Sort dogs</label>
 
-                    <div class="col-6 col-md-2">
+                    <select id="sort"
+                            name="sort"
+                            class="form-select"
+                            onchange="this.form.submit()">
 
-                        <label for="gender" class="form-label">Gender</label>
+                        <option value="@PublicDogFilter.SortNewest"
+                                selected="@(filter.Sort == PublicDogFilter.SortNewest)">
+                            Newest first
+                        </option>
 
-                        <select id="gender" name="gender" class="form-select">
+                        <option value="@PublicDogFilter.SortName"
+                                selected="@(filter.Sort == PublicDogFilter.SortName)">
+                            Name (A&ndash;Z)
+                        </option>
 
-                            <option value="">Any</option>
+                    </select>
 
-                            @foreach (var option in PublicDogFilter.GenderOptions)
-                            {
-                                <option value="@option"
-                                        selected="@(filter.Gender == option)">
-                                    @option
-                                </option>
-                            }
+                    <noscript>
+                        <button type="submit" class="btn btn-kzn-outline">Sort</button>
+                    </noscript>
 
-                        </select>
+                </form>
 
-                    </div>
-
-                    <div class="col-6 col-md-2">
-
-                        <label for="size" class="form-label">Size</label>
-
-                        <select id="size" name="size" class="form-select">
-
-                            <option value="">Any</option>
-
-                            @foreach (var option in Model.SizeOptions)
-                            {
-                                <option value="@option"
-                                        selected="@string.Equals(filter.Size, option, StringComparison.OrdinalIgnoreCase)">
-                                    @option
-                                </option>
-                            }
-
-                        </select>
-
-                    </div>
-
-                    <div class="col-md-3 d-flex gap-2">
-
-                        <button type="submit" class="btn btn-kzn-primary">
-                            Search
-                        </button>
-
-                        @if (filter.IsActive)
-                        {
-                            <a asp-action="Index" class="btn btn-kzn-outline">
-                                Clear
-                            </a>
-                        }
-
-                    </div>
-
-                </div>
-
-            </form>
-
-            <p class="public-result-count" aria-live="polite">
-                Showing @Model.Dogs.Count of @Model.TotalCount
-                @(Model.TotalCount == 1 ? "dog" : "dogs")
-            </p>
+            </div>
 
             @if (Model.Dogs.Count == 0)
             {
                 <partial name="_PublicEmptyState" model="noMatchMessage" />
+
+                <p class="text-center mt-4">
+                    <a asp-action="Index" class="btn btn-kzn-primary">
+                        Show all dogs
+                    </a>
+                </p>
             }
             else
             {
@@ -137,63 +161,26 @@
 
                     @foreach (var dog in Model.Dogs)
                     {
-                        <div class="col-sm-6 col-lg-4">
-
-                            <div class="public-dog-card">
-
-                                @if (!string.IsNullOrWhiteSpace(dog.PhotoUrl))
-                                {
-                                    <img class="public-dog-photo"
-                                         src="@dog.PhotoUrl"
-                                         alt="Photo of @dog.Name"
-                                         loading="lazy" />
-                                }
-                                else
-                                {
-                                    <div class="public-dog-photo public-dog-photo-placeholder"
-                                         aria-hidden="true">
-                                        @dog.Name.Substring(0, 1).ToUpperInvariant()
-                                    </div>
-                                }
-
-                                <div class="public-dog-body">
-
-                                    <h2 class="public-dog-name">
-                                        <a asp-action="Details"
-                                           asp-route-id="@dog.Id"
-                                           class="public-dog-link stretched-link">
-                                            @dog.Name
-                                        </a>
-                                    </h2>
-
-                                    @if (!string.IsNullOrWhiteSpace(dog.Breed))
-                                    {
-                                        <p class="public-dog-breed">@dog.Breed</p>
-                                    }
-
-                                    <ul class="public-dog-tags">
-                                        <li>@dog.Gender</li>
-                                        <li>@dog.AgeText</li>
-
-                                        @if (!string.IsNullOrWhiteSpace(dog.Size))
-                                        {
-                                            <li>@dog.Size</li>
-                                        }
-                                    </ul>
-
-                                    @if (!string.IsNullOrWhiteSpace(dog.Temperament))
-                                    {
-                                        <p class="public-dog-text">@dog.Temperament</p>
-                                    }
-
-                                </div>
-
-                            </div>
-
+                        <div class="col-sm-6 col-lg-3">
+                            <partial name="_PublicDogCard" model="dog" />
                         </div>
                     }
 
                 </div>
+
+                @if (Model.HasMore)
+                {
+                    <p class="text-center mt-5">
+                        <a asp-action="Index"
+                           asp-route-size="@filter.Size"
+                           asp-route-status="@filter.Status"
+                           asp-route-sort="@sortRoute"
+                           asp-route-take="@Model.NextTake"
+                           class="btn btn-kzn-outline">
+                            Load more dogs
+                        </a>
+                    </p>
+                }
             }
         }
 

@@ -1,101 +1,127 @@
-@model PublicDogDetails
+@model PublicDogDetailsViewModel
 
 @{
-    ViewData["Title"] = Model.Name;
-    ViewData["Subtitle"] = Model.Breed;
+    var dog = Model.Dog;
+
+    ViewData["Title"] = dog.Name;
 }
 
-<partial name="_PublicPageHeader" />
+<div class="container">
 
-<section class="public-section">
+    <nav class="public-breadcrumb" aria-label="Breadcrumb">
+        <a asp-action="Index">Meet the Dogs</a>
+        <span aria-hidden="true">/</span>
+        <span>@dog.Name</span>
+    </nav>
+
+</div>
+
+<section class="public-section pt-0">
 
     <div class="container">
 
-        <p>
-            <a asp-action="Index">&larr; All dogs</a>
-        </p>
+        <div class="row g-5">
 
-        <div class="row g-4">
+            <div class="col-lg-7">
 
-            <div class="col-lg-6">
-
-                @if (!string.IsNullOrWhiteSpace(Model.PhotoUrl))
+                @if (!string.IsNullOrWhiteSpace(dog.PhotoUrl))
                 {
-                    <img class="public-dog-photo public-dog-detail-photo"
-                         src="@Model.PhotoUrl"
-                         alt="Photo of @Model.Name" />
+                    <img class="public-detail-photo"
+                         src="@dog.PhotoUrl"
+                         alt="Photo of @dog.Name" />
                 }
                 else
                 {
-                    <div class="public-dog-photo public-dog-photo-placeholder public-dog-detail-photo"
+                    <div class="public-detail-photo public-detail-photo-placeholder"
                          aria-hidden="true">
-                        @Model.Name.Substring(0, 1).ToUpperInvariant()
+                        @dog.Name.Substring(0, 1).ToUpperInvariant()
                     </div>
                 }
 
-            </div>
+                <div class="public-story-card">
 
-            <div class="col-lg-6">
+                    <h2>@(dog.Name)'s story</h2>
 
-                <div class="public-feature-card">
-
-                    <h2 class="public-dog-name">About @Model.Name</h2>
-
-                    @if (!string.IsNullOrWhiteSpace(Model.About))
+                    @if (!string.IsNullOrWhiteSpace(dog.About))
                     {
-                        <p class="mt-3">@Model.About</p>
+                        <p>@dog.About</p>
                     }
                     else
                     {
-                        <p class="mt-3">
-                            We are still getting to know @Model.Name.
-                            Check back soon for more about their story.
+                        <p>
+                            We are still getting to know @dog.Name. Check back
+                            soon for more about their story.
                         </p>
                     }
 
-                    <dl class="public-fact-list">
+                </div>
 
+            </div>
+
+            <div class="col-lg-5">
+
+                <h1 class="public-detail-title">@dog.Name</h1>
+
+                <p class="public-detail-meta">@dog.MetaText</p>
+
+                <span class="public-badge @(dog.IsFostered ? "public-badge-outline" : "public-badge-solid")">
+                    @dog.StatusLabel
+                </span>
+
+                <dl class="public-facts-card">
+
+                    @if (!string.IsNullOrWhiteSpace(dog.Breed))
+                    {
                         <div>
-                            <dt>Gender</dt>
-                            <dd>@Model.Gender</dd>
+                            <dt>Breed</dt>
+                            <dd>@dog.Breed</dd>
                         </div>
+                    }
 
+                    <div>
+                        <dt>At the shelter since</dt>
+                        <dd>@dog.SinceText</dd>
+                    </div>
+
+                    <div>
+                        <dt>Vaccinated</dt>
+                        <dd>@(dog.IsVaccinated ? "Yes" : "Not yet")</dd>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(dog.Temperament))
+                    {
                         <div>
-                            <dt>Age</dt>
-                            <dd>@Model.AgeText</dd>
+                            <dt>Temperament</dt>
+                            <dd>@dog.Temperament</dd>
                         </div>
+                    }
 
-                        @if (!string.IsNullOrWhiteSpace(Model.Size))
-                        {
-                            <div>
-                                <dt>Size</dt>
-                                <dd>@Model.Size</dd>
-                            </div>
-                        }
+                </dl>
 
-                        @if (!string.IsNullOrWhiteSpace(Model.Temperament))
-                        {
-                            <div>
-                                <dt>Temperament</dt>
-                                <dd>@Model.Temperament</dd>
-                            </div>
-                        }
+                <div class="d-flex flex-wrap gap-3">
 
-                        <div>
-                            <dt>Vaccinated</dt>
-                            <dd>@(Model.IsVaccinated ? "Yes" : "Not yet")</dd>
-                        </div>
-
-                    </dl>
-
-                    <a asp-controller="Foster"
-                       asp-action="Apply"
-                       asp-route-dogId="@Model.Id"
-                       class="btn btn-kzn-gold mt-4">
-                        Apply to foster @Model.Name
+                    <a href="#"
+                       class="btn btn-kzn-primary disabled"
+                       aria-disabled="true">
+                        Start adoption
                     </a>
 
+                    @if (!dog.IsFostered)
+                    {
+                        <a asp-controller="Foster"
+                           asp-action="Apply"
+                           asp-route-dogId="@dog.Id"
+                           class="btn btn-kzn-outline">
+                            Foster instead
+                        </a>
+                    }
+
                 </div>
+
+                <p class="public-detail-note">
+                    Not right for your home?
+                    <a asp-action="Index">See more dogs looking for a home &rarr;</a>
+                </p>
 
             </div>
 
@@ -104,3 +130,31 @@
     </div>
 
 </section>
+
+@if (Model.MoreDogs.Count > 0)
+{
+    <section class="public-section public-section-alt">
+
+        <div class="container">
+
+            <div class="public-section-head">
+
+                <h2 class="public-section-title">More dogs looking for a home</h2>
+
+            </div>
+
+            <div class="row g-4">
+
+                @foreach (var other in Model.MoreDogs)
+                {
+                    <div class="col-sm-6 col-lg-3">
+                        <partial name="_PublicDogCard" model="other" />
+                    </div>
+                }
+
+            </div>
+
+        </div>
+
+    </section>
+}
