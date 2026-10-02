@@ -1,0 +1,154 @@
+@{
+    ViewData["Title"] = "Get Involved";
+    ViewData["Eyebrow"] = "Get Involved";
+    ViewData["Heading"] = "There are so many ways to help.";
+    ViewData["Subtitle"] = "Whether you've got a spare room, a spare Saturday, or a spare rand \u2014 there's a place for you at The KZN Doghouse.";
+}
+
+<partial name="_PublicPageHeader" />
+
+<div class="container">
+
+    <div class="public-stat-strip">
+
+        <div>
+            <div class="public-strip-number">800+</div>
+            <div class="public-strip-label">Dogs rehomed</div>
+        </div>
+
+        <div>
+            <div class="public-strip-number">120</div>
+            <div class="public-strip-label">Active volunteers</div>
+        </div>
+
+        <div>
+            <div class="public-strip-number">100%</div>
+            <div class="public-strip-label">Funded by community</div>
+        </div>
+
+    </div>
+
+</div>
+
+<section class="public-section" id="ways">
+
+    <div class="container">
+
+        <div class="row g-4">
+
+            <div class="col-md-6 col-lg-3">
+                <div class="public-way-card public-way-card-soft">
+                    <span class="public-icon-box"><partial name="_PublicIcon" model="@("home")" /></span>
+                    <h3>Foster a dog</h3>
+                    <p>
+                        Open your home for a few weeks while we find a dog
+                        their forever family. We cover food and vet costs.
+                    </p>
+                    <a asp-controller="Foster"
+                       asp-action="Apply"
+                       class="public-text-link">
+                        Apply to foster &rarr;
+                    </a>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3">
+                <div class="public-way-card public-way-card-soft">
+                    <span class="public-icon-box"><partial name="_PublicIcon" model="@("people")" /></span>
+                    <h3>Volunteer</h3>
+                    <p>
+                        Help with feeding, walking, events, or admin. A few
+                        hours a week makes a real difference.
+                    </p>
+                    <a href="#"
+                       class="public-text-link disabled"
+                       aria-disabled="true"
+                       tabindex="-1">
+                        Apply to volunteer &rarr;
+                    </a>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3">
+                <div class="public-way-card public-way-card-soft">
+                    <span class="public-icon-box"><partial name="_PublicIcon" model="@("gift")" /></span>
+                    <h3>Donate</h3>
+                    <p>
+                        Every rand goes toward food, medical care, and
+                        shelter for dogs who have nowhere else to go.
+                    </p>
+                    <a href="#"
+                       class="public-text-link disabled"
+                       aria-disabled="true"
+                       tabindex="-1">
+                        Donate now &rarr;
+                    </a>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3">
+                <div class="public-way-card public-way-card-soft">
+                    <span class="public-icon-box"><partial name="_PublicIcon" model="@("heart")" /></span>
+                    <h3>Partner with us</h3>
+                    <p>
+                        Businesses and community groups can sponsor a kennel,
+                        host a drive, or support an event.
+                    </p>
+                    <a href="#"
+                       class="public-text-link disabled"
+                       aria-disabled="true"
+                       tabindex="-1">
+                        Get in touch &rarr;
+                    </a>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="public-partner-card mt-5">
+
+            <div>
+
+                <h2>Corporate &amp; community partnerships</h2>
+
+                <p>
+                    We work with local businesses, schools, and community
+                    groups on kennel sponsorships, supply drives, and joint
+                    events. If your organisation wants to get involved, we'd
+                    love to hear from you.
+                </p>
+
+            </div>
+
+            <a href="#"
+               class="btn btn-kzn-outline disabled"
+               aria-disabled="true">
+                Contact our team
+            </a>
+
+        </div>
+
+    </div>
+
+</section>
+
+<section class="public-cta">
+
+    <div class="container">
+
+        <h2>Every hour, every rand, every home counts.</h2>
+
+        <p class="mt-2">Join the fight for forgotten animals.</p>
+
+        <div class="mt-4">
+
+            <a href="#ways"
+               class="btn btn-kzn-gold">
+                Get involved today
+            </a>
+
+        </div>
+
+    </div>
+
+</section>

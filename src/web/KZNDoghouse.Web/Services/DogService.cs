@@ -1,4 +1,4 @@
-using KZNDoghouse.Web.Constants;
+using KZNDoghouse.Web.Helpers;
 using KZNDoghouse.Web.Models;
 using KZNDoghouse.Web.Repositories;
 
@@ -53,9 +53,16 @@ public class DogService : IDogService
 
     public async Task<IReadOnlyList<PublicDogListItem>> GetPublicDogsAsync()
     {
-        var dogs = await _dogRepository.GetByStatusAsync(DogStatuses.Available);
+        var dogs = new List<Dog>();
+
+        foreach (var status in PublicDogStatusHelper.PublicStatuses)
+        {
+            dogs.AddRange(await _dogRepository.GetByStatusAsync(status));
+        }
 
         return dogs
+            .OrderByDescending(x => x.IntakeDate)
+            .ThenBy(x => x.Name)
             .Select(PublicDogListItem.FromDog)
             .ToList();
     }
@@ -64,7 +71,7 @@ public class DogService : IDogService
     {
         var dog = await _dogRepository.GetByIdAsync(dogId);
 
-        if (dog == null || dog.Status != DogStatuses.Available)
+        if (dog == null || !PublicDogStatusHelper.IsPublic(dog.Status))
         {
             return null;
         }

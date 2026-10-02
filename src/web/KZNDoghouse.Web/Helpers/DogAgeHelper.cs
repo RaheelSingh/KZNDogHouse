@@ -5,7 +5,8 @@ public static class DogAgeHelper
     public static string Describe(
         DateTime? dateOfBirth,
         int? estimatedAgeYears,
-        DateTime? today = null)
+        DateTime? today = null,
+        bool shortForm = false)
     {
         if (dateOfBirth.HasValue)
         {
@@ -26,24 +27,39 @@ public static class DogAgeHelper
 
             if (months < 12)
             {
-                return months == 1 ? "1 month" : $"{months} months";
+                return FormatMonths(months, shortForm);
             }
 
-            return FormatYears(months / 12);
+            return FormatYears(months / 12, shortForm);
         }
 
         if (estimatedAgeYears.HasValue)
         {
             return estimatedAgeYears.Value <= 0
-                ? "Under 1 year"
-                : FormatYears(estimatedAgeYears.Value);
+                ? (shortForm ? "Under 1 yr" : "Under 1 year")
+                : FormatYears(estimatedAgeYears.Value, shortForm);
         }
 
         return "Age unknown";
     }
 
-    private static string FormatYears(int years)
+    private static string FormatMonths(int months, bool shortForm)
     {
+        if (shortForm)
+        {
+            return $"{months} mo";
+        }
+
+        return months == 1 ? "1 month" : $"{months} months";
+    }
+
+    private static string FormatYears(int years, bool shortForm)
+    {
+        if (shortForm)
+        {
+            return years == 1 ? "1 yr" : $"{years} yrs";
+        }
+
         return years == 1 ? "1 year" : $"{years} years";
     }
 }

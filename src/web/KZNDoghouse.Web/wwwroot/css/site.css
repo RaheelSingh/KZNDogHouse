@@ -280,35 +280,76 @@ a:hover {
 /* Public page sections */
 
 .public-hero {
-    padding: 5rem 0;
-}
-
-.public-hero-label {
-    color: var(--kzn-green);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04rem;
+    padding: 5rem 0 4rem;
 }
 
 .public-hero-title {
-    color: var(--kzn-green-dark);
-    font-weight: 700;
-    font-size: 3.5rem;
+    margin: 0;
+    font-size: 3.6rem;
+    font-weight: 300;
+    line-height: 1.08;
 }
 
 .public-hero-text {
-    color: var(--kzn-text-muted);
-    font-size: 1.15rem;
+    max-width: 470px;
+    color: var(--kzn-text);
+    font-size: 1.05rem;
+    line-height: 1.6;
 }
 
-.public-image-placeholder {
-    min-height: 260px;
-    border-radius: var(--kzn-radius);
-    background-color: var(--kzn-green-light);
+.public-hero-media {
+    position: relative;
+    padding-bottom: 2rem;
+}
+
+.public-hero-photo {
     display: flex;
     align-items: center;
     justify-content: center;
+    min-height: 440px;
+    background: linear-gradient(135deg, #dbe7d5 0%, #c3d4bd 100%);
+    border-radius: 30px;
     color: var(--kzn-green-dark);
+    font-weight: 600;
+}
+
+.public-float-card {
+    position: absolute;
+    left: 1.5rem;
+    bottom: 0;
+    max-width: 310px;
+    padding: 1rem 1.25rem 1rem 4.25rem;
+    background-color: rgba(255, 255, 255, 0.97);
+    border-radius: 16px;
+    box-shadow: 0 20px 40px -18px rgba(18, 36, 26, 0.35);
+}
+
+.public-float-card::before {
+    content: "";
+    position: absolute;
+    left: 1.1rem;
+    top: 50%;
+    width: 40px;
+    height: 40px;
+    margin-top: -20px;
+    background-color: var(--pub-ink);
+    border-radius: 50%;
+}
+
+.public-float-card strong,
+.public-float-card span {
+    display: block;
+}
+
+.public-float-card strong {
+    color: var(--pub-ink);
+    font-size: 0.9rem;
+}
+
+.public-float-card span {
+    margin-top: 0.15rem;
+    color: var(--kzn-text-muted);
+    font-size: 0.8rem;
 }
 
 .public-section {
@@ -335,11 +376,56 @@ a:hover {
 
 .public-section-title {
     color: var(--kzn-green-dark);
-    font-weight: 700;
+    font-size: 2.3rem;
+    font-weight: 500;
 }
 
 .public-section-text {
     color: var(--kzn-text-muted);
+}
+
+.public-section-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 2.5rem;
+}
+
+.public-section-head .public-section-text {
+    margin: 0.5rem 0 0;
+}
+
+.public-section-dark {
+    background-color: var(--pub-band);
+}
+
+.public-section-dark .public-section-title {
+    color: var(--kzn-white);
+}
+
+.public-section-dark .public-section-text {
+    color: #bfd0c4;
+}
+
+.public-text-link {
+    display: inline-block;
+    padding-bottom: 2px;
+    border-bottom: 2px solid var(--kzn-green-dark);
+    color: var(--pub-ink);
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.public-text-link:hover {
+    color: var(--kzn-green);
+}
+
+.public-text-link.disabled {
+    opacity: 0.45;
+    pointer-events: none;
 }
 
 .public-page-header {
@@ -405,14 +491,15 @@ a:hover {
 }
 
 .public-cta {
-    padding: 3.5rem 0;
-    background-color: var(--kzn-green-dark);
+    padding: 4.5rem 0;
+    background-color: var(--pub-deep);
     color: var(--kzn-white);
     text-align: center;
 }
 
 .public-cta h2 {
-    font-weight: 700;
+    font-size: 1.9rem;
+    font-weight: 500;
 }
 
 .public-cta p {
@@ -519,7 +606,7 @@ a:hover {
     position: relative;
     height: 100%;
     overflow: hidden;
-    background-color: var(--kzn-white);
+    background-color: var(--kzn-green-light);
     border: 1px solid var(--kzn-border);
     border-radius: var(--kzn-radius);
 }
@@ -527,7 +614,7 @@ a:hover {
 .public-dog-photo {
     display: block;
     width: 100%;
-    aspect-ratio: 4 / 3;
+    aspect-ratio: 1 / 1;
     object-fit: cover;
 }
 
@@ -535,10 +622,11 @@ a:hover {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: var(--kzn-green-light);
-    color: var(--kzn-green-dark);
-    font-size: 3rem;
-    font-weight: 700;
+    background-color: #cfdcc9;
+    color: rgba(14, 14, 14, 0.14);
+    font-family: "Fraunces", Georgia, serif;
+    font-size: 3.5rem;
+    font-weight: 600;
 }
 
 .public-dog-body {
@@ -547,9 +635,36 @@ a:hover {
 
 .public-dog-name {
     margin: 0;
-    color: var(--kzn-green-dark);
-    font-size: 1.3rem;
+    font-family: "Inter", Arial, Helvetica, sans-serif;
+    font-size: 1.05rem;
     font-weight: 700;
+}
+
+.public-dog-meta {
+    margin: 0.35rem 0 0.9rem;
+    color: var(--kzn-text-muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.public-badge {
+    display: inline-block;
+    padding: 0.3rem 0.85rem;
+    border-radius: 100px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.public-badge-solid {
+    background-color: var(--kzn-green-dark);
+    border: 1px solid var(--kzn-green-dark);
+    color: var(--kzn-white);
+}
+
+.public-badge-outline {
+    background-color: var(--kzn-white);
+    border: 1px solid var(--pub-ink);
+    color: var(--pub-ink);
 }
 
 .public-dog-breed {
@@ -618,6 +733,221 @@ a:hover {
 .public-fact-list dd {
     margin: 0;
     text-align: right;
+}
+
+
+.public-body .btn-kzn-outline-light {
+    padding: 0.75rem 1.9rem;
+    background-color: transparent;
+    border: 1px solid var(--kzn-white);
+    border-radius: 100px;
+    color: var(--kzn-white);
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.public-body .btn-kzn-outline-light:hover {
+    background-color: var(--kzn-white);
+    color: var(--pub-band);
+}
+
+.public-banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 2.75rem 3rem;
+    background-color: var(--pub-band);
+    border-radius: 24px;
+    color: var(--kzn-white);
+}
+
+.public-banner h2 {
+    margin: 0 0 0.5rem;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.public-banner p {
+    max-width: 560px;
+    margin: 0;
+    color: #c9c9c5;
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.public-stat-card {
+    height: 100%;
+    padding: 1.6rem;
+    background-color: var(--pub-band);
+    border-radius: 14px;
+    color: var(--kzn-white);
+}
+
+.public-stat-number {
+    font-family: "Archivo", "Inter", Arial, Helvetica, sans-serif;
+    font-size: 2.5rem;
+    font-weight: 600;
+    line-height: 1.1;
+}
+
+.public-stat-label {
+    margin-top: 0.75rem;
+    color: #c4c4c4;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.public-pillar-card {
+    height: 100%;
+    padding: 1.8rem;
+    background-color: var(--kzn-green-light);
+    border: 1px solid var(--kzn-green-dark);
+    border-top-width: 3px;
+    border-radius: 18px;
+}
+
+.public-pillar-label {
+    margin: 0 0 0.75rem;
+    color: var(--kzn-green-dark);
+    font-family: "Archivo", "Inter", Arial, Helvetica, sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.public-pillar-card h3 {
+    margin: 0 0 0.6rem;
+    color: var(--pub-ink);
+    font-family: "Inter", Arial, Helvetica, sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+.public-pillar-card p:last-child {
+    margin: 0;
+    color: var(--kzn-text);
+    font-size: 0.9rem;
+    font-weight: 500;
+    line-height: 1.55;
+}
+
+.public-quote {
+    padding: 4.5rem 2rem;
+    background-color: var(--pub-band);
+    border-radius: 24px;
+    color: var(--kzn-white);
+    text-align: center;
+}
+
+.public-quote blockquote {
+    max-width: 840px;
+    margin: 0 auto 1.5rem;
+    font-family: "Archivo", "Inter", Arial, Helvetica, sans-serif;
+    font-size: 1.8rem;
+    font-weight: 300;
+    line-height: 1.4;
+}
+
+.public-quote p {
+    margin: 0;
+    color: #b8b8b4;
+    font-size: 0.85rem;
+    letter-spacing: 0.02rem;
+}
+
+.public-way-card {
+    height: 100%;
+    padding: 1.6rem;
+    background-color: var(--kzn-white);
+    border: 1px solid var(--kzn-border);
+    border-radius: 18px;
+}
+
+.public-way-card-soft {
+    background-color: var(--kzn-cream);
+    border-radius: 22px;
+}
+
+.public-way-card h3 {
+    margin: 0 0 0.5rem;
+    color: var(--pub-ink);
+    font-size: 1.15rem;
+    font-weight: 500;
+}
+
+.public-way-card p {
+    min-height: 3.6rem;
+    margin: 0 0 1.25rem;
+    color: var(--kzn-text-muted);
+    font-size: 0.9rem;
+    line-height: 1.55;
+}
+
+.public-icon-box {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 46px;
+    margin-bottom: 1.5rem;
+    background-color: var(--kzn-green-dark);
+    border-radius: 13px;
+    color: var(--kzn-white);
+}
+
+.public-stat-strip {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1.5rem 5rem;
+    margin-top: -2.5rem;
+    padding: 1.75rem 2rem;
+    background-color: var(--pub-deep);
+    border-radius: 20px;
+    text-align: center;
+}
+
+.public-strip-number {
+    color: var(--kzn-gold-light);
+    font-family: "Archivo", "Inter", Arial, Helvetica, sans-serif;
+    font-size: 2rem;
+    line-height: 1.1;
+}
+
+.public-strip-label {
+    margin-top: 0.35rem;
+    color: #c7d3c1;
+    font-size: 0.8rem;
+}
+
+.public-partner-card {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 2.5rem 2.75rem;
+    background-color: var(--kzn-white);
+    border: 1px solid var(--kzn-border);
+    border-radius: 22px;
+}
+
+.public-partner-card h2 {
+    margin: 0 0 0.6rem;
+    color: var(--pub-ink);
+    font-size: 1.5rem;
+    font-weight: 400;
+}
+
+.public-partner-card p {
+    max-width: 620px;
+    margin: 0;
+    color: var(--kzn-text-muted);
+    font-size: 0.9rem;
+    line-height: 1.6;
 }
 
 
@@ -862,7 +1192,28 @@ a:hover {
     }
 
     .public-cta {
-        padding: 2.5rem 0;
+        padding: 3rem 0;
+    }
+
+    .public-banner,
+    .public-partner-card {
+        padding: 2rem 1.5rem;
+    }
+
+    .public-quote {
+        padding: 3rem 1.5rem;
+    }
+
+    .public-quote blockquote {
+        font-size: 1.4rem;
+    }
+
+    .public-hero-photo {
+        min-height: 300px;
+    }
+
+    .public-section-title {
+        font-size: 1.8rem;
     }
 
     .portal-sidebar-desktop {

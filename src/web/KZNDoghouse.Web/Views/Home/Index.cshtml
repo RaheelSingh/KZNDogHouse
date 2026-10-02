@@ -1,52 +1,123 @@
-﻿@{
+@model HomeViewModel
+
+@{
     ViewData["Title"] = "Home";
+
+    var noDogsMessage = new PublicMessageViewModel
+    {
+        Title = "No dogs to show right now",
+        Message = "Please check back soon, as new dogs arrive regularly."
+    };
 }
 
 <section class="public-hero">
 
     <div class="container">
 
-        <div class="row align-items-center">
+        <div class="row align-items-center g-5">
 
-            <div class="col-lg-7">
-
-                <p class="public-hero-label">
-                    KZN Doghouse
-                </p>
+            <div class="col-lg-6">
 
                 <h1 class="public-hero-title">
-                    There's no place like home.
+                    There's no place<br />like home.
                 </h1>
 
-                <p class="public-hero-text mt-3">
-                    Supporting rescued dogs through care, fostering,
-                    adoption and community involvement.
+                <p class="public-hero-text mt-4">
+                    Durban South's only no-kill shelter. Since 2021 we've
+                    rescued, rehabilitated and rehomed over 800 abused and
+                    neglected dogs &mdash; one paw at a time.
                 </p>
 
-                <div class="mt-4">
+                <div class="mt-4 d-flex flex-wrap gap-3">
 
                     <a asp-controller="PublicDogs"
                        asp-action="Index"
                        class="btn btn-kzn-primary">
-                        View Dogs
+                        Meet the Dogs
                     </a>
 
-                    <a href="#"
-                       class="btn btn-kzn-outline ms-2 disabled"
-                       aria-disabled="true">
-                        Get Involved
+                    <a asp-controller="Foster"
+                       asp-action="Index"
+                       class="btn btn-kzn-outline">
+                        Foster a Dog
                     </a>
 
                 </div>
 
             </div>
 
-            <div class="col-lg-5 mt-4 mt-lg-0">
+            <div class="col-lg-6">
 
-                <div class="public-image-placeholder">
-                    Dog image area
+                <div class="public-hero-media">
+
+                    <div class="public-hero-photo"
+                         role="img"
+                         aria-label="Photo placeholder">
+                        Photo placeholder
+                    </div>
+
+                    <div class="public-float-card">
+                        <strong>Nala found her home last week</strong>
+                        <span>Adopted after 94 days in our care</span>
+                    </div>
+
                 </div>
 
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+<section class="public-section pt-0">
+
+    <div class="container">
+
+        <div class="public-banner">
+
+            <div>
+
+                <h2>We fought. You stood with us. We're still here.</h2>
+
+                <p>
+                    Against inspections, uncertainty and threats of closure,
+                    our doors are still open &mdash; because of you. The fight
+                    isn't over yet.
+                </p>
+
+            </div>
+
+            <a href="#"
+               class="btn btn-kzn-outline-light disabled"
+               aria-disabled="true">
+                Sign the Petition
+            </a>
+
+        </div>
+
+        <div class="row g-3 mt-1">
+
+            <div class="col-md-4">
+                <div class="public-stat-card">
+                    <div class="public-stat-number">800+</div>
+                    <div class="public-stat-label">Dogs rescued &amp; rehomed since 2021</div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="public-stat-card">
+                    <div class="public-stat-number">0</div>
+                    <div class="public-stat-label">Government funding &mdash; we run on donations alone</div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="public-stat-card">
+                    <div class="public-stat-number">100%</div>
+                    <div class="public-stat-label">Of donations go directly to rescue efforts</div>
+                </div>
             </div>
 
         </div>
@@ -59,74 +130,56 @@
 
     <div class="container">
 
-        <div class="public-section-heading">
+        <div class="public-section-head">
 
-            <p class="public-section-label">
-                What we do
-            </p>
+            <div>
 
-            <h2 class="public-section-title">
-                Caring for rescued dogs across KwaZulu-Natal
-            </h2>
+                <h2 class="public-section-title">More than a shelter - a movement</h2>
 
-            <p class="public-section-text">
-                KZN Doghouse looks after dogs and puppies that need a safe
-                place to recover, and helps them find loving homes.
-            </p>
+                <p class="public-section-text">
+                    We're not just rescuers; we're advocates, healers and a
+                    voice for the voiceless.
+                </p>
+
+            </div>
 
         </div>
 
         <div class="row g-4">
 
             <div class="col-md-4">
-
-                <div class="public-feature-card">
-
-                    <span class="public-feature-number">1</span>
-
-                    <h3>Rescue and care</h3>
-
+                <div class="public-pillar-card">
+                    <p class="public-pillar-label">Rescue</p>
+                    <h3>Rescue &amp; Rehabilitation</h3>
                     <p>
-                        Every dog receives food, shelter, vaccinations and
-                        medical attention while they wait for a new start.
+                        Taking in injured, abandoned and neglected dogs,
+                        providing medical care and behavioural support.
                     </p>
-
                 </div>
-
             </div>
 
             <div class="col-md-4">
-
-                <div class="public-feature-card">
-
-                    <span class="public-feature-number">2</span>
-
-                    <h3>Foster and adopt</h3>
-
+                <div class="public-pillar-card">
+                    <p class="public-pillar-label">Rehome</p>
+                    <h3>Adoption &amp; Fostering</h3>
                     <p>
-                        Foster parents give dogs and puppies a temporary
-                        home, helping them settle before they are adopted.
+                        Connecting rescue dogs with loving homes &mdash;
+                        application, inspection, introduction, adoption and
+                        off to their new home.
                     </p>
-
                 </div>
-
             </div>
 
             <div class="col-md-4">
-
-                <div class="public-feature-card">
-
-                    <span class="public-feature-number">3</span>
-
-                    <h3>Community involvement</h3>
-
+                <div class="public-pillar-card">
+                    <p class="public-pillar-label">Reach</p>
+                    <h3>Community Outreach</h3>
                     <p>
-                        Volunteers and supporters help with daily care,
-                        fundraising and events throughout the year.
+                        Educating the public, supporting families with pet
+                        care, and providing emergency relief during floods and
+                        fires.
                     </p>
-
                 </div>
-
             </div>
 
         </div>
@@ -134,75 +187,67 @@
     </div>
 
 </section>
-
 
 <section class="public-section">
 
     <div class="container">
 
-        <div class="public-section-heading">
+        <div class="public-section-head">
 
-            <p class="public-section-label">
-                Fostering at a glance
-            </p>
+            <div>
 
-            <h2 class="public-section-title">
-                Open your home to a dog in need
-            </h2>
+                <h2 class="public-section-title">Looking for a home</h2>
 
-            <p class="public-section-text">
-                Fostering gives dogs and puppies the quiet, safe space they
-                need while they wait for a permanent family.
-            </p>
+                <p class="public-section-text">
+                    Every dog here has been vet-checked, sterilised and is
+                    ready to meet their new family.
+                </p>
+
+            </div>
+
+            <a asp-controller="PublicDogs"
+               asp-action="Index"
+               class="public-text-link">
+                See all dogs &rarr;
+            </a>
 
         </div>
 
-        <div class="row g-4">
+        @if (Model.FeaturedDogs.Count == 0)
+        {
+            <partial name="_PublicEmptyState" model="noDogsMessage" />
+        }
+        else
+        {
+            <div class="row g-4">
 
-            <div class="col-md-4">
-
-                <div class="public-feature-card">
-
-                    <h3>Flexible foster periods</h3>
-
-                    <p>
-                        Choose a period that works around your availability,
-                        from a few weeks to longer stays.
-                    </p>
-
-                </div>
-
-            </div>
-
-            <div class="col-md-4">
-
-                <div class="public-feature-card">
-
-                    <h3>We provide the essentials</h3>
-
-                    <p>
-                        Food, blankets, flea medication, dewormer and other
-                        dog-care items can be supplied to foster parents.
-                    </p>
-
-                </div>
+                @foreach (var dog in Model.FeaturedDogs)
+                {
+                    <div class="col-sm-6 col-lg-3">
+                        <partial name="_PublicDogCard" model="dog" />
+                    </div>
+                }
 
             </div>
+        }
 
-            <div class="col-md-4">
+    </div>
 
-                <div class="public-feature-card">
+</section>
 
-                    <h3>A safe, secure home</h3>
+<section class="public-section pt-0">
 
-                    <p>
-                        A fully fenced property, someone at home to monitor
-                        the dog, and an indoor place to sleep.
-                    </p>
+    <div class="container">
 
-                </div>
+        <div class="public-quote">
 
-            </div>
+            <blockquote>
+                &ldquo;We've stood beside children's homes, old-age facilities
+                and struggling families &mdash; proving that every life
+                matters, no matter how small.&rdquo;
+            </blockquote>
+
+            <p>&mdash; The KZN Doghouse team</p>
 
         </div>
 
@@ -210,29 +255,81 @@
 
 </section>
 
-<section class="public-cta">
+<section class="public-section public-section-dark">
 
     <div class="container">
 
-        <h2>Ready to make a difference?</h2>
+        <div class="public-section-head">
 
-        <p class="mt-2">
-            Foster a dog, volunteer your time or support our work.
-        </p>
+            <div>
 
-        <div class="mt-4">
+                <h2 class="public-section-title">Join the fight for forgotten animals</h2>
 
-            <a asp-controller="Foster"
-               asp-action="Index"
-               class="btn btn-kzn-gold">
-                Learn about fostering
-            </a>
+                <p class="public-section-text">
+                    There are a few ways to help &mdash; pick the one that
+                    fits your life right now.
+                </p>
 
-            <a href="#"
-               class="btn btn-outline-light ms-2 disabled"
-               aria-disabled="true">
-                Get Involved
-            </a>
+            </div>
+
+        </div>
+
+        <div class="row g-4">
+
+            <div class="col-md-6 col-lg-3">
+                <div class="public-way-card">
+                    <span class="public-icon-box"><partial name="_PublicIcon" model="@("heart")" /></span>
+                    <h3>Adopt</h3>
+                    <p>Give a rescue dog a forever home.</p>
+                    <a href="#"
+                       class="public-text-link disabled"
+                       aria-disabled="true"
+                       tabindex="-1">
+                        Start the process &rarr;
+                    </a>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3">
+                <div class="public-way-card">
+                    <span class="public-icon-box"><partial name="_PublicIcon" model="@("home")" /></span>
+                    <h3>Foster</h3>
+                    <p>Provide temporary care for dogs awaiting adoption.</p>
+                    <a asp-controller="Foster"
+                       asp-action="Index"
+                       class="public-text-link">
+                        Become a foster &rarr;
+                    </a>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3">
+                <div class="public-way-card">
+                    <span class="public-icon-box"><partial name="_PublicIcon" model="@("people")" /></span>
+                    <h3>Volunteer</h3>
+                    <p>Help with shelter operations, events and outreach.</p>
+                    <a href="#"
+                       class="public-text-link disabled"
+                       aria-disabled="true"
+                       tabindex="-1">
+                        Join the team &rarr;
+                    </a>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3">
+                <div class="public-way-card">
+                    <span class="public-icon-box"><partial name="_PublicIcon" model="@("gift")" /></span>
+                    <h3>Donate</h3>
+                    <p>100% of contributions go directly to rescue efforts.</p>
+                    <a href="#"
+                       class="public-text-link disabled"
+                       aria-disabled="true"
+                       tabindex="-1">
+                        Give now &rarr;
+                    </a>
+                </div>
+            </div>
 
         </div>
 
