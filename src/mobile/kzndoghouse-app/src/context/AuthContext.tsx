@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { unregisterPushNotifications } from '@/lib/pushNotifications';
 
 export type UserRole = 'volunteer' | 'staff';
 
@@ -143,6 +144,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
+    // Stop pushes to this phone first - the RPC needs the user to still be signed in.
+    await unregisterPushNotifications();
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
     setSession(null);

@@ -158,7 +158,7 @@ export default function AvailabilityScreen() {
     setIsSubmitting(true);
     try {
       const profileId = await getCurrentProfileId();
-      const ops: Promise<any>[] = [];
+      const ops: PromiseLike<unknown>[] = [];
 
       dayStrs.forEach((dayStr) => {
         SLOTS.forEach((slot) => {

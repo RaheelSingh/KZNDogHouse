@@ -20,7 +20,7 @@ secrets.json
 *.crt
 
 # Firebase local/native configuration
-google-services.json
+# google-services.json
 GoogleService-Info.plist
 
 # ASP.NET Core / .NET

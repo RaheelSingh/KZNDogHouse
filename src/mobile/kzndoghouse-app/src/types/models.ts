@@ -112,6 +112,8 @@ export interface AppNotification {
   category: NotificationCategory;
   title: string;
   body: string | null;
+  data: { route?: string; [key: string]: unknown } | null;
   is_read: boolean;
+  cleared_at?: string | null;
   created_at: string;
 }
