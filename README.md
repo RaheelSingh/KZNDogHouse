@@ -685,6 +685,74 @@ Private server credentials must never be exposed through the public website or m
 
 ---
 
+## Public Website (`web-public`)
+
+This section describes the public-facing website built on the `web-public` branch and how to run it.
+
+### Pages
+
+| Route | Page | Notes |
+|---|---|---|
+| `/` | Home | Mission, statistics, newest dogs, ways to help |
+| `/our-dogs` | Meet the Dogs | Size and status filters, sorting, "Load more dogs" |
+| `/our-dogs/{id}` | Dog Details | Public profile, adoption and foster links |
+| `/foster` | Foster | Programme information, process, requirements, FAQ |
+| `/foster/apply` | Foster application | Requires a signed-in account |
+| `/get-involved` | Get Involved | Ways to help, upcoming events, partnerships |
+| `/events` | Events | Upcoming and past public events, category filter |
+| `/contact` | Contact | Contact form and shelter details |
+
+### What the public can see
+
+- Dogs: only dogs with the status Available or Fostered are shown. Pages receive small public view models, so internal fields such as kennel location, intake details and who created a record never reach the browser.
+- Events: only events with Public visibility are shown. Times are displayed exactly as staff entered them in the calendar.
+
+### How the public features save data
+
+- Foster applications are saved into the existing `foster_applications` table and are linked to the signed-in applicant. The home and preference answers are stored as text in `application_details`. An applicant can have only one open application (Submitted or Under Review) at a time.
+- Contact messages are saved into the `contact_messages` table. A hidden field acts as a spam trap, and messages are never saved when it is filled in.
+- All forms are validated on the server as well as in the browser, and every form uses an anti-forgery token.
+
+### Running the website locally
+
+Add the Supabase values to .NET User Secrets (never commit them):
+
+```text
+dotnet user-secrets set "Supabase:Url" "<project url>" --project src/web/KZNDoghouse.Web
+dotnet user-secrets set "Supabase:AnonKey" "<anon or publishable key>" --project src/web/KZNDoghouse.Web
+dotnet user-secrets set "Supabase:ServiceRoleKey" "<service role or secret key>" --project src/web/KZNDoghouse.Web
+```
+
+Then start the site:
+
+```text
+dotnet run --project src/web/KZNDoghouse.Web
+```
+
+### Database setup for the public features
+
+Run the `contact_messages` section at the end of `src/web/KZNDoghouse.Web/Database/schema.sql` once in the Supabase SQL Editor. Until it exists, the contact form shows a message asking visitors to email the shelter instead.
+
+### Running the tests
+
+```text
+dotnet test tests/web/KZNDoghouse.Web.Tests
+```
+
+### Styling
+
+The public theme is applied through the `public-body` class on the public layout, so the staff portal keeps its own appearance. Fonts (Archivo, Inter, Fraunces and IBM Plex Mono) are loaded from Google Fonts.
+
+### Still to complete before release
+
+- Replace the placeholder logo (`wwwroot/images/logo-placeholder.svg`) and the labelled photo and map placeholders with the final images.
+- Add the petition link; the "Sign the Petition" button is disabled until a link is available.
+- Confirm the figures and stories shown on the Home, Foster and Get Involved pages.
+- Confirm the shelter opening hours, which are not currently shown.
+- Terms and Privacy Policy appear as plain text because those pages do not exist yet.
+- Contact messages can currently be read in the Supabase table editor; a staff screen for them has not been built.
+- The staff foster-application screen does not yet display the saved `application_details` text.
+
 ## Current Project Stage
 
 Part 1 of the project focused on planning and design.
