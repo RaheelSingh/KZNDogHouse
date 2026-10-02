@@ -18,7 +18,8 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.shaheerj.kzndoghouseapp"
+      "package": "com.shaheerj.kzndoghouseapp",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -29,7 +30,15 @@
     "plugins": [
       "expo-router",
       "expo-status-bar",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#16302a",
+          "defaultChannel": "default"
+        }
+      ]
     ],
     "extra": {
       "router": {},

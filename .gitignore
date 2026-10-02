@@ -89,3 +89,9 @@ tmp/
 
 # Sensitive client/reference material
 docs/private/
+
+# Firebase / Supabase secrets - never commit
+*firebase-adminsdk*.json
+service-account*.json
+supabase/.temp/
+supabase/functions/.env
