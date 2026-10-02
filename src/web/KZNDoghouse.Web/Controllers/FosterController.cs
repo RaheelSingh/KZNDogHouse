@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using KZNDoghouse.Web.Models;
+using KZNDoghouse.Web.Repositories;
 using KZNDoghouse.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -9,32 +10,60 @@ namespace KZNDoghouse.Web.Controllers;
 [Route("foster")]
 public class FosterController : Controller
 {
+    private const int NeedFosterDogCount = 4;
+
     private readonly IDogService _dogService;
+    private readonly IFosterApplicationService _fosterApplicationService;
+    private readonly IUserProfileRepository _userProfileRepository;
     private readonly ILogger<FosterController> _logger;
 
     public FosterController(
         IDogService dogService,
+        IFosterApplicationService fosterApplicationService,
+        IUserProfileRepository userProfileRepository,
         ILogger<FosterController> logger)
     {
         _dogService = dogService;
+        _fosterApplicationService = fosterApplicationService;
+        _userProfileRepository = userProfileRepository;
         _logger = logger;
     }
 
     [HttpGet("")]
-    public IActionResult Index()
+    public async Task<IActionResult> Index()
     {
-        return View();
+        var model = new FosterPageViewModel();
+
+        try
+        {
+            var dogs = await _dogService.GetPublicDogsAsync();
+
+            model.NeedFosterDogs = dogs
+                .Where(x => !x.IsFostered)
+                .Take(NeedFosterDogCount)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Dogs needing a foster home could not be loaded.");
+        }
+
+        return View(model);
     }
 
     [Authorize]
     [HttpGet("apply")]
     public async Task<IActionResult> Apply(Guid? dogId)
     {
-        await LoadDogOptionsAsync();
+        await LoadSelectedDogAsync(dogId);
+
+        var fullName = User.Identity?.Name ?? string.Empty;
+        var nameParts = fullName.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
 
         return View(new FosterApplicationFormViewModel
         {
-            FullName = User.Identity?.Name ?? string.Empty,
+            FirstName = nameParts.Length > 0 ? nameParts[0] : string.Empty,
+            LastName = nameParts.Length > 1 ? nameParts[1] : string.Empty,
             Email = User.FindFirstValue(ClaimTypes.Email) ?? string.Empty,
             DogId = dogId
         });
@@ -49,13 +78,46 @@ public class FosterController : Controller
             && !await IsDogAvailableAsync(model.DogId.Value))
         {
             ModelState.AddModelError(
-                nameof(model.DogId),
-                "This dog is no longer available. Please choose another dog or leave it blank.");
+                string.Empty,
+                "The dog you chose is no longer available. Please go back and choose another dog, or apply without choosing one.");
+        }
+
+        var profile = await GetCurrentProfileAsync();
+
+        if (profile == null || !profile.IsActive)
+        {
+            ModelState.AddModelError(
+                string.Empty,
+                "We could not find your account. Please sign out and sign in again.");
         }
 
         if (!ModelState.IsValid)
         {
-            await LoadDogOptionsAsync();
+            await LoadSelectedDogAsync(model.DogId);
+
+            return View(model);
+        }
+
+        FosterApplicationSubmitResult result;
+
+        try
+        {
+            result = await _fosterApplicationService.SubmitAsync(model, profile!.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "A foster application could not be saved.");
+
+            result = new FosterApplicationSubmitResult(
+                false,
+                "We could not save your application right now. Please try again in a few minutes.");
+        }
+
+        if (!result.Success)
+        {
+            ModelState.AddModelError(string.Empty, result.Message);
+
+            await LoadSelectedDogAsync(model.DogId);
 
             return View(model);
         }
@@ -69,17 +131,43 @@ public class FosterController : Controller
         return View();
     }
 
-    private async Task LoadDogOptionsAsync()
+    private async Task<UserProfile?> GetCurrentProfileAsync()
     {
+        var authId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (string.IsNullOrWhiteSpace(authId))
+        {
+            return null;
+        }
+
         try
         {
-            ViewData["DogOptions"] = await _dogService.GetPublicDogsAsync();
+            return await _userProfileRepository.GetByAuthUserIdAsync(authId);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Dogs for the foster form could not be loaded.");
+            _logger.LogError(ex, "The applicant profile could not be loaded.");
 
-            ViewData["DogOptions"] = Array.Empty<PublicDogListItem>();
+            return null;
+        }
+    }
+
+    private async Task LoadSelectedDogAsync(Guid? dogId)
+    {
+        if (!dogId.HasValue)
+        {
+            return;
+        }
+
+        try
+        {
+            var dog = await _dogService.GetPublicDogAsync(dogId.Value);
+
+            ViewData["SelectedDogName"] = dog?.Name;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Dog {DogId} could not be loaded for the foster form.", dogId);
         }
     }
 
@@ -87,7 +175,9 @@ public class FosterController : Controller
     {
         try
         {
-            return await _dogService.GetPublicDogAsync(dogId) != null;
+            var dog = await _dogService.GetPublicDogAsync(dogId);
+
+            return dog != null && !dog.IsFostered;
         }
         catch (Exception ex)
         {

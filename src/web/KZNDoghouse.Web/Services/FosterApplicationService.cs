@@ -1,4 +1,5 @@
 using KZNDoghouse.Web.Constants;
+using KZNDoghouse.Web.Helpers;
 using KZNDoghouse.Web.Models;
 using KZNDoghouse.Web.Repositories;
 
@@ -8,6 +9,9 @@ public interface IFosterApplicationService
 {
     Task<IReadOnlyList<FosterApplication>> GetAllAsync();
 
+    Task<FosterApplicationSubmitResult> SubmitAsync(
+        FosterApplicationFormViewModel form, Guid applicantProfileId);
+
     Task<FosterApplicationDecisionResult> ApproveAsync(Guid applicationId, Guid reviewedByStaffId);
 
     Task<FosterApplicationDecisionResult> RejectAsync(
@@ -15,6 +19,8 @@ public interface IFosterApplicationService
 }
 
 public record FosterApplicationDecisionResult(bool Success, string Message);
+
+public record FosterApplicationSubmitResult(bool Success, string Message);
 
 // Services/FosterApplicationService.cs — updated constructor and Approve/Reject
 public class FosterApplicationService : IFosterApplicationService
@@ -72,6 +78,38 @@ public class FosterApplicationService : IFosterApplicationService
         }
 
         return new FosterApplicationDecisionResult(true, "Application approved and dog assigned.");
+    }
+
+    public async Task<FosterApplicationSubmitResult> SubmitAsync(
+        FosterApplicationFormViewModel form, Guid applicantProfileId)
+    {
+        var existing = await _applicationRepository.GetByApplicantAsync(applicantProfileId);
+
+        if (existing.Any(x =>
+                x.Status == FosterApplicationStatuses.Submitted
+                || x.Status == FosterApplicationStatuses.UnderReview))
+        {
+            return new FosterApplicationSubmitResult(
+                false,
+                "You already have an application in progress. We will be in touch once it has been reviewed.");
+        }
+
+        var application = new FosterApplication
+        {
+            Id = Guid.NewGuid(),
+            ApplicantUserId = applicantProfileId,
+            ApplicantName = $"{form.FirstName.Trim()} {form.LastName.Trim()}",
+            ApplicantEmail = form.Email.Trim(),
+            ApplicantPhone = form.Phone.Trim(),
+            DogId = form.DogId,
+            ApplicationDetails = FosterApplicationDetailsBuilder.Build(form),
+            Status = FosterApplicationStatuses.Submitted,
+            SubmittedAt = DateTime.UtcNow
+        };
+
+        await _applicationRepository.CreateAsync(application);
+
+        return new FosterApplicationSubmitResult(true, "Application submitted.");
     }
 
     public async Task<FosterApplicationDecisionResult> RejectAsync(

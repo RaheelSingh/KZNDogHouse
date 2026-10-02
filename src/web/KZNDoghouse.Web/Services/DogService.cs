@@ -53,14 +53,12 @@ public class DogService : IDogService
 
     public async Task<IReadOnlyList<PublicDogListItem>> GetPublicDogsAsync()
     {
-        var dogs = new List<Dog>();
+        var results = await Task.WhenAll(
+            PublicDogStatusHelper.PublicStatuses
+                .Select(status => _dogRepository.GetByStatusAsync(status)));
 
-        foreach (var status in PublicDogStatusHelper.PublicStatuses)
-        {
-            dogs.AddRange(await _dogRepository.GetByStatusAsync(status));
-        }
-
-        return dogs
+        return results
+            .SelectMany(x => x)
             .OrderByDescending(x => x.IntakeDate)
             .ThenBy(x => x.Name)
             .Select(PublicDogListItem.FromDog)

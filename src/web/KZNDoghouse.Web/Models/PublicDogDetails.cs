@@ -1,3 +1,4 @@
+using System.Globalization;
 using KZNDoghouse.Web.Constants;
 using KZNDoghouse.Web.Helpers;
 
@@ -35,7 +36,9 @@ public class PublicDogDetails
 
     public string StatusLabel => PublicDogStatusHelper.LabelFor(Status);
 
-    public string SinceText => IntakeDate.ToString("MMMM yyyy");
+    public string SinceText => IntakeDate.ToString("MMMM yyyy", CultureInfo.InvariantCulture);
+
+    public string Initial => PublicDogStatusHelper.InitialOf(Name);
 
     public string MetaText
     {
@@ -53,7 +56,7 @@ public class PublicDogDetails
             if (!string.IsNullOrWhiteSpace(Size))
             {
                 parts.Add(WeightKg.HasValue
-                    ? $"{Size} ({WeightKg.Value:0.#}kg)"
+                    ? string.Create(CultureInfo.InvariantCulture, $"{Size} ({WeightKg.Value:0.#}kg)")
                     : Size);
             }
 

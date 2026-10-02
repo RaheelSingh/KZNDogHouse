@@ -20,4 +20,13 @@ public static class PublicDogStatusHelper
             ? "In foster care"
             : "Ready to adopt";
     }
+
+    public static string InitialOf(string name)
+    {
+        var trimmed = name?.Trim();
+
+        return string.IsNullOrEmpty(trimmed)
+            ? "?"
+            : trimmed[..1].ToUpperInvariant();
+    }
 }

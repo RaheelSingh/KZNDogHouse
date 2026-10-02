@@ -10,6 +10,10 @@ public interface IFosterApplicationRepository
 
     Task<FosterApplication?> GetByIdAsync(Guid id);
 
+    Task<FosterApplication> CreateAsync(FosterApplication application);
+
+    Task<IReadOnlyList<FosterApplication>> GetByApplicantAsync(Guid applicantUserId);
+
     Task ApproveAsync(Guid id, Guid reviewedByStaffId, Guid fosteringRecordId);
 
     Task RejectAsync(Guid id, Guid reviewedByStaffId, string rejectionReason);
@@ -52,6 +56,39 @@ public class FosterApplicationRepository : IFosterApplicationRepository
             .Get();
 
         return response.Models?.FirstOrDefault();
+    }
+
+    public async Task<FosterApplication> CreateAsync(FosterApplication application)
+    {
+        var client = await _supabaseClientFactory.CreateServiceClientAsync();
+
+        var response = await client
+            .From<FosterApplication>()
+            .Insert(application);
+
+        return response.Models.First();
+    }
+
+    public async Task<IReadOnlyList<FosterApplication>> GetByApplicantAsync(Guid applicantUserId)
+    {
+        var client = await _supabaseClientFactory.CreateServiceClientAsync();
+
+        var response = await client
+            .From<FosterApplication>()
+            .Filter(
+                "applicant_user_id",
+                Supabase.Postgrest.Constants.Operator.Equals,
+                applicantUserId.ToString())
+            .Get();
+
+        if (response.Models == null)
+        {
+            return Array.Empty<FosterApplication>();
+        }
+
+        return response.Models
+            .OrderByDescending(x => x.SubmittedAt)
+            .ToList();
     }
 
     public async Task ApproveAsync(Guid id, Guid reviewedByStaffId, Guid fosteringRecordId)

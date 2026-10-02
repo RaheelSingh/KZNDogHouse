@@ -52,7 +52,8 @@
             <nav class="public-chip-row" aria-label="Filter dogs">
 
                 <a href="@ChipUrl(null, null)"
-                   class="public-chip@(filter.IsActive ? string.Empty : " active")">
+                   class="public-chip@(filter.IsActive ? string.Empty : " active")"
+                   aria-current="@(filter.IsActive ? null : "true")">
                     All dogs
                 </a>
 
@@ -61,18 +62,21 @@
                     var isActive = filter.Size == option;
 
                     <a href="@ChipUrl(isActive ? null : option, filter.Status)"
-                       class="public-chip@(isActive ? " active" : string.Empty)">
+                       class="public-chip@(isActive ? " active" : string.Empty)"
+                       aria-current="@(isActive ? "true" : null)">
                         @option
                     </a>
                 }
 
                 <a href="@ChipUrl(filter.Size, filter.Status == PublicDogFilter.StatusReady ? null : PublicDogFilter.StatusReady)"
-                   class="public-chip@(filter.Status == PublicDogFilter.StatusReady ? " active" : string.Empty)">
+                   class="public-chip@(filter.Status == PublicDogFilter.StatusReady ? " active" : string.Empty)"
+                   aria-current="@(filter.Status == PublicDogFilter.StatusReady ? "true" : null)">
                     Ready to adopt
                 </a>
 
                 <a href="@ChipUrl(filter.Size, filter.Status == PublicDogFilter.StatusFoster ? null : PublicDogFilter.StatusFoster)"
-                   class="public-chip@(filter.Status == PublicDogFilter.StatusFoster ? " active" : string.Empty)">
+                   class="public-chip@(filter.Status == PublicDogFilter.StatusFoster ? " active" : string.Empty)"
+                   aria-current="@(filter.Status == PublicDogFilter.StatusFoster ? "true" : null)">
                     In foster care
                 </a>
 

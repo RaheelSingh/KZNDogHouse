@@ -9,17 +9,11 @@ public class PublicDogListItem
 
     public string Name { get; set; } = string.Empty;
 
-    public string? Breed { get; set; }
-
     public string Gender { get; set; } = string.Empty;
 
     public string? Size { get; set; }
 
-    public string AgeText { get; set; } = string.Empty;
-
     public string ShortAgeText { get; set; } = string.Empty;
-
-    public string? Temperament { get; set; }
 
     public string? PhotoUrl { get; set; }
 
@@ -30,6 +24,8 @@ public class PublicDogListItem
     public bool IsFostered => Status == DogStatuses.Fostered;
 
     public string StatusLabel => PublicDogStatusHelper.LabelFor(Status);
+
+    public string Initial => PublicDogStatusHelper.InitialOf(Name);
 
     public string MetaText
     {
@@ -49,7 +45,7 @@ public class PublicDogListItem
                 parts.Add(Size);
             }
 
-            return string.Join(" \u00B7 ", parts);
+            return string.Join(" · ", parts);
         }
     }
 
@@ -59,15 +55,12 @@ public class PublicDogListItem
         {
             Id = dog.Id,
             Name = dog.Name,
-            Breed = dog.Breed,
             Gender = dog.Gender,
             Size = dog.Size,
-            AgeText = DogAgeHelper.Describe(dog.DateOfBirth, dog.EstimatedAgeYears),
             ShortAgeText = DogAgeHelper.Describe(
                 dog.DateOfBirth,
                 dog.EstimatedAgeYears,
                 shortForm: true),
-            Temperament = dog.Temperament,
             PhotoUrl = dog.PhotoUrl,
             Status = dog.Status,
             IntakeDate = dog.IntakeDate
