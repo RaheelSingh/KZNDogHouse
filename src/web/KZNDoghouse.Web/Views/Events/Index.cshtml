@@ -1,0 +1,249 @@
+@model EventsPageViewModel
+
+@{
+    ViewData["Title"] = "Events";
+
+    var loadFailed = ViewData["LoadFailed"] as bool? == true;
+    var filter = Model.Filter;
+
+    string ChipUrl(string? category) =>
+        Url.Action("Index", "Events", new { category }) ?? "#";
+
+    var failedMessage = new PublicMessageViewModel
+    {
+        Title = "We could not load our events",
+        Message = "Please try again in a few minutes."
+    };
+
+    var emptyMessage = new PublicMessageViewModel
+    {
+        Title = "No events to show yet",
+        Message = "We are planning our next events. Please check back soon."
+    };
+
+    var noMatchMessage = new PublicMessageViewModel
+    {
+        Title = "No events in this category",
+        Message = "Try a different category, or show all events."
+    };
+
+    var noUpcomingMessage = new PublicMessageViewModel
+    {
+        Title = "No upcoming events right now",
+        Message = "Please check back soon, or subscribe below to hear about the next one."
+    };
+}
+
+<section class="public-page-header">
+
+    <div class="container">
+
+        <p class="public-page-eyebrow">Events</p>
+
+        <h1 class="public-page-title">Come say hello.</h1>
+
+        <p class="public-page-subtitle">
+            Adoption days, fundraisers, and volunteer meetups &mdash; all the
+            ways to spend time with us in person.
+        </p>
+
+        @if (!loadFailed && Model.Categories.Count > 1)
+        {
+            <nav class="public-chip-row" aria-label="Filter events">
+
+                <a href="@ChipUrl(null)"
+                   class="public-chip@(filter.IsActive ? string.Empty : " active")"
+                   aria-current="@(filter.IsActive ? null : "true")">
+                    All events
+                </a>
+
+                @foreach (var category in Model.Categories)
+                {
+                    var isActive = filter.Category == category;
+
+                    <a href="@ChipUrl(category)"
+                       class="public-chip@(isActive ? " active" : string.Empty)"
+                       aria-current="@(isActive ? "true" : null)">
+                        @category
+                    </a>
+                }
+
+            </nav>
+        }
+
+    </div>
+
+</section>
+
+<section class="public-section">
+
+    <div class="container">
+
+        @if (loadFailed)
+        {
+            <partial name="_PublicEmptyState" model="failedMessage" />
+        }
+        else if (Model.OverallCount == 0)
+        {
+            <partial name="_PublicEmptyState" model="emptyMessage" />
+        }
+        else if (filter.IsActive && !Model.HasResults)
+        {
+            <partial name="_PublicEmptyState" model="noMatchMessage" />
+
+            <p class="text-center mt-4">
+                <a asp-action="Index" class="btn btn-kzn-primary">
+                    Show all events
+                </a>
+            </p>
+        }
+        else
+        {
+            @if (Model.Featured != null)
+            {
+                var featured = Model.Featured;
+                var rsvpText = $"I would like to RSVP for {featured.Title} on {featured.DateText}.";
+
+                <article class="public-event-feature">
+
+                    <div class="public-event-feature-date" aria-hidden="true">
+                        <span>@featured.MonthText</span>
+                        <strong>@featured.DayText</strong>
+                    </div>
+
+                    <div class="public-event-feature-body">
+
+                        <span class="public-pill-tag">@featured.Category</span>
+
+                        <h2>@featured.Title</h2>
+
+                        @if (!string.IsNullOrWhiteSpace(featured.Description))
+                        {
+                            <p>@featured.Description</p>
+                        }
+
+                        <p class="public-event-meta">
+                            <span>@featured.DateText &middot; @featured.TimeText</span>
+
+                            @if (!string.IsNullOrWhiteSpace(featured.Location))
+                            {
+                                <span>@featured.Location</span>
+                            }
+                        </p>
+
+                        <a asp-controller="Contact"
+                           asp-action="Index"
+                           asp-route-topic="other"
+                           asp-route-message="@rsvpText"
+                           class="btn btn-kzn-primary">
+                            RSVP for this event
+                        </a>
+
+                    </div>
+
+                </article>
+            }
+            else
+            {
+                <partial name="_PublicEmptyState" model="noUpcomingMessage" />
+            }
+
+            @if (Model.Upcoming.Count > 0)
+            {
+                <h2 class="public-list-title">Upcoming events</h2>
+
+                <div class="row g-4">
+
+                    @foreach (var item in Model.Upcoming)
+                    {
+                        <div class="col-md-6 col-lg-4">
+
+                            <article class="public-event-card">
+
+                                <div class="public-event-top">
+                                    <div class="public-date-badge" aria-hidden="true">
+                                        <span>@item.MonthText</span>
+                                        <strong>@item.DayText</strong>
+                                    </div>
+                                </div>
+
+                                <div class="public-event-body">
+
+                                    <p class="public-event-category">@item.Category</p>
+
+                                    <h3>@item.Title</h3>
+
+                                    <p class="public-event-meta">
+                                        <span>@item.DateText &middot; @item.TimeText</span>
+
+                                        @if (!string.IsNullOrWhiteSpace(item.Location))
+                                        {
+                                            <span>@item.Location</span>
+                                        }
+                                    </p>
+
+                                    @if (!string.IsNullOrWhiteSpace(item.Description))
+                                    {
+                                        <p class="public-event-text">@item.Description</p>
+                                    }
+
+                                </div>
+
+                            </article>
+
+                        </div>
+                    }
+
+                </div>
+            }
+
+            @if (Model.Past.Count > 0)
+            {
+                <h2 class="public-list-title">Past events</h2>
+
+                <ul class="public-past-list">
+
+                    @foreach (var item in Model.Past)
+                    {
+                        <li>
+                            <span class="public-past-date">@item.FullDateText</span>
+                            <span class="public-past-title">@item.Title</span>
+
+                            @if (!string.IsNullOrWhiteSpace(item.Description))
+                            {
+                                <span class="public-past-note">@item.Description</span>
+                            }
+                        </li>
+                    }
+
+                </ul>
+            }
+        }
+
+    </div>
+
+</section>
+
+<section class="public-cta">
+
+    <div class="container">
+
+        <h2>Don't want to miss the next one?</h2>
+
+        <p class="mt-2">Get event reminders straight to your inbox.</p>
+
+        <div class="mt-4">
+
+            <a asp-controller="Contact"
+               asp-action="Index"
+               asp-route-topic="other"
+               asp-route-message="Please add me to the event reminders list."
+               class="btn btn-kzn-gold">
+                Subscribe for updates
+            </a>
+
+        </div>
+
+    </div>
+
+</section>

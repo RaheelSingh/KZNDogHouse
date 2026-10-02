@@ -131,3 +131,23 @@ alter table public.inventory_transactions enable row level security;
 revoke all on table public.inventory_transactions from anon;
 revoke all on table public.inventory_transactions from authenticated;
 grant all on table public.inventory_transactions to service_role;
+
+
+create table if not exists public.contact_messages (
+    id uuid primary key default gen_random_uuid(),
+    first_name text not null,
+    last_name text not null,
+    email text not null,
+    phone text null,
+    topic text not null
+        check (topic in ('Fostering', 'Volunteering', 'Adoption', 'Donations & partnerships', 'Something else')),
+    message text not null,
+    submitted_by_user_id uuid null references public.user_profiles(id) on delete set null,
+    is_handled boolean not null default false,
+    created_at timestamptz not null default now()
+);
+
+alter table public.contact_messages enable row level security;
+revoke all on table public.contact_messages from anon;
+revoke all on table public.contact_messages from authenticated;
+grant all on table public.contact_messages to service_role;

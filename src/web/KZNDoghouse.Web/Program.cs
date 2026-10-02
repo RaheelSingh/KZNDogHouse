@@ -64,6 +64,8 @@ builder.Services.AddScoped<ICalendarEventRepository, CalendarEventRepository>();
 builder.Services.AddScoped<ICalendarEventService, CalendarEventService>();
 builder.Services.AddScoped<IFosterApplicationRepository, FosterApplicationRepository>();
 builder.Services.AddScoped<IFosterApplicationService, FosterApplicationService>();
+builder.Services.AddScoped<IContactMessageRepository, ContactMessageRepository>();
+builder.Services.AddScoped<IContactMessageService, ContactMessageService>();
 builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<IAppNotificationRepository, AppNotificationRepository>();

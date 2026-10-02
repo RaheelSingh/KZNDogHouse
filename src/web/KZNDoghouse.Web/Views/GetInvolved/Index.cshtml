@@ -1,8 +1,10 @@
+@model GetInvolvedViewModel
+
 @{
     ViewData["Title"] = "Get Involved";
     ViewData["Eyebrow"] = "Get Involved";
     ViewData["Heading"] = "There are so many ways to help.";
-    ViewData["Subtitle"] = "Whether you've got a spare room, a spare Saturday, or a spare rand \u2014 there's a place for you at The KZN Doghouse.";
+    ViewData["Subtitle"] = "Whether you've got a spare room, a spare Saturday, or a spare rand — there's a place for you at The KZN Doghouse.";
 }
 
 <partial name="_PublicPageHeader" />
@@ -60,10 +62,10 @@
                         Help with feeding, walking, events, or admin. A few
                         hours a week makes a real difference.
                     </p>
-                    <a href="#"
-                       class="public-text-link disabled"
-                       aria-disabled="true"
-                       tabindex="-1">
+                    <a asp-controller="Contact"
+                       asp-action="Index"
+                       asp-route-topic="volunteering"
+                       class="public-text-link">
                         Apply to volunteer &rarr;
                     </a>
                 </div>
@@ -77,10 +79,10 @@
                         Every rand goes toward food, medical care, and
                         shelter for dogs who have nowhere else to go.
                     </p>
-                    <a href="#"
-                       class="public-text-link disabled"
-                       aria-disabled="true"
-                       tabindex="-1">
+                    <a asp-controller="Contact"
+                       asp-action="Index"
+                       asp-route-topic="donations"
+                       class="public-text-link">
                         Donate now &rarr;
                     </a>
                 </div>
@@ -94,16 +96,59 @@
                         Businesses and community groups can sponsor a kennel,
                         host a drive, or support an event.
                     </p>
-                    <a href="#"
-                       class="public-text-link disabled"
-                       aria-disabled="true"
-                       tabindex="-1">
+                    <a asp-controller="Contact"
+                       asp-action="Index"
+                       asp-route-topic="donations"
+                       class="public-text-link">
                         Get in touch &rarr;
                     </a>
                 </div>
             </div>
 
         </div>
+
+        @if (Model.UpcomingEvents.Count > 0)
+        {
+            <div class="public-events-panel">
+
+                <div class="public-section-head">
+
+                    <h2 class="public-panel-title">Upcoming events</h2>
+
+                    <a asp-controller="Events"
+                       asp-action="Index"
+                       class="public-text-link">
+                        See all events &rarr;
+                    </a>
+
+                </div>
+
+                <div class="row g-3">
+
+                    @foreach (var item in Model.UpcomingEvents)
+                    {
+                        <div class="col-md-4">
+
+                            <article class="public-mini-event">
+
+                                <span class="public-mini-date">@item.DateText</span>
+
+                                <h3>@item.Title</h3>
+
+                                @if (!string.IsNullOrWhiteSpace(item.Description))
+                                {
+                                    <p>@item.Description</p>
+                                }
+
+                            </article>
+
+                        </div>
+                    }
+
+                </div>
+
+            </div>
+        }
 
         <div class="public-partner-card mt-5">
 
@@ -120,9 +165,10 @@
 
             </div>
 
-            <a href="#"
-               class="btn btn-kzn-outline disabled"
-               aria-disabled="true">
+            <a asp-controller="Contact"
+               asp-action="Index"
+               asp-route-topic="donations"
+               class="btn btn-kzn-outline">
                 Contact our team
             </a>
 

@@ -11,6 +11,8 @@ public interface ICalendarEventService
     // Akeev, your public Events page should call this rather than filtering in the view 
     Task<IReadOnlyList<CalendarEvent>> GetPublicUpcomingAsync();
 
+    Task<IReadOnlyList<CalendarEvent>> GetPublicPastAsync();
+
     Task CreateAsync(
         string title,
         string category,
@@ -39,6 +41,17 @@ public class CalendarEventService : ICalendarEventService
     }
     public Task<IReadOnlyList<CalendarEvent>> GetAllAsync() =>
         _repository.GetAllAsync();
+
+    public async Task<IReadOnlyList<CalendarEvent>> GetPublicPastAsync()
+    {
+        var all = await _repository.GetAllAsync();
+
+        return all
+            .Where(x => x.Visibility == EventVisibilities.Public
+                        && x.StartAt < DateTime.UtcNow)
+            .OrderByDescending(x => x.StartAt)
+            .ToList();
+    }
 
     public async Task<IReadOnlyList<CalendarEvent>> GetPublicUpcomingAsync()
     {

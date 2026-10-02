@@ -100,9 +100,11 @@
 
                 <div class="d-flex flex-wrap gap-3">
 
-                    <a href="#"
-                       class="btn btn-kzn-primary disabled"
-                       aria-disabled="true">
+                    <a asp-controller="Contact"
+                       asp-action="Index"
+                       asp-route-topic="adoption"
+                       asp-route-message="@($"I would like to adopt {dog.Name}.")"
+                       class="btn btn-kzn-primary">
                         Start adoption
                     </a>
 
