@@ -15,7 +15,10 @@ public class PublicDogListItem
 
     public string ShortAgeText { get; set; } = string.Empty;
 
-    public string? PhotoUrl { get; set; }
+    public IReadOnlyList<string> ImageUrls { get; set; } =
+        Array.Empty<string>();
+
+    public string? PhotoUrl => ImageUrls.FirstOrDefault();
 
     public string Status { get; set; } = DogStatuses.Available;
 
@@ -49,8 +52,22 @@ public class PublicDogListItem
         }
     }
 
-    public static PublicDogListItem FromDog(Dog dog)
+    public static PublicDogListItem FromDog(
+        Dog dog,
+        IReadOnlyList<string>? imageUrls = null)
     {
+        var urls = imageUrls?
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList()
+            ?? [];
+
+        if (urls.Count == 0
+            && !string.IsNullOrWhiteSpace(dog.PhotoUrl))
+        {
+            urls.Add(dog.PhotoUrl);
+        }
+
         return new PublicDogListItem
         {
             Id = dog.Id,
@@ -61,7 +78,7 @@ public class PublicDogListItem
                 dog.DateOfBirth,
                 dog.EstimatedAgeYears,
                 shortForm: true),
-            PhotoUrl = dog.PhotoUrl,
+            ImageUrls = urls,
             Status = dog.Status,
             IntakeDate = dog.IntakeDate
         };

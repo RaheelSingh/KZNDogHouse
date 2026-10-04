@@ -9,6 +9,7 @@
 
 <div class="mb-4">
     <h1 class="portal-page-title mb-2">Edit dog</h1>
+    <p class="text-muted mb-0">Update the profile or add more photos.</p>
 </div>
 
 <div class="portal-card">
@@ -16,7 +17,8 @@
     <form asp-controller="Dogs"
           asp-action="Edit"
           asp-route-id="@dogId"
-          method="post">
+          method="post"
+          enctype="multipart/form-data">
 
         <div asp-validation-summary="ModelOnly"
              class="alert alert-danger"></div>
@@ -45,18 +47,30 @@
             </div>
 
             <div class="col-md-4">
+                <label asp-for="Size" class="form-label"></label>
+                <select asp-for="Size" class="form-select">
+                    <option value="">Not recorded</option>
+                    @foreach (var size in DogSizes.All)
+                    {
+                        <option value="@size">@size</option>
+                    }
+                </select>
+                <span asp-validation-for="Size" class="text-danger small"></span>
+            </div>
+
+            <div class="col-md-4">
                 <label asp-for="EstimatedAgeYears" class="form-label"></label>
                 <input asp-for="EstimatedAgeYears" class="form-control" />
             </div>
 
             <div class="col-md-4">
-                <label asp-for="WeightKg" class="form-label"></label>
-                <input asp-for="WeightKg" class="form-control" />
+                <label asp-for="DateOfBirth" class="form-label"></label>
+                <input asp-for="DateOfBirth" class="form-control" />
             </div>
 
             <div class="col-md-4">
-                <label asp-for="Size" class="form-label"></label>
-                <input asp-for="Size" class="form-control" placeholder="Small / Medium / Large" />
+                <label asp-for="WeightKg" class="form-label"></label>
+                <input asp-for="WeightKg" class="form-control" />
             </div>
 
             <div class="col-md-4">
@@ -100,6 +114,16 @@
                 <textarea asp-for="About" class="form-control" rows="3"></textarea>
             </div>
 
+            <div class="col-12">
+                <label asp-for="Images" class="form-label">Add more dog photos</label>
+                <input asp-for="Images"
+                       type="file"
+                       class="form-control"
+                       accept="image/jpeg,image/png,image/webp"
+                       multiple />
+                <div class="form-text">Existing photos stay in place. Manage the primary image and remove photos from the dog profile page.</div>
+            </div>
+
             <div class="col-12 form-check">
                 <input asp-for="IsVaccinated" class="form-check-input" />
                 <label asp-for="IsVaccinated" class="form-check-label"></label>
@@ -108,18 +132,11 @@
         </div>
 
         <div class="mt-4 d-flex gap-2">
-
-            <button type="submit" class="btn btn-kzn-primary">
-                Save changes
-            </button>
-
+            <button type="submit" class="btn btn-kzn-primary">Save changes</button>
             <a asp-controller="Dogs"
                asp-action="Details"
                asp-route-id="@dogId"
-               class="btn btn-kzn-outline">
-                Cancel
-            </a>
-
+               class="btn btn-kzn-outline">Cancel</a>
         </div>
 
     </form>

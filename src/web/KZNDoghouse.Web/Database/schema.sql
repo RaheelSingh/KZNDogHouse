@@ -5,6 +5,23 @@
 create extension if not exists pgcrypto;
 
 
+/* Storage buckets */
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('public-media', 'public-media', true, 5242880, array['image/jpeg', 'image/png', 'image/webp'])
+on conflict (id) do update
+set public = excluded.public,
+    file_size_limit = excluded.file_size_limit,
+    allowed_mime_types = excluded.allowed_mime_types;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('private-files', 'private-files', false, 10485760, array['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
+on conflict (id) do update
+set public = excluded.public,
+    file_size_limit = excluded.file_size_limit,
+    allowed_mime_types = excluded.allowed_mime_types;
+
+
 /* User profiles */
 
 create table if not exists public.user_profiles (
@@ -122,7 +139,8 @@ create table if not exists public.dogs (
         check (estimated_age_years is null or estimated_age_years between 0 and 30),
     gender text not null default 'Unknown'
         check (gender in ('Male', 'Female', 'Unknown')),
-    size text null,
+    size text null
+        check (size is null or size in ('Small', 'Medium', 'Large')),
     weight_kg numeric null
         check (weight_kg is null or weight_kg >= 0),
     eye_colour text null,
@@ -150,6 +168,34 @@ alter table public.dogs enable row level security;
 revoke all on table public.dogs from anon;
 revoke all on table public.dogs from authenticated;
 grant all on table public.dogs to service_role;
+
+
+/* Dog images */
+
+create table if not exists public.dog_images (
+    id uuid primary key default gen_random_uuid(),
+    dog_id uuid not null references public.dogs(id) on delete cascade,
+    storage_path text not null,
+    public_url text not null,
+    is_primary boolean not null default false,
+    sort_order int not null default 0 check (sort_order >= 0),
+    alt_text text null,
+    created_by uuid null references public.user_profiles(id) on delete set null,
+    created_at timestamptz not null default now(),
+    unique (dog_id, storage_path)
+);
+
+create index if not exists idx_dog_images_dog
+    on public.dog_images(dog_id, sort_order, created_at);
+
+create unique index if not exists ux_dog_images_primary
+    on public.dog_images(dog_id)
+    where is_primary = true;
+
+alter table public.dog_images enable row level security;
+revoke all on table public.dog_images from anon;
+revoke all on table public.dog_images from authenticated;
+grant all on table public.dog_images to service_role;
 
 
 /* Dog medical records and staff notes */
@@ -303,9 +349,15 @@ create table if not exists public.calendar_events (
     visibility text not null default 'Internal'
         check (visibility in ('Internal', 'Public')),
     dog_id uuid null references public.dogs(id) on delete set null,
+    image_path text null,
+    image_url text null,
     created_by uuid null references public.user_profiles(id) on delete set null,
     created_at timestamptz not null default now()
 );
+
+alter table public.calendar_events
+    add column if not exists image_path text null,
+    add column if not exists image_url text null;
 
 create index if not exists idx_calendar_events_start
     on public.calendar_events(start_at);
@@ -347,9 +399,15 @@ create table if not exists public.inventory_items (
     quantity int not null default 0,
     unit text null,
     low_stock_threshold int not null default 0,
+    image_path text null,
+    image_url text null,
     created_at timestamptz not null default now(),
     updated_at timestamptz null
 );
+
+alter table public.inventory_items
+    add column if not exists image_path text null,
+    add column if not exists image_url text null;
 
 create index if not exists idx_inventory_items_name
     on public.inventory_items(name);
@@ -468,3 +526,6 @@ revoke all on table public.vet_dog_authorizations from authenticated;
 
 grant all on table public.vet_profiles to service_role;
 grant all on table public.vet_dog_authorizations to service_role;
+
+-- Refresh PostgREST metadata after schema changes.
+notify pgrst, 'reload schema';

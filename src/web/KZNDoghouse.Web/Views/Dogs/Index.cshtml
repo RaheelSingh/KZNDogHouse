@@ -6,12 +6,6 @@
     ViewData["Title"] = "Dogs";
     Layout = "_PortalLayout";
 
-    var sizes = Model
-        .Where(x => !string.IsNullOrWhiteSpace(x.Size))
-        .Select(x => x.Size!)
-        .Distinct(StringComparer.OrdinalIgnoreCase)
-        .OrderBy(x => x)
-        .ToList();
 }
 
 <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-3">
@@ -95,7 +89,7 @@
                     All sizes
                 </option>
 
-                @foreach (var size in sizes)
+                @foreach (var size in DogSizes.All)
                 {
                     <option value="@size">
                         @size
@@ -175,9 +169,18 @@
 
                             <div class="d-flex align-items-center gap-2">
 
-                                <div class="kzn-dog-avatar">
-                                    @(string.IsNullOrWhiteSpace(dog.Name) ? "?" : dog.Name.Substring(0, 1).ToUpper())
-                                </div>
+                                @if (!string.IsNullOrWhiteSpace(dog.PhotoUrl))
+                                {
+                                    <img src="@dog.PhotoUrl"
+                                         alt="Photo of @dog.Name"
+                                         class="kzn-dog-avatar kzn-dog-avatar-photo" />
+                                }
+                                else
+                                {
+                                    <div class="kzn-dog-avatar">
+                                        @(string.IsNullOrWhiteSpace(dog.Name) ? "?" : dog.Name.Substring(0, 1).ToUpper())
+                                    </div>
+                                }
 
                                 <div>
 

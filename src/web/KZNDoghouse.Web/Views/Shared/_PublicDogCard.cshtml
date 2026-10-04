@@ -2,20 +2,15 @@
 
 <div class="public-dog-card">
 
-    @if (!string.IsNullOrWhiteSpace(Model.PhotoUrl))
-    {
-        <img class="public-dog-photo"
-             src="@Model.PhotoUrl"
-             alt="Photo of @Model.Name"
-             loading="lazy" />
-    }
-    else
-    {
-        <div class="public-dog-photo public-dog-photo-placeholder"
-             aria-hidden="true">
-            @Model.Initial
-        </div>
-    }
+    <partial name="_DogGallery"
+             model="@(new DogGalleryViewModel
+             {
+                 DogName = Model.Name,
+                 Initial = Model.Initial,
+                 ImageUrls = Model.ImageUrls,
+                 Variant = "card",
+                 AutoPlay = true
+             })" />
 
     <div class="public-dog-body">
 

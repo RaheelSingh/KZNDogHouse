@@ -24,6 +24,12 @@ public class InventoryItem : BaseModel
     [Column("low_stock_threshold")]
     public int LowStockThreshold { get; set; }
 
+    [Column("image_path")]
+    public string? ImagePath { get; set; }
+
+    [Column("image_url")]
+    public string? ImageUrl { get; set; }
+
     [Column("created_at")]
     public DateTime CreatedAt { get; set; }
 

@@ -7,22 +7,17 @@
 }
 
 <div class="mb-4">
-
-    <h1 class="portal-page-title mb-2">
-        Add dog
-    </h1>
-
-    <p class="text-muted mb-0">
-        Create a new dog profile.
-    </p>
-
+    <h1 class="portal-page-title mb-2">Add dog</h1>
+    <p class="text-muted mb-0">Create a new dog profile and optionally add up to 10 photos.</p>
 </div>
 
 <div class="portal-card">
 
     <form asp-controller="Dogs"
           asp-action="Create"
-          method="post">
+          method="post"
+          enctype="multipart/form-data"
+          data-submit-once="true">
 
         <div asp-validation-summary="ModelOnly"
              class="alert alert-danger"></div>
@@ -51,18 +46,30 @@
             </div>
 
             <div class="col-md-4">
+                <label asp-for="Size" class="form-label"></label>
+                <select asp-for="Size" class="form-select">
+                    <option value="">Not recorded</option>
+                    @foreach (var size in DogSizes.All)
+                    {
+                        <option value="@size">@size</option>
+                    }
+                </select>
+                <span asp-validation-for="Size" class="text-danger small"></span>
+            </div>
+
+            <div class="col-md-4">
                 <label asp-for="EstimatedAgeYears" class="form-label"></label>
                 <input asp-for="EstimatedAgeYears" class="form-control" />
             </div>
 
             <div class="col-md-4">
-                <label asp-for="WeightKg" class="form-label"></label>
-                <input asp-for="WeightKg" class="form-control" />
+                <label asp-for="DateOfBirth" class="form-label"></label>
+                <input asp-for="DateOfBirth" class="form-control" />
             </div>
 
             <div class="col-md-4">
-                <label asp-for="Size" class="form-label"></label>
-                <input asp-for="Size" class="form-control" placeholder="Small / Medium / Large" />
+                <label asp-for="WeightKg" class="form-label"></label>
+                <input asp-for="WeightKg" class="form-control" />
             </div>
 
             <div class="col-md-4">
@@ -106,6 +113,16 @@
                 <textarea asp-for="About" class="form-control" rows="3"></textarea>
             </div>
 
+            <div class="col-12">
+                <label asp-for="Images" class="form-label">Dog photos</label>
+                <input asp-for="Images"
+                       type="file"
+                       class="form-control"
+                       accept="image/jpeg,image/png,image/webp"
+                       multiple />
+                <div class="form-text">JPG, PNG or WebP. Up to 5 MB per image and 10 images per dog. The first uploaded image becomes the profile image.</div>
+            </div>
+
             <div class="col-12 form-check">
                 <input asp-for="IsVaccinated" class="form-check-input" />
                 <label asp-for="IsVaccinated" class="form-check-label"></label>
@@ -114,17 +131,10 @@
         </div>
 
         <div class="mt-4 d-flex gap-2">
-
-            <button type="submit" class="btn btn-kzn-primary">
-                Save dog
-            </button>
-
+            <button type="submit" class="btn btn-kzn-primary">Save dog</button>
             <a asp-controller="Dogs"
                asp-action="Index"
-               class="btn btn-kzn-outline">
-                Cancel
-            </a>
-
+               class="btn btn-kzn-outline">Cancel</a>
         </div>
 
     </form>

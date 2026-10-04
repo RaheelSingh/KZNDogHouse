@@ -12,21 +12,25 @@ namespace KZNDoghouse.Web.Controllers;
 public class DogsController : Controller
 {
     private readonly IDogService _dogService;
+    private readonly IDogImageService _dogImageService;
     private readonly IUserProfileRepository _userProfileRepository;
     private readonly IDogMedicalService _dogMedicalService;
     private readonly IFosteringService _fosteringService;
 
     public DogsController(
         IDogService dogService,
+        IDogImageService dogImageService,
         IUserProfileRepository userProfileRepository,
         IDogMedicalService dogMedicalService,
         IFosteringService fosteringService)
     {
         _dogService = dogService;
+        _dogImageService = dogImageService;
         _userProfileRepository = userProfileRepository;
         _dogMedicalService = dogMedicalService;
         _fosteringService = fosteringService;
     }
+
     [HttpGet]
     public async Task<IActionResult> Index(string? status)
     {
@@ -37,37 +41,35 @@ public class DogsController : Controller
         if (!string.IsNullOrWhiteSpace(status)
             && DogStatuses.All.Contains(status))
         {
-            dogs = dogs.Where(x => x.Status == status).ToList();
+            dogs = dogs
+                .Where(x => x.Status == status)
+                .ToList();
         }
 
         return View(dogs);
     }
 
     [HttpGet]
-public IActionResult Create()
-{
-    return View(new DogFormViewModel());
-}
+    public IActionResult Create()
+    {
+        return View(new DogFormViewModel());
+    }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(DogFormViewModel model)
+    public async Task<IActionResult> Create(
+        DogFormViewModel model)
     {
         if (!ModelState.IsValid)
         {
             return View(model);
         }
 
-        var currentAuthUserId =
-            User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-        if (string.IsNullOrWhiteSpace(currentAuthUserId))
-        {
-            return Challenge();
-        }
+        TempData.Remove("SuccessMessage");
+        TempData.Remove("ErrorMessage");
 
         var currentProfile =
-            await _userProfileRepository.GetByAuthUserIdAsync(currentAuthUserId);
+            await GetCurrentProfileAsync();
 
         if (currentProfile == null)
         {
@@ -93,108 +95,229 @@ public IActionResult Create()
             IsVaccinated = model.IsVaccinated
         };
 
-        await _dogService.RegisterDogAsync(dog, currentProfile.Id);
+        var createdDog =
+            await _dogService.RegisterDogAsync(
+                dog,
+                currentProfile.Id);
 
-        TempData["SuccessMessage"] = $"{dog.Name} has been added.";
+        var upload =
+            await _dogImageService.UploadAsync(
+                createdDog.Id,
+                model.Images,
+                currentProfile.Id);
 
-        return RedirectToAction(nameof(Index));
+        TempData["SuccessMessage"] =
+            $"{createdDog.Name} has been added."
+            + (upload.ChangedCount > 0
+                ? $" {upload.Message}"
+                : string.Empty);
+
+        if (!upload.Success)
+        {
+            TempData["ErrorMessage"] = upload.Message;
+        }
+
+        return RedirectToAction(
+            nameof(Details),
+            new { id = createdDog.Id });
     }
 
     [HttpGet]
-public async Task<IActionResult> Edit(Guid id)
-{
-    var dog = await _dogService.GetDogAsync(id);
-
-    if (dog == null)
+    public async Task<IActionResult> Edit(Guid id)
     {
-        return NotFound();
-    }
+        var dog = await _dogService.GetDogAsync(id);
 
-    var model = new DogFormViewModel
-    {
-        Name = dog.Name,
-        Breed = dog.Breed,
-        DateOfBirth = dog.DateOfBirth,
-        EstimatedAgeYears = dog.EstimatedAgeYears,
-        Gender = dog.Gender,
-        Size = dog.Size,
-        WeightKg = dog.WeightKg,
-        EyeColour = dog.EyeColour,
-        Temperament = dog.Temperament,
-        About = dog.About,
-        KennelLocation = dog.KennelLocation,
-        IntakeDate = dog.IntakeDate,
-        IntakeType = dog.IntakeType,
-        Status = dog.Status,
-        IsVaccinated = dog.IsVaccinated
-    };
+        if (dog == null)
+        {
+            return NotFound();
+        }
 
-    ViewData["DogId"] = dog.Id;
-    ViewData["DogName"] = dog.Name;
+        var model = new DogFormViewModel
+        {
+            Name = dog.Name,
+            Breed = dog.Breed,
+            DateOfBirth = dog.DateOfBirth,
+            EstimatedAgeYears = dog.EstimatedAgeYears,
+            Gender = dog.Gender,
+            Size = dog.Size,
+            WeightKg = dog.WeightKg,
+            EyeColour = dog.EyeColour,
+            Temperament = dog.Temperament,
+            About = dog.About,
+            KennelLocation = dog.KennelLocation,
+            IntakeDate = dog.IntakeDate,
+            IntakeType = dog.IntakeType,
+            Status = dog.Status,
+            IsVaccinated = dog.IsVaccinated
+        };
 
-    return View(model);
-}
+        ViewData["DogId"] = dog.Id;
+        ViewData["DogName"] = dog.Name;
 
-[HttpPost]
-[ValidateAntiForgeryToken]
-public async Task<IActionResult> Edit(Guid id, DogFormViewModel model)
-{
-    if (!ModelState.IsValid)
-    {
-        ViewData["DogId"] = id;
         return View(model);
     }
 
-    var dog = await _dogService.GetDogAsync(id);
-
-    if (dog == null)
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Edit(
+        Guid id,
+        DogFormViewModel model)
     {
-        return NotFound();
+        if (!ModelState.IsValid)
+        {
+            ViewData["DogId"] = id;
+            return View(model);
+        }
+
+        var dog = await _dogService.GetDogAsync(id);
+
+        if (dog == null)
+        {
+            return NotFound();
+        }
+
+        dog.Name = model.Name;
+        dog.Breed = model.Breed;
+        dog.DateOfBirth = model.DateOfBirth;
+        dog.EstimatedAgeYears = model.EstimatedAgeYears;
+        dog.Gender = model.Gender;
+        dog.Size = model.Size;
+        dog.WeightKg = model.WeightKg;
+        dog.EyeColour = model.EyeColour;
+        dog.Temperament = model.Temperament;
+        dog.About = model.About;
+        dog.KennelLocation = model.KennelLocation;
+        dog.IntakeDate = model.IntakeDate;
+        dog.IntakeType = model.IntakeType;
+        dog.Status = model.Status;
+        dog.IsVaccinated = model.IsVaccinated;
+        dog.UpdatedAt = DateTime.UtcNow;
+
+        await _dogService.UpdateDogAsync(dog);
+
+        var currentProfile =
+            await GetCurrentProfileAsync();
+
+        if (currentProfile != null)
+        {
+            var upload =
+                await _dogImageService.UploadAsync(
+                    dog.Id,
+                    model.Images,
+                    currentProfile.Id);
+
+            if (!upload.Success)
+            {
+                TempData["ErrorMessage"] = upload.Message;
+            }
+        }
+
+        TempData["SuccessMessage"] =
+            $"{dog.Name}'s profile has been updated.";
+
+        return RedirectToAction(
+            nameof(Details),
+            new { id = dog.Id });
     }
 
-    dog.Name = model.Name;
-    dog.Breed = model.Breed;
-    dog.DateOfBirth = model.DateOfBirth;
-    dog.EstimatedAgeYears = model.EstimatedAgeYears;
-    dog.Gender = model.Gender;
-    dog.Size = model.Size;
-    dog.WeightKg = model.WeightKg;
-    dog.EyeColour = model.EyeColour;
-    dog.Temperament = model.Temperament;
-    dog.About = model.About;
-    dog.KennelLocation = model.KennelLocation;
-    dog.IntakeDate = model.IntakeDate;
-    dog.IntakeType = model.IntakeType;
-    dog.Status = model.Status;
-    dog.IsVaccinated = model.IsVaccinated;
-    dog.UpdatedAt = DateTime.UtcNow;
-
-    await _dogService.UpdateDogAsync(dog);
-
-    TempData["SuccessMessage"] = $"{dog.Name}'s profile has been updated.";
-
-    return RedirectToAction(nameof(Details), new { id = dog.Id });
-}
-
-[HttpPost]
-[ValidateAntiForgeryToken]
-public async Task<IActionResult> UpdateStatus(Guid id, string status)
-{
-    if (!DogStatuses.All.Contains(status))
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UploadImages(
+        Guid dogId,
+        List<IFormFile> images)
     {
-        TempData["ErrorMessage"] = "The selected status is invalid.";
-        return RedirectToAction(nameof(Details), new { id });
+        var currentProfile =
+            await GetCurrentProfileAsync();
+
+        if (currentProfile == null)
+        {
+            return Challenge();
+        }
+
+        var result =
+            await _dogImageService.UploadAsync(
+                dogId,
+                images,
+                currentProfile.Id);
+
+        TempData[result.Success
+            ? "SuccessMessage"
+            : "ErrorMessage"] = result.Message;
+
+        return RedirectToAction(
+            nameof(Details),
+            new { id = dogId });
     }
 
-    await _dogService.ChangeStatusAsync(id, status);
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SetPrimaryImage(
+        Guid dogId,
+        Guid imageId)
+    {
+        var result =
+            await _dogImageService.SetPrimaryAsync(
+                dogId,
+                imageId);
 
-    TempData["SuccessMessage"] = "Status updated.";
+        TempData[result.Success
+            ? "SuccessMessage"
+            : "ErrorMessage"] = result.Message;
 
-    return RedirectToAction(nameof(Details), new { id });
-}
+        return RedirectToAction(
+            nameof(Details),
+            new { id = dogId });
+    }
 
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteImage(
+        Guid dogId,
+        Guid imageId)
+    {
+        var result =
+            await _dogImageService.DeleteAsync(
+                dogId,
+                imageId);
 
- [HttpGet]
+        TempData[result.Success
+            ? "SuccessMessage"
+            : "ErrorMessage"] = result.Message;
+
+        return RedirectToAction(
+            nameof(Details),
+            new { id = dogId });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateStatus(
+        Guid id,
+        string status)
+    {
+        if (!DogStatuses.All.Contains(status))
+        {
+            TempData["ErrorMessage"] =
+                "The selected status is invalid.";
+
+            return RedirectToAction(
+                nameof(Details),
+                new { id });
+        }
+
+        await _dogService.ChangeStatusAsync(
+            id,
+            status);
+
+        TempData["SuccessMessage"] =
+            "Status updated.";
+
+        return RedirectToAction(
+            nameof(Details),
+            new { id });
+    }
+
+    [HttpGet]
     public async Task<IActionResult> Details(Guid id)
     {
         var dog = await _dogService.GetDogAsync(id);
@@ -207,9 +330,14 @@ public async Task<IActionResult> UpdateStatus(Guid id, string status)
         var model = new DogDetailsViewModel
         {
             Dog = dog,
-            MedicalRecords = await _dogMedicalService.GetRecordsAsync(id),
-            Notes = await _dogMedicalService.GetNotesAsync(id),
-            FosteringHistory = await _fosteringService.GetHistoryForDogAsync(id)
+            MedicalRecords =
+                await _dogMedicalService.GetRecordsAsync(id),
+            Notes =
+                await _dogMedicalService.GetNotesAsync(id),
+            FosteringHistory =
+                await _fosteringService.GetHistoryForDogAsync(id),
+            Images =
+                await _dogImageService.GetForDogAsync(id)
         };
 
         return View(model);
@@ -225,7 +353,8 @@ public async Task<IActionResult> UpdateStatus(Guid id, string status)
         string? vetName,
         DateTime? nextActionDate)
     {
-        var currentProfile = await GetCurrentProfileAsync();
+        var currentProfile =
+            await GetCurrentProfileAsync();
 
         if (currentProfile == null)
         {
@@ -233,58 +362,92 @@ public async Task<IActionResult> UpdateStatus(Guid id, string status)
         }
 
         await _dogMedicalService.AddRecordAsync(
-            dogId, recordType, title, details, vetName, nextActionDate, currentProfile.Id);
+            dogId,
+            recordType,
+            title,
+            details,
+            vetName,
+            nextActionDate,
+            currentProfile.Id);
 
-        TempData["SuccessMessage"] = "Medical record added.";
+        TempData["SuccessMessage"] =
+            "Medical record added.";
 
-        return RedirectToAction(nameof(Details), new { id = dogId });
+        return RedirectToAction(
+            nameof(Details),
+            new { id = dogId });
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ResolveMedicalRecord(Guid dogId, Guid recordId)
+    public async Task<IActionResult> ResolveMedicalRecord(
+        Guid dogId,
+        Guid recordId)
     {
         await _dogMedicalService.ResolveRecordAsync(recordId);
 
-        TempData["SuccessMessage"] = "Medical record marked as resolved.";
+        TempData["SuccessMessage"] =
+            "Medical record marked as resolved.";
 
-        return RedirectToAction(nameof(Details), new { id = dogId });
+        return RedirectToAction(
+            nameof(Details),
+            new { id = dogId });
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AddNote(Guid dogId, string note)
+    public async Task<IActionResult> AddNote(
+        Guid dogId,
+        string note)
     {
-        var currentProfile = await GetCurrentProfileAsync();
+        var currentProfile =
+            await GetCurrentProfileAsync();
 
-        await _dogMedicalService.AddNoteAsync(dogId, note, currentProfile?.Id);
+        await _dogMedicalService.AddNoteAsync(
+            dogId,
+            note,
+            currentProfile?.Id);
 
-        TempData["SuccessMessage"] = "Note saved.";
+        TempData["SuccessMessage"] =
+            "Note saved.";
 
-        return RedirectToAction(nameof(Details), new { id = dogId });
+        return RedirectToAction(
+            nameof(Details),
+            new { id = dogId });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ReturnFromFostering(
+        Guid dogId,
+        Guid fosteringRecordId,
+        string? feedback)
+    {
+        await _fosteringService.ReturnDogAsync(
+            fosteringRecordId,
+            dogId,
+            feedback);
+
+        TempData["SuccessMessage"] =
+            "Dog marked as returned and status set to Available.";
+
+        return RedirectToAction(
+            nameof(Details),
+            new { id = dogId });
     }
 
     private async Task<UserProfile?> GetCurrentProfileAsync()
     {
-        var currentAuthUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var currentAuthUserId =
+            User.FindFirstValue(
+                ClaimTypes.NameIdentifier);
 
         if (string.IsNullOrWhiteSpace(currentAuthUserId))
         {
             return null;
         }
 
-        return await _userProfileRepository.GetByAuthUserIdAsync(currentAuthUserId);
+        return await _userProfileRepository
+            .GetByAuthUserIdAsync(currentAuthUserId);
     }
-    
-[HttpPost]
-[ValidateAntiForgeryToken]
-public async Task<IActionResult> ReturnFromFostering(
-    Guid dogId, Guid fosteringRecordId, string? feedback)
-{
-    await _fosteringService.ReturnDogAsync(fosteringRecordId, dogId, feedback);
-
-    TempData["SuccessMessage"] = $"Dog marked as returned and status set to Available.";
-
-    return RedirectToAction(nameof(Details), new { id = dogId });
-}
 }

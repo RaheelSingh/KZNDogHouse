@@ -1,4 +1,4 @@
-﻿document.addEventListener("DOMContentLoaded", async () => {
+document.addEventListener("DOMContentLoaded", async () => {
     const badge =
         document.getElementById("portalNotificationBadge");
 
@@ -372,3 +372,138 @@ document.addEventListener("DOMContentLoaded", () => {
         applyFilters();
     });
 });
+
+
+document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll("[data-dog-gallery]").forEach((gallery) => {
+        const frames = Array.from(
+            gallery.querySelectorAll("[data-gallery-frame]"));
+
+        if (frames.length <= 1) {
+            return;
+        }
+
+        const indicators = Array.from(
+            gallery.querySelectorAll("[data-gallery-indicator]"));
+
+        const previousButton =
+            gallery.querySelector("[data-gallery-previous]");
+
+        const nextButton =
+            gallery.querySelector("[data-gallery-next]");
+
+        let index = 0;
+        let timer = null;
+
+        const show = (newIndex) => {
+            index = (newIndex + frames.length) % frames.length;
+
+            frames.forEach((frame, frameIndex) => {
+                frame.classList.toggle(
+                    "is-active",
+                    frameIndex === index);
+            });
+
+            indicators.forEach((indicator, indicatorIndex) => {
+                const isActive = indicatorIndex === index;
+
+                indicator.classList.toggle(
+                    "is-active",
+                    isActive);
+
+                indicator.setAttribute(
+                    "aria-current",
+                    isActive ? "true" : "false");
+            });
+        };
+
+        const stopTimer = () => {
+            if (timer) {
+                window.clearInterval(timer);
+                timer = null;
+            }
+        };
+
+        const startTimer = () => {
+            if (gallery.dataset.galleryAutoplay !== "true") {
+                return;
+            }
+
+            const interval = Number(
+                gallery.dataset.galleryInterval ?? 10000);
+
+            stopTimer();
+
+            timer = window.setInterval(
+                () => show(index + 1),
+                Number.isFinite(interval) && interval >= 3000
+                    ? interval
+                    : 10000);
+        };
+
+        previousButton?.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            show(index - 1);
+            startTimer();
+        });
+
+        nextButton?.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            show(index + 1);
+            startTimer();
+        });
+
+        indicators.forEach((indicator, indicatorIndex) => {
+            indicator.addEventListener("click", (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                show(indicatorIndex);
+                startTimer();
+            });
+        });
+
+        gallery.addEventListener("mouseenter", stopTimer);
+        gallery.addEventListener("mouseleave", startTimer);
+        gallery.addEventListener("focusin", stopTimer);
+        gallery.addEventListener("focusout", startTimer);
+
+        show(0);
+        startTimer();
+    });
+});
+
+document.addEventListener("submit", (event) => {
+    const form = event.target.closest("form[data-submit-once='true']");
+
+    if (!form) {
+        return;
+    }
+
+    if (form.dataset.submitting === "true") {
+        event.preventDefault();
+        return;
+    }
+
+    if (!form.checkValidity()) {
+        return;
+    }
+
+    form.dataset.submitting = "true";
+
+    const submitButton = form.querySelector("button[type='submit']");
+
+    if (submitButton) {
+        submitButton.disabled = true;
+
+        const currentLabel = submitButton.textContent?.trim();
+
+        if (currentLabel) {
+            submitButton.dataset.originalLabel = currentLabel;
+        }
+
+        submitButton.textContent = "Saving...";
+    }
+});
+

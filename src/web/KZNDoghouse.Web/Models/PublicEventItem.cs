@@ -19,6 +19,8 @@ public class PublicEventItem
 
     public DateTime? EndAt { get; set; }
 
+    public string? ImageUrl { get; set; }
+
     public string DateText => EventTimeHelper.FormatDate(StartAt);
 
     public string TimeText => EventTimeHelper.FormatTimeRange(StartAt, EndAt);
@@ -39,7 +41,8 @@ public class PublicEventItem
             Description = calendarEvent.Description,
             Location = calendarEvent.Location,
             StartAt = calendarEvent.StartAt,
-            EndAt = calendarEvent.EndAt
+            EndAt = calendarEvent.EndAt,
+            ImageUrl = calendarEvent.ImageUrl
         };
     }
 }

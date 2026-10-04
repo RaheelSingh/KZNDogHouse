@@ -24,19 +24,15 @@
 
             <div class="col-lg-7">
 
-                @if (!string.IsNullOrWhiteSpace(dog.PhotoUrl))
-                {
-                    <img class="public-detail-photo"
-                         src="@dog.PhotoUrl"
-                         alt="Photo of @dog.Name" />
-                }
-                else
-                {
-                    <div class="public-detail-photo public-detail-photo-placeholder"
-                         aria-hidden="true">
-                        @dog.Initial
-                    </div>
-                }
+                <partial name="_DogGallery"
+                         model="@(new DogGalleryViewModel
+                         {
+                             DogName = dog.Name,
+                             Initial = dog.Initial,
+                             ImageUrls = dog.ImageUrls,
+                             Variant = "detail",
+                             AutoPlay = false
+                         })" />
 
                 <div class="public-story-card">
 

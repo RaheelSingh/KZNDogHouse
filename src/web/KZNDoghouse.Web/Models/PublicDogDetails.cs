@@ -26,7 +26,10 @@ public class PublicDogDetails
 
     public bool IsVaccinated { get; set; }
 
-    public string? PhotoUrl { get; set; }
+    public IReadOnlyList<string> ImageUrls { get; set; } =
+        Array.Empty<string>();
+
+    public string? PhotoUrl => ImageUrls.FirstOrDefault();
 
     public string Status { get; set; } = DogStatuses.Available;
 
@@ -36,7 +39,9 @@ public class PublicDogDetails
 
     public string StatusLabel => PublicDogStatusHelper.LabelFor(Status);
 
-    public string SinceText => IntakeDate.ToString("MMMM yyyy", CultureInfo.InvariantCulture);
+    public string SinceText => IntakeDate.ToString(
+        "MMMM yyyy",
+        CultureInfo.InvariantCulture);
 
     public string Initial => PublicDogStatusHelper.InitialOf(Name);
 
@@ -56,7 +61,9 @@ public class PublicDogDetails
             if (!string.IsNullOrWhiteSpace(Size))
             {
                 parts.Add(WeightKg.HasValue
-                    ? string.Create(CultureInfo.InvariantCulture, $"{Size} ({WeightKg.Value:0.#}kg)")
+                    ? string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"{Size} ({WeightKg.Value:0.#}kg)")
                     : Size);
             }
 
@@ -64,8 +71,22 @@ public class PublicDogDetails
         }
     }
 
-    public static PublicDogDetails FromDog(Dog dog)
+    public static PublicDogDetails FromDog(
+        Dog dog,
+        IReadOnlyList<string>? imageUrls = null)
     {
+        var urls = imageUrls?
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList()
+            ?? [];
+
+        if (urls.Count == 0
+            && !string.IsNullOrWhiteSpace(dog.PhotoUrl))
+        {
+            urls.Add(dog.PhotoUrl);
+        }
+
         return new PublicDogDetails
         {
             Id = dog.Id,
@@ -74,11 +95,13 @@ public class PublicDogDetails
             Gender = dog.Gender,
             Size = dog.Size,
             WeightKg = dog.WeightKg,
-            AgeText = DogAgeHelper.Describe(dog.DateOfBirth, dog.EstimatedAgeYears),
+            AgeText = DogAgeHelper.Describe(
+                dog.DateOfBirth,
+                dog.EstimatedAgeYears),
             Temperament = dog.Temperament,
             About = dog.About,
             IsVaccinated = dog.IsVaccinated,
-            PhotoUrl = dog.PhotoUrl,
+            ImageUrls = urls,
             Status = dog.Status,
             IntakeDate = dog.IntakeDate
         };

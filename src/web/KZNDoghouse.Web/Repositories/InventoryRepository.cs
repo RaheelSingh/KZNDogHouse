@@ -11,23 +11,35 @@ public interface IInventoryRepository
 
     Task<InventoryItem> CreateItemAsync(InventoryItem item);
 
-    Task UpdateItemQuantityAsync(Guid itemId, int newQuantity);
+    Task UpdateItemQuantityAsync(
+        Guid itemId,
+        int newQuantity);
 
-    Task<InventoryTransaction> CreateTransactionAsync(InventoryTransaction transaction);
+    Task UpdateItemImageAsync(
+        Guid itemId,
+        string? imagePath,
+        string? imageUrl);
+
+    Task<InventoryTransaction> CreateTransactionAsync(
+        InventoryTransaction transaction);
+
+    Task<IReadOnlyList<InventoryTransaction>> GetAllTransactionsAsync();
 }
 
 public class InventoryRepository : IInventoryRepository
 {
     private readonly ISupabaseClientFactory _supabaseClientFactory;
 
-    public InventoryRepository(ISupabaseClientFactory supabaseClientFactory)
+    public InventoryRepository(
+        ISupabaseClientFactory supabaseClientFactory)
     {
         _supabaseClientFactory = supabaseClientFactory;
     }
 
     public async Task<IReadOnlyList<InventoryItem>> GetAllItemsAsync()
     {
-        var client = await _supabaseClientFactory.CreateServiceClientAsync();
+        var client =
+            await _supabaseClientFactory.CreateServiceClientAsync();
 
         var response = await client
             .From<InventoryItem>()
@@ -43,9 +55,11 @@ public class InventoryRepository : IInventoryRepository
             .ToList();
     }
 
-    public async Task<InventoryItem?> GetItemByIdAsync(Guid id)
+    public async Task<InventoryItem?> GetItemByIdAsync(
+        Guid id)
     {
-        var client = await _supabaseClientFactory.CreateServiceClientAsync();
+        var client =
+            await _supabaseClientFactory.CreateServiceClientAsync();
 
         var response = await client
             .From<InventoryItem>()
@@ -55,9 +69,11 @@ public class InventoryRepository : IInventoryRepository
         return response.Models?.FirstOrDefault();
     }
 
-    public async Task<InventoryItem> CreateItemAsync(InventoryItem item)
+    public async Task<InventoryItem> CreateItemAsync(
+        InventoryItem item)
     {
-        var client = await _supabaseClientFactory.CreateServiceClientAsync();
+        var client =
+            await _supabaseClientFactory.CreateServiceClientAsync();
 
         var response = await client
             .From<InventoryItem>()
@@ -66,9 +82,12 @@ public class InventoryRepository : IInventoryRepository
         return response.Models.First();
     }
 
-    public async Task UpdateItemQuantityAsync(Guid itemId, int newQuantity)
+    public async Task UpdateItemQuantityAsync(
+        Guid itemId,
+        int newQuantity)
     {
-        var client = await _supabaseClientFactory.CreateServiceClientAsync();
+        var client =
+            await _supabaseClientFactory.CreateServiceClientAsync();
 
         await client
             .From<InventoryItem>()
@@ -78,14 +97,53 @@ public class InventoryRepository : IInventoryRepository
             .Update();
     }
 
-    public async Task<InventoryTransaction> CreateTransactionAsync(InventoryTransaction transaction)
+    public async Task UpdateItemImageAsync(
+        Guid itemId,
+        string? imagePath,
+        string? imageUrl)
     {
-        var client = await _supabaseClientFactory.CreateServiceClientAsync();
+        var client =
+            await _supabaseClientFactory.CreateServiceClientAsync();
+
+        await client
+            .From<InventoryItem>()
+            .Where(x => x.Id == itemId)
+            .Set(x => x.ImagePath!, imagePath)
+            .Set(x => x.ImageUrl!, imageUrl)
+            .Set(x => x.UpdatedAt!, DateTime.UtcNow)
+            .Update();
+    }
+
+    public async Task<InventoryTransaction> CreateTransactionAsync(
+        InventoryTransaction transaction)
+    {
+        var client =
+            await _supabaseClientFactory.CreateServiceClientAsync();
 
         var response = await client
             .From<InventoryTransaction>()
             .Insert(transaction);
 
         return response.Models.First();
+    }
+
+    public async Task<IReadOnlyList<InventoryTransaction>>
+        GetAllTransactionsAsync()
+    {
+        var client =
+            await _supabaseClientFactory.CreateServiceClientAsync();
+
+        var response = await client
+            .From<InventoryTransaction>()
+            .Get();
+
+        if (response.Models == null)
+        {
+            return Array.Empty<InventoryTransaction>();
+        }
+
+        return response.Models
+            .OrderByDescending(x => x.TransactionDate)
+            .ToList();
     }
 }

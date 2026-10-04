@@ -22,6 +22,8 @@ public class DogFormViewModel
     [Required]
     public string Gender { get; set; } = "Unknown";
 
+    [RegularExpression("^(Small|Medium|Large)$",
+        ErrorMessage = "Choose Small, Medium or Large.")]
     public string? Size { get; set; }
 
     [Display(Name = "Weight (kg)")]
@@ -51,4 +53,7 @@ public class DogFormViewModel
 
     [Display(Name = "Vaccinated")]
     public bool IsVaccinated { get; set; }
+
+    [Display(Name = "Dog images")]
+    public List<IFormFile> Images { get; set; } = [];
 }

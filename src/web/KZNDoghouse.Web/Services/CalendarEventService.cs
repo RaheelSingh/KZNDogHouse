@@ -8,12 +8,13 @@ public interface ICalendarEventService
 {
     Task<IReadOnlyList<CalendarEvent>> GetAllAsync();
 
-    // Akeev, your public Events page should call this rather than filtering in the view 
+    Task<CalendarEvent?> GetByIdAsync(Guid id);
+
     Task<IReadOnlyList<CalendarEvent>> GetPublicUpcomingAsync();
 
     Task<IReadOnlyList<CalendarEvent>> GetPublicPastAsync();
 
-    Task CreateAsync(
+    Task<CalendarEvent> CreateAsync(
         string title,
         string category,
         string? description,
@@ -23,6 +24,11 @@ public interface ICalendarEventService
         string visibility,
         Guid? dogId,
         Guid createdByProfileId);
+
+    Task UpdateImageAsync(
+        Guid id,
+        string? imagePath,
+        string? imageUrl);
 
     Task DeleteAsync(Guid id);
 }
@@ -39,16 +45,21 @@ public class CalendarEventService : ICalendarEventService
         _repository = repository;
         _notificationService = notificationService;
     }
+
     public Task<IReadOnlyList<CalendarEvent>> GetAllAsync() =>
         _repository.GetAllAsync();
+
+    public Task<CalendarEvent?> GetByIdAsync(Guid id) =>
+        _repository.GetByIdAsync(id);
 
     public async Task<IReadOnlyList<CalendarEvent>> GetPublicPastAsync()
     {
         var all = await _repository.GetAllAsync();
 
         return all
-            .Where(x => x.Visibility == EventVisibilities.Public
-                        && x.StartAt < DateTime.UtcNow)
+            .Where(x =>
+                x.Visibility == EventVisibilities.Public
+                && x.StartAt < DateTime.UtcNow)
             .OrderByDescending(x => x.StartAt)
             .ToList();
     }
@@ -58,12 +69,14 @@ public class CalendarEventService : ICalendarEventService
         var all = await _repository.GetAllAsync();
 
         return all
-            .Where(x => x.Visibility == EventVisibilities.Public
-                        && x.StartAt >= DateTime.UtcNow)
+            .Where(x =>
+                x.Visibility == EventVisibilities.Public
+                && x.StartAt >= DateTime.UtcNow)
+            .OrderBy(x => x.StartAt)
             .ToList();
     }
 
-     public async Task CreateAsync(
+    public async Task<CalendarEvent> CreateAsync(
         string title,
         string category,
         string? description,
@@ -99,13 +112,25 @@ public class CalendarEventService : ICalendarEventService
             CreatedAt = DateTime.UtcNow
         };
 
-        await _repository.CreateAsync(calendarEvent);
+        var created = await _repository.CreateAsync(calendarEvent);
 
         await _notificationService.NotifyActiveVolunteersAsync(
             NotificationCategories.Calendar,
             title,
             $"New {category.ToLowerInvariant()} on {startAt:dd MMM} at {startAt:HH:mm}.");
+
+        return created;
     }
 
-    public Task DeleteAsync(Guid id) => _repository.DeleteAsync(id);
+    public Task UpdateImageAsync(
+        Guid id,
+        string? imagePath,
+        string? imageUrl) =>
+        _repository.UpdateImageAsync(
+            id,
+            imagePath,
+            imageUrl);
+
+    public Task DeleteAsync(Guid id) =>
+        _repository.DeleteAsync(id);
 }

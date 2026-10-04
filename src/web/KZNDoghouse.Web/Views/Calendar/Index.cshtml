@@ -10,21 +10,38 @@
         .OrderBy(g => g.Key);
 }
 
-<div class="mb-4">
-    <h1 class="portal-page-title mb-2">Calendar</h1>
-    <p class="text-muted mb-0">Manage internal and public shelter events.</p>
+<div class="portal-page-heading">
+    <div>
+        <h1 class="portal-page-title mb-2">Calendar</h1>
+        <p class="text-muted mb-0">
+            Manage internal and public shelter events.
+        </p>
+    </div>
+
+    <span class="portal-summary-chip">
+        @Model.Count events
+    </span>
 </div>
 
 @if (TempData["SuccessMessage"] is string successMessage)
 {
-    <div class="alert alert-success" role="alert">@successMessage</div>
+    <div class="alert alert-success" role="alert">
+        @successMessage
+    </div>
 }
 
-<div class="row g-4">
+@if (TempData["ErrorMessage"] is string errorMessage)
+{
+    <div class="alert alert-danger" role="alert">
+        @errorMessage
+    </div>
+}
 
-    <div class="col-lg-8">
+<div class="portal-workspace-grid">
 
-        <div class="portal-card mb-3">
+    <section class="portal-workspace-main">
+
+        <div class="portal-card portal-workspace-filter-card">
 
             <div class="portal-filter-bar"
                  data-portal-filter="calendarRows"
@@ -43,11 +60,18 @@
                     <select class="form-select"
                             aria-label="Filter events by category"
                             data-portal-filter-field="category">
-                        <option value="">All categories</option>
+
+                        <option value="">
+                            All categories
+                        </option>
+
                         @foreach (var category in EventCategories.All)
                         {
-                            <option value="@category">@category</option>
+                            <option value="@category">
+                                @category
+                            </option>
                         }
+
                     </select>
                 </div>
 
@@ -55,11 +79,18 @@
                     <select class="form-select"
                             aria-label="Filter events by visibility"
                             data-portal-filter-field="visibility">
-                        <option value="">All visibility</option>
+
+                        <option value="">
+                            All visibility
+                        </option>
+
                         @foreach (var visibility in EventVisibilities.All)
                         {
-                            <option value="@visibility">@visibility</option>
+                            <option value="@visibility">
+                                @visibility
+                            </option>
                         }
+
                     </select>
                 </div>
 
@@ -86,70 +117,166 @@
             </div>
 
             <div class="portal-filter-summary">
-                <span id="calendarResultCount">@Model.Count results</span>
+                <span id="calendarResultCount">
+                    @Model.Count results
+                </span>
             </div>
 
         </div>
 
         <div id="calendarRows"
-             class="portal-filter-results portal-filter-results-cards">
+             class="portal-filter-results portal-workspace-results">
 
             @foreach (var day in grouped)
             {
-                <div class="portal-card mb-3"
-                     data-portal-group>
+                <section class="portal-card portal-calendar-day"
+                         data-portal-group>
 
-                    <h6 class="kzn-card-title">
-                        @day.Key.ToString("dddd, dd MMMM yyyy")
-                    </h6>
+                    <div class="portal-calendar-day-heading">
+                        <h2>
+                            @day.Key.ToString("dddd, dd MMMM yyyy")
+                        </h2>
 
-                    @foreach (var evt in day.OrderBy(x => x.StartAt))
-                    {
-                        <div class="d-flex justify-content-between align-items-start border-bottom py-2 portal-event-row"
-                             data-portal-row
-                             data-search="@evt.Title @evt.Location @evt.Description @evt.Category"
-                             data-category="@evt.Category"
-                             data-visibility="@evt.Visibility"
-                             data-date="@evt.StartAt.ToString("yyyy-MM-dd")">
+                        <span>
+                            @day.Count() event@(day.Count() == 1 ? string.Empty : "s")
+                        </span>
+                    </div>
 
-                            <div>
-                                <div class="fw-semibold">
-                                    @evt.StartAt.ToString("HH:mm")
-                                    @if (evt.EndAt.HasValue)
+                    <div class="portal-calendar-event-list">
+
+                        @foreach (var evt in day.OrderBy(x => x.StartAt))
+                        {
+                            <article class="portal-calendar-event"
+                                     data-portal-row
+                                     data-search="@evt.Title @evt.Location @evt.Description @evt.Category"
+                                     data-category="@evt.Category"
+                                     data-visibility="@evt.Visibility"
+                                     data-date="@evt.StartAt.ToString("yyyy-MM-dd")">
+
+                                <div class="portal-calendar-event-media">
+
+                                    @if (!string.IsNullOrWhiteSpace(evt.ImageUrl))
                                     {
-                                        <text> – @evt.EndAt.Value.ToString("HH:mm")</text>
+                                        <img src="@evt.ImageUrl"
+                                             alt="Image for @evt.Title"
+                                             class="portal-event-image" />
                                     }
-                                    &nbsp;@evt.Title
+                                    else
+                                    {
+                                        <div class="portal-event-image portal-event-image-placeholder"
+                                             aria-hidden="true">
+                                            @evt.StartAt.ToString("dd")
+                                        </div>
+                                    }
+
                                 </div>
 
-                                <div class="text-muted small">
-                                    @evt.Category
+                                <div class="portal-calendar-event-body">
+
+                                    <div class="portal-calendar-event-title-row">
+
+                                        <div>
+
+                                            <h3>
+                                                @evt.Title
+                                            </h3>
+
+                                            <div class="portal-calendar-event-time">
+                                                @evt.StartAt.ToString("HH:mm")
+
+                                                @if (evt.EndAt.HasValue)
+                                                {
+                                                    <text>
+                                                        – @evt.EndAt.Value.ToString("HH:mm")
+                                                    </text>
+                                                }
+                                            </div>
+
+                                        </div>
+
+                                        <div class="portal-calendar-badges">
+
+                                            <span class="portal-calendar-badge">
+                                                @evt.Category
+                                            </span>
+
+                                            <span class="portal-calendar-badge @(evt.Visibility == EventVisibilities.Public ? "portal-calendar-badge-public" : string.Empty)">
+                                                @evt.Visibility
+                                            </span>
+
+                                        </div>
+
+                                    </div>
+
                                     @if (!string.IsNullOrWhiteSpace(evt.Location))
                                     {
-                                        <text> · @evt.Location</text>
+                                        <div class="text-muted small mt-1">
+                                            @evt.Location
+                                        </div>
                                     }
-                                    · @evt.Visibility
+
+                                    @if (!string.IsNullOrWhiteSpace(evt.Description))
+                                    {
+                                        <p class="portal-calendar-event-description">
+                                            @evt.Description
+                                        </p>
+                                    }
+
+                                    <div class="portal-calendar-event-actions">
+
+                                        <details class="portal-inline-editor">
+
+                                            <summary>
+                                                @(string.IsNullOrWhiteSpace(evt.ImageUrl)
+                                                    ? "Add image"
+                                                    : "Replace image")
+                                            </summary>
+
+                                            <form asp-controller="Calendar"
+                                                  asp-action="UpdateImage"
+                                                  asp-route-id="@evt.Id"
+                                                  method="post"
+                                                  enctype="multipart/form-data"
+                                                  class="portal-inline-editor-form">
+
+                                                <input type="file"
+                                                       name="imageFile"
+                                                       class="form-control form-control-sm"
+                                                       accept="image/jpeg,image/png,image/webp"
+                                                       required />
+
+                                                <button type="submit"
+                                                        class="btn btn-kzn-outline btn-sm">
+                                                    Upload
+                                                </button>
+
+                                            </form>
+
+                                        </details>
+
+                                        <form asp-controller="Calendar"
+                                              asp-action="Delete"
+                                              asp-route-id="@evt.Id"
+                                              method="post"
+                                              onsubmit="return confirm('Remove this event?');">
+
+                                            <button type="submit"
+                                                    class="btn btn-outline-danger btn-sm">
+                                                Remove
+                                            </button>
+
+                                        </form>
+
+                                    </div>
+
                                 </div>
 
-                                @if (!string.IsNullOrWhiteSpace(evt.Description))
-                                {
-                                    <div class="small mt-1">@evt.Description</div>
-                                }
-                            </div>
+                            </article>
+                        }
 
-                            <form asp-controller="Calendar"
-                                  asp-action="Delete"
-                                  asp-route-id="@evt.Id"
-                                  method="post">
-                                <button type="submit" class="btn btn-kzn-outline btn-sm">
-                                    Remove
-                                </button>
-                            </form>
+                    </div>
 
-                        </div>
-                    }
-
-                </div>
+                </section>
             }
 
         </div>
@@ -167,70 +294,158 @@
             </div>
         }
 
-    </div>
+    </section>
 
-    <div class="col-lg-4">
+    <aside class="portal-workspace-aside">
 
-        <div class="portal-card">
+        <div class="portal-card portal-workspace-form-card">
 
-            <h5 class="kzn-card-title">New event</h5>
+            <h2 class="portal-workspace-form-title">
+                New event
+            </h2>
 
-            <form asp-controller="Calendar" asp-action="Create" method="post">
+            <p class="text-muted small">
+                Create an internal shelter event or publish an event to the public website.
+            </p>
+
+            <form asp-controller="Calendar"
+                  asp-action="Create"
+                  method="post"
+                  enctype="multipart/form-data">
 
                 <div class="mb-3">
-                    <label class="form-label">Event title</label>
-                    <input name="title" class="form-control" required />
+                    <label class="form-label">
+                        Event title
+                    </label>
+                    <input name="title"
+                           class="form-control"
+                           maxlength="150"
+                           required />
                 </div>
 
                 <div class="row g-2 mb-3">
-                    <div class="col-6">
-                        <label class="form-label">Start</label>
-                        <input type="datetime-local" name="startAt" class="form-control" required />
+
+                    <div class="col-sm-6 col-xl-12 col-xxl-6">
+                        <label class="form-label">
+                            Start
+                        </label>
+                        <input type="datetime-local"
+                               name="startAt"
+                               class="form-control"
+                               required />
                     </div>
-                    <div class="col-6">
-                        <label class="form-label">End</label>
-                        <input type="datetime-local" name="endAt" class="form-control" />
+
+                    <div class="col-sm-6 col-xl-12 col-xxl-6">
+                        <label class="form-label">
+                            End
+                        </label>
+                        <input type="datetime-local"
+                               name="endAt"
+                               class="form-control" />
                     </div>
+
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">Category</label>
-                    <select name="category" class="form-select">
+                    <label class="form-label">
+                        Category
+                    </label>
+
+                    <select name="category"
+                            class="form-select">
+
                         @foreach (var category in EventCategories.All)
                         {
-                            <option value="@category">@category</option>
+                            <option value="@category">
+                                @category
+                            </option>
                         }
+
                     </select>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">Location / notes</label>
-                    <input name="location" class="form-control" />
+                    <label class="form-label">
+                        Location
+                    </label>
+                    <input name="location"
+                           class="form-control"
+                           maxlength="200" />
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label d-block">Visibility</label>
 
-                    <div class="btn-group" role="group">
-                        <input type="radio" class="btn-check" name="visibility" id="visInternal" value="Internal" checked />
-                        <label class="btn btn-kzn-outline btn-sm" for="visInternal">Internal only</label>
+                    <label class="form-label d-block">
+                        Visibility
+                    </label>
 
-                        <input type="radio" class="btn-check" name="visibility" id="visPublic" value="Public" />
-                        <label class="btn btn-kzn-outline btn-sm" for="visPublic">Public — show on website</label>
+                    <div class="portal-segmented-control"
+                         role="group"
+                         aria-label="Event visibility">
+
+                        <input type="radio"
+                               class="btn-check"
+                               name="visibility"
+                               id="visInternal"
+                               value="@EventVisibilities.Internal"
+                               checked />
+
+                        <label class="btn btn-kzn-outline btn-sm"
+                               for="visInternal">
+                            Internal only
+                        </label>
+
+                        <input type="radio"
+                               class="btn-check"
+                               name="visibility"
+                               id="visPublic"
+                               value="@EventVisibilities.Public" />
+
+                        <label class="btn btn-kzn-outline btn-sm"
+                               for="visPublic">
+                            Public website
+                        </label>
+
                     </div>
+
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">Description</label>
-                    <textarea name="description" class="form-control" rows="2"></textarea>
+                    <label class="form-label">
+                        Description
+                    </label>
+                    <textarea name="description"
+                              class="form-control"
+                              rows="3"
+                              maxlength="1500"></textarea>
                 </div>
 
-                <button type="submit" class="btn btn-kzn-primary w-100">Save event</button>
+                <div class="mb-3">
+
+                    <label class="form-label">
+                        Event image
+                    </label>
+
+                    <input type="file"
+                           name="imageFile"
+                           class="form-control"
+                           accept="image/jpeg,image/png,image/webp" />
+
+                    <div class="form-text">
+                        Optional. Public events use this image on the website.
+                    </div>
+
+                </div>
+
+                <button type="submit"
+                        class="btn btn-kzn-primary w-100">
+                    Save event
+                </button>
 
             </form>
 
         </div>
 
-    </div>
+    </aside>
 
 </div>

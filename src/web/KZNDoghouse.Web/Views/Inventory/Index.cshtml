@@ -1,50 +1,70 @@
-@model IReadOnlyList<InventoryItem>
+@model InventoryPageViewModel
 @using KZNDoghouse.Web.Constants
 
 @{
     ViewData["Title"] = "Inventory";
     Layout = "_PortalLayout";
 
-    var lowStockItems = Model.Where(x => x.IsLowStock()).ToList();
-
-    var categories = Model
-        .Where(x => !string.IsNullOrWhiteSpace(x.Category))
-        .Select(x => x.Category!)
+    var categories = Model.Items
+        .Where(x => !string.IsNullOrWhiteSpace(x.Item.Category))
+        .Select(x => x.Item.Category!)
         .Distinct(StringComparer.OrdinalIgnoreCase)
         .OrderBy(x => x)
         .ToList();
 }
 
-<div class="mb-4">
-    <h1 class="portal-page-title mb-2">Inventory</h1>
-    <p class="text-muted mb-0">Track stock levels, deliveries and usage.</p>
+<div class="portal-page-heading">
+
+    <div>
+        <h1 class="portal-page-title mb-2">
+            Inventory
+        </h1>
+
+        <p class="text-muted mb-0">
+            Track current stock, deliveries, usage, expiry dates and low-stock levels.
+        </p>
+    </div>
+
+    <div class="portal-page-summary">
+
+        <span class="portal-summary-chip">
+            @Model.Items.Count items
+        </span>
+
+        <span class="portal-summary-chip @(Model.LowStockCount > 0 ? "portal-summary-chip-warning" : string.Empty)">
+            @Model.LowStockCount low stock
+        </span>
+
+        <span class="portal-summary-chip @(Model.ExpiringSoonCount > 0 ? "portal-summary-chip-warning" : string.Empty)">
+            @Model.ExpiringSoonCount expiring soon
+        </span>
+
+    </div>
+
 </div>
 
 @if (TempData["SuccessMessage"] is string successMessage)
 {
-    <div class="alert alert-success" role="alert">@successMessage</div>
+    <div class="alert alert-success" role="alert">
+        @successMessage
+    </div>
 }
 
 @if (TempData["ErrorMessage"] is string errorMessage)
 {
-    <div class="alert alert-danger" role="alert">@errorMessage</div>
-}
-
-@if (lowStockItems.Any())
-{
-    <div class="alert alert-warning">
-        <strong>Low stock:</strong> @string.Join(", ", lowStockItems.Select(x => x.Name))
+    <div class="alert alert-danger" role="alert">
+        @errorMessage
     </div>
 }
 
-<div class="row g-4">
+<div class="portal-workspace-grid">
 
-    <div class="col-lg-8">
+    <section class="portal-workspace-main">
 
-        <div class="portal-card">
+        <div class="portal-card portal-workspace-filter-card">
 
             <div class="portal-filter-bar"
-                 data-portal-filter="inventoryTable"
+                 data-portal-filter="inventoryItems"
                  data-portal-empty="inventoryEmpty"
                  data-portal-result-count="inventoryResultCount">
 
@@ -52,29 +72,73 @@
                     <input type="search"
                            class="form-control"
                            placeholder="Search item, category or unit"
-                           aria-label="Search inventory"
                            data-portal-search />
                 </div>
 
                 <div>
                     <select class="form-select"
-                            aria-label="Filter inventory by category"
-                            data-portal-filter-field="category">
-                        <option value="">All categories</option>
+                            data-portal-filter-field="category"
+                            aria-label="Filter by category">
+
+                        <option value="">
+                            All categories
+                        </option>
+
                         @foreach (var category in categories)
                         {
-                            <option value="@category">@category</option>
+                            <option value="@category">
+                                @category
+                            </option>
                         }
+
                     </select>
                 </div>
 
                 <div>
                     <select class="form-select"
-                            aria-label="Filter inventory by stock level"
-                            data-portal-filter-field="stock">
-                        <option value="">All stock levels</option>
-                        <option value="Low">Low stock</option>
-                        <option value="Healthy">Above threshold</option>
+                            data-portal-filter-field="stock"
+                            aria-label="Filter by stock level">
+
+                        <option value="">
+                            All stock levels
+                        </option>
+
+                        <option value="Low">
+                            Low stock
+                        </option>
+
+                        <option value="Healthy">
+                            Above threshold
+                        </option>
+
+                    </select>
+                </div>
+
+                <div>
+                    <select class="form-select"
+                            data-portal-filter-field="expiry"
+                            aria-label="Filter by expiry">
+
+                        <option value="">
+                            All expiry states
+                        </option>
+
+                        <option value="Expired">
+                            Expired
+                        </option>
+
+                        <option value="Expiring Soon">
+                            Expiring soon
+                        </option>
+
+                        <option value="Dated">
+                            Has future expiry
+                        </option>
+
+                        <option value="No Expiry">
+                            No expiry recorded
+                        </option>
+
                     </select>
                 </div>
 
@@ -85,21 +149,31 @@
                         data-sort-type="text"
                         data-sort-direction="asc"
                         data-sort-asc-label="A–Z"
-                        data-sort-desc-label="Z–A"
-                        title="Sort item names A to Z"
-                        aria-label="Sort item names A to Z">
+                        data-sort-desc-label="Z–A">
 
-                    <svg class="portal-sort-icon portal-sort-icon-up" viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M4 6h9"></path><path d="M4 11h6"></path><path d="M4 16h3"></path>
-                        <path d="M18 19V5"></path><path d="m15 8 3-3 3 3"></path>
+                    <svg class="portal-sort-icon portal-sort-icon-up"
+                         viewBox="0 0 24 24"
+                         aria-hidden="true">
+                        <path d="M4 6h9"></path>
+                        <path d="M4 11h6"></path>
+                        <path d="M4 16h3"></path>
+                        <path d="M18 19V5"></path>
+                        <path d="m15 8 3-3 3 3"></path>
                     </svg>
 
-                    <svg class="portal-sort-icon portal-sort-icon-down" viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M4 6h9"></path><path d="M4 11h6"></path><path d="M4 16h3"></path>
-                        <path d="M18 5v14"></path><path d="m15 16 3 3 3-3"></path>
+                    <svg class="portal-sort-icon portal-sort-icon-down"
+                         viewBox="0 0 24 24"
+                         aria-hidden="true">
+                        <path d="M4 6h9"></path>
+                        <path d="M4 11h6"></path>
+                        <path d="M4 16h3"></path>
+                        <path d="M18 5v14"></path>
+                        <path d="m15 16 3 3 3-3"></path>
                     </svg>
 
-                    <span data-portal-sort-label>A–Z</span>
+                    <span data-portal-sort-label>
+                        A–Z
+                    </span>
 
                 </button>
 
@@ -112,150 +186,440 @@
             </div>
 
             <div class="portal-filter-summary">
-                <span id="inventoryResultCount">@Model.Count results</span>
-            </div>
-
-            <div class="table-responsive portal-filter-results">
-                <table id="inventoryTable" class="table align-middle mb-0">
-                    <thead>
-                        <tr>
-                            <th>Item</th>
-                            <th>Category</th>
-                            <th>Quantity</th>
-                            <th>Threshold</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-
-                    @foreach (var item in Model)
-                    {
-                        var stockState = item.IsLowStock() ? "Low" : "Healthy";
-
-                        <tbody data-portal-row
-                               data-search="@item.Name @item.Category @item.Unit"
-                               data-category="@item.Category"
-                               data-stock="@stockState"
-                               data-sort-name="@item.Name">
-
-                            <tr>
-                                <td>@item.Name</td>
-                                <td>@(item.Category ?? "—")</td>
-                                <td>
-                                    @item.Quantity @item.Unit
-                                    @if (item.IsLowStock())
-                                    {
-                                        <span class="kzn-status-badge kzn-status-under-treatment ms-1">Low</span>
-                                    }
-                                </td>
-                                <td>@item.LowStockThreshold</td>
-                                <td class="text-end">
-                                    <button type="button"
-                                            class="btn btn-kzn-outline btn-sm"
-                                            data-bs-toggle="collapse"
-                                            data-bs-target="#txn-@item.Id">
-                                        Record transaction
-                                    </button>
-                                </td>
-                            </tr>
-
-                            <tr class="collapse" id="txn-@item.Id">
-                                <td colspan="5">
-                                    <form asp-controller="Inventory"
-                                          asp-action="RecordTransaction"
-                                          method="post"
-                                          class="row g-2 align-items-end">
-
-                                        <input type="hidden" name="itemId" value="@item.Id" />
-
-                                        <div class="col-md-3">
-                                            <label class="form-label">Type</label>
-                                            <select name="transactionType" class="form-select">
-                                                @foreach (var type in InventoryTransactionTypes.All)
-                                                {
-                                                    <option value="@type">@type</option>
-                                                }
-                                            </select>
-                                        </div>
-
-                                        <div class="col-md-2">
-                                            <label class="form-label">Quantity</label>
-                                            <input type="number" name="quantityChange" class="form-control" required />
-                                        </div>
-
-                                        <div class="col-md-3">
-                                            <label class="form-label">Expiry date</label>
-                                            <input type="date" name="expiryDate" class="form-control" />
-                                        </div>
-
-                                        <div class="col-md-3">
-                                            <label class="form-label">Notes</label>
-                                            <input name="notes" class="form-control" />
-                                        </div>
-
-                                        <div class="col-md-1">
-                                            <button type="submit" class="btn btn-kzn-primary w-100">Save</button>
-                                        </div>
-
-                                    </form>
-                                </td>
-                            </tr>
-
-                        </tbody>
-                    }
-
-                </table>
-            </div>
-
-            <div id="inventoryEmpty"
-                 class="portal-filter-empty"
-                 hidden>
-                No inventory items match the current search and filters.
+                <span id="inventoryResultCount">
+                    @Model.Items.Count results
+                </span>
             </div>
 
         </div>
 
-    </div>
+        <div id="inventoryItems"
+             class="portal-filter-results portal-workspace-results portal-inventory-grid">
 
-    <div class="col-lg-4">
+            @foreach (var summary in Model.Items)
+            {
+                var item = summary.Item;
+                var stockState =
+                    item.IsLowStock()
+                        ? "Low"
+                        : "Healthy";
 
-        <div class="portal-card">
+                <article class="portal-card portal-inventory-card"
+                         data-portal-row
+                         data-search="@item.Name @item.Category @item.Unit"
+                         data-category="@item.Category"
+                         data-stock="@stockState"
+                         data-expiry="@summary.ExpiryState"
+                         data-sort-name="@item.Name">
 
-            <h5 class="kzn-card-title">Add item</h5>
+                    <div class="portal-inventory-card-head">
 
-            <form asp-controller="Inventory" asp-action="CreateItem" method="post">
+                        @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
+                        {
+                            <img src="@item.ImageUrl"
+                                 alt="@item.Name"
+                                 class="portal-inventory-image" />
+                        }
+                        else
+                        {
+                            <div class="portal-inventory-image portal-inventory-image-placeholder"
+                                 aria-hidden="true">
+                                @item.Name[..1].ToUpperInvariant()
+                            </div>
+                        }
+
+                        <div class="flex-grow-1">
+
+                            <div class="d-flex justify-content-between gap-2 align-items-start">
+
+                                <div>
+                                    <h2 class="portal-inventory-title">
+                                        @item.Name
+                                    </h2>
+
+                                    <div class="text-muted small">
+                                        @(item.Category ?? "Uncategorised")
+                                    </div>
+                                </div>
+
+                                @if (item.IsLowStock())
+                                {
+                                    <span class="kzn-status-badge kzn-status-under-treatment">
+                                        Low stock
+                                    </span>
+                                }
+
+                            </div>
+
+                            <div class="portal-inventory-quantity">
+                                @item.Quantity
+                                <span>
+                                    @(item.Unit ?? "units")
+                                </span>
+                            </div>
+
+                            <div class="text-muted small">
+                                Low-stock alert at
+                                @item.LowStockThreshold
+                                @(item.Unit ?? "units")
+                            </div>
+
+                            @if (summary.NextExpiryDate.HasValue)
+                            {
+                                <div class="small mt-2 @(summary.IsExpired || summary.IsExpiringSoon ? "text-danger" : "text-muted")">
+                                    Nearest recorded expiry:
+                                    @summary.NextExpiryDate.Value.ToString("dd MMM yyyy")
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="small mt-2 text-muted">
+                                    No expiry date recorded
+                                </div>
+                            }
+
+                        </div>
+
+                    </div>
+
+                    <div class="portal-inventory-actions">
+
+                        <button type="button"
+                                class="btn btn-kzn-primary btn-sm"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#stock-@item.Id"
+                                aria-expanded="false"
+                                aria-controls="stock-@item.Id">
+                            Manage stock
+                        </button>
+
+                        <button type="button"
+                                class="btn btn-kzn-outline btn-sm"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#history-@item.Id"
+                                aria-expanded="false"
+                                aria-controls="history-@item.Id">
+                            History
+                        </button>
+
+                    </div>
+
+                    <div class="collapse mt-3"
+                         id="stock-@item.Id">
+
+                        <form asp-controller="Inventory"
+                              asp-action="RecordTransaction"
+                              method="post"
+                              class="portal-inventory-stock-form">
+
+                            <input type="hidden"
+                                   name="itemId"
+                                   value="@item.Id" />
+
+                            <div>
+                                <label class="form-label">
+                                    What happened?
+                                </label>
+
+                                <select name="transactionType"
+                                        class="form-select"
+                                        required>
+
+                                    <option value="@InventoryTransactionTypes.Delivery">
+                                        Stock received
+                                    </option>
+
+                                    <option value="@InventoryTransactionTypes.Usage">
+                                        Stock used
+                                    </option>
+
+                                    <option value="@InventoryTransactionTypes.Adjustment">
+                                        Manual adjustment
+                                    </option>
+
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="form-label">
+                                    Quantity
+                                </label>
+
+                                <input type="number"
+                                       name="quantityChange"
+                                       class="form-control"
+                                       required />
+                            </div>
+
+                            <div>
+                                <label class="form-label">
+                                    Expiry date
+                                </label>
+
+                                <input type="date"
+                                       name="expiryDate"
+                                       class="form-control" />
+                            </div>
+
+                            <div class="portal-inventory-stock-notes">
+                                <label class="form-label">
+                                    Notes
+                                </label>
+
+                                <input name="notes"
+                                       class="form-control"
+                                       maxlength="500"
+                                       placeholder="Supplier, reason, batch..." />
+                            </div>
+
+                            <div class="portal-inventory-stock-submit">
+
+                                <div class="form-text">
+                                    Received/used quantities are entered as positive numbers. Manual adjustment may be positive or negative.
+                                </div>
+
+                                <button type="submit"
+                                        class="btn btn-kzn-primary btn-sm">
+                                    Update stock
+                                </button>
+
+                            </div>
+
+                        </form>
+
+                        <details class="portal-inline-editor mt-3">
+
+                            <summary>
+                                @(string.IsNullOrWhiteSpace(item.ImageUrl)
+                                    ? "Add item image"
+                                    : "Replace item image")
+                            </summary>
+
+                            <form asp-controller="Inventory"
+                                  asp-action="UpdateImage"
+                                  method="post"
+                                  enctype="multipart/form-data"
+                                  class="portal-inline-editor-form">
+
+                                <input type="hidden"
+                                       name="itemId"
+                                       value="@item.Id" />
+
+                                <input type="file"
+                                       name="imageFile"
+                                       class="form-control form-control-sm"
+                                       accept="image/jpeg,image/png,image/webp"
+                                       required />
+
+                                <button type="submit"
+                                        class="btn btn-kzn-outline btn-sm">
+                                    Upload
+                                </button>
+
+                            </form>
+
+                        </details>
+
+                    </div>
+
+                    <div class="collapse mt-3"
+                         id="history-@item.Id">
+
+                        <div class="portal-inventory-history">
+
+                            @if (!summary.RecentTransactions.Any())
+                            {
+                                <p class="text-muted small mb-0">
+                                    No stock transactions recorded yet.
+                                </p>
+                            }
+                            else
+                            {
+                                @foreach (var transaction in summary.RecentTransactions)
+                                {
+                                    <div class="portal-inventory-history-row">
+
+                                        <div>
+
+                                            <strong>
+                                                @transaction.TransactionType
+                                            </strong>
+
+                                            <span>
+                                                @(transaction.QuantityChange > 0
+                                                    ? "+"
+                                                    : string.Empty)@transaction.QuantityChange
+                                                @(item.Unit ?? "units")
+                                            </span>
+
+                                            @if (!string.IsNullOrWhiteSpace(transaction.Notes))
+                                            {
+                                                <small>
+                                                    @transaction.Notes
+                                                </small>
+                                            }
+
+                                        </div>
+
+                                        <div class="text-end">
+
+                                            <span>
+                                                @transaction.TransactionDate.ToString("dd MMM yyyy HH:mm")
+                                            </span>
+
+                                            @if (transaction.ExpiryDate.HasValue)
+                                            {
+                                                <small>
+                                                    Expiry @transaction.ExpiryDate.Value.ToString("dd MMM yyyy")
+                                                </small>
+                                            }
+
+                                        </div>
+
+                                    </div>
+                                }
+                            }
+
+                        </div>
+
+                    </div>
+
+                </article>
+            }
+
+        </div>
+
+        <div id="inventoryEmpty"
+             class="portal-card portal-filter-empty"
+             hidden>
+            No inventory items match the current search and filters.
+        </div>
+
+        @if (!Model.Items.Any())
+        {
+            <div class="portal-card text-center text-muted py-4">
+                No inventory items have been added yet.
+            </div>
+        }
+
+    </section>
+
+    <aside class="portal-workspace-aside">
+
+        <div class="portal-card portal-workspace-form-card">
+
+            <h2 class="portal-workspace-form-title">
+                Add inventory item
+            </h2>
+
+            <p class="text-muted small">
+                Create an item once, then use Manage stock whenever stock arrives, is used, or needs correcting.
+            </p>
+
+            <form asp-controller="Inventory"
+                  asp-action="CreateItem"
+                  method="post"
+                  enctype="multipart/form-data">
 
                 <div class="mb-3">
-                    <label class="form-label">Name</label>
-                    <input name="name" class="form-control" required />
+                    <label class="form-label">
+                        Name
+                    </label>
+
+                    <input name="name"
+                           class="form-control"
+                           maxlength="150"
+                           required />
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">Category</label>
-                    <input name="category" class="form-control" />
+                    <label class="form-label">
+                        Category
+                    </label>
+
+                    <input name="category"
+                           class="form-control"
+                           maxlength="100"
+                           placeholder="Food, medication, cleaning..." />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">
+                        Unit
+                    </label>
+
+                    <input name="unit"
+                           class="form-control"
+                           maxlength="50"
+                           placeholder="bags, bottles, tablets..." />
                 </div>
 
                 <div class="row g-2 mb-3">
+
                     <div class="col-6">
-                        <label class="form-label">Unit</label>
-                        <input name="unit" class="form-control" placeholder="e.g. kg, bags" />
+                        <label class="form-label">
+                            Starting quantity
+                        </label>
+
+                        <input type="number"
+                               min="0"
+                               name="initialQuantity"
+                               class="form-control"
+                               value="0" />
                     </div>
+
                     <div class="col-6">
-                        <label class="form-label">Starting quantity</label>
-                        <input type="number" name="initialQuantity" class="form-control" value="0" />
+                        <label class="form-label">
+                            Low-stock level
+                        </label>
+
+                        <input type="number"
+                               min="0"
+                               name="lowStockThreshold"
+                               class="form-control"
+                               value="0" />
                     </div>
+
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">Low stock threshold</label>
-                    <input type="number" name="lowStockThreshold" class="form-control" value="0" />
+
+                    <label class="form-label">
+                        Starting stock expiry
+                    </label>
+
+                    <input type="date"
+                           name="initialExpiryDate"
+                           class="form-control" />
+
+                    <div class="form-text">
+                        Leave blank for items that do not expire.
+                    </div>
+
                 </div>
 
-                <button type="submit" class="btn btn-kzn-primary w-100">Add item</button>
+                <div class="mb-3">
+
+                    <label class="form-label">
+                        Item image
+                    </label>
+
+                    <input type="file"
+                           name="imageFile"
+                           class="form-control"
+                           accept="image/jpeg,image/png,image/webp" />
+
+                </div>
+
+                <button type="submit"
+                        class="btn btn-kzn-primary w-100">
+                    Add item
+                </button>
 
             </form>
 
         </div>
 
-    </div>
+    </aside>
 
 </div>

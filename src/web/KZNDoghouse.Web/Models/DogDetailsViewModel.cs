@@ -12,4 +12,7 @@ public class DogDetailsViewModel
 
     public IReadOnlyList<FosteringRecord> FosteringHistory { get; set; } =
         Array.Empty<FosteringRecord>();
+
+    public IReadOnlyList<DogImage> Images { get; set; } =
+        Array.Empty<DogImage>();
 }

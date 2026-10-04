@@ -1,0 +1,74 @@
+@model DogGalleryViewModel
+
+@{
+    var images = Model.ImageUrls
+        .Where(x => !string.IsNullOrWhiteSpace(x))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToList();
+
+    var hasMultiple = images.Count > 1;
+}
+
+<div class="dog-gallery dog-gallery-@Model.Variant"
+     data-dog-gallery
+     data-gallery-autoplay="@(Model.AutoPlay && hasMultiple ? "true" : "false")"
+     data-gallery-interval="12000">
+
+    <div class="dog-gallery-stage">
+
+        @if (images.Count == 0)
+        {
+            <div class="dog-gallery-placeholder"
+                 aria-hidden="true">
+                @Model.Initial
+            </div>
+        }
+        else
+        {
+            @for (var index = 0; index < images.Count; index++)
+            {
+                <img src="@images[index]"
+                     alt="Photo @(index + 1) of @Model.DogName"
+                     class="dog-gallery-frame @(index == 0 ? "is-active" : string.Empty)"
+                     data-gallery-frame
+                     loading="@(index == 0 ? "eager" : "lazy")" />
+            }
+        }
+
+        @if (hasMultiple)
+        {
+            <button type="button"
+                    class="dog-gallery-arrow dog-gallery-arrow-left"
+                    data-gallery-previous
+                    aria-label="Previous photo of @Model.DogName">
+                &#10094;
+            </button>
+
+            <button type="button"
+                    class="dog-gallery-arrow dog-gallery-arrow-right"
+                    data-gallery-next
+                    aria-label="Next photo of @Model.DogName">
+                &#10095;
+            </button>
+        }
+
+    </div>
+
+    @if (hasMultiple)
+    {
+        <div class="dog-gallery-indicators"
+             aria-label="Photo position">
+
+            @for (var index = 0; index < images.Count; index++)
+            {
+                <button type="button"
+                        class="dog-gallery-indicator @(index == 0 ? "is-active" : string.Empty)"
+                        data-gallery-indicator="@index"
+                        aria-label="Show photo @(index + 1) of @Model.DogName">
+                </button>
+            }
+
+        </div>
+    }
+
+</div>

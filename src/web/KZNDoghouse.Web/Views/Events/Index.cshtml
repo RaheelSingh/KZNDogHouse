@@ -106,9 +106,15 @@
 
                 <article class="public-event-feature">
 
-                    <div class="public-event-feature-date" aria-hidden="true">
-                        <span>@featured.MonthText</span>
-                        <strong>@featured.DayText</strong>
+                    <div class="public-event-feature-date @(string.IsNullOrWhiteSpace(featured.ImageUrl) ? string.Empty : "has-image")">
+                        @if (!string.IsNullOrWhiteSpace(featured.ImageUrl))
+                        {
+                            <img src="@featured.ImageUrl" alt="Image for @featured.Title" class="public-event-feature-image" />
+                        }
+                        <div class="public-event-date-overlay" aria-hidden="true">
+                            <span>@featured.MonthText</span>
+                            <strong>@featured.DayText</strong>
+                        </div>
                     </div>
 
                     <div class="public-event-feature-body">
@@ -160,7 +166,11 @@
 
                             <article class="public-event-card">
 
-                                <div class="public-event-top">
+                                <div class="public-event-top @(string.IsNullOrWhiteSpace(item.ImageUrl) ? string.Empty : "has-image")">
+                                    @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
+                                    {
+                                        <img src="@item.ImageUrl" alt="Image for @item.Title" class="public-event-card-image" />
+                                    }
                                     <div class="public-date-badge" aria-hidden="true">
                                         <span>@item.MonthText</span>
                                         <strong>@item.DayText</strong>

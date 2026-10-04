@@ -4,11 +4,17 @@ using KZNDoghouse.Web.Constants;
 using KZNDoghouse.Web.Repositories;
 using KZNDoghouse.Web.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
+
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 55 * 1024 * 1024;
+});
 
 builder.Services.Configure<SupabaseSettings>(
     builder.Configuration.GetSection(
@@ -116,6 +122,9 @@ builder.Services.AddRateLimiter(options =>
 });
 
 builder.Services.AddScoped<IDogRepository, DogRepository>();
+builder.Services.AddScoped<IDogImageRepository, DogImageRepository>();
+builder.Services.AddScoped<IMediaStorageService, MediaStorageService>();
+builder.Services.AddScoped<IDogImageService, DogImageService>();
 builder.Services.AddScoped<IDogService, DogService>();
 builder.Services.AddScoped<IDogMedicalRecordRepository, DogMedicalRecordRepository>();
 builder.Services.AddScoped<IDogNoteRepository, DogNoteRepository>();

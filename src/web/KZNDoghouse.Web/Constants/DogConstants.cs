@@ -23,3 +23,12 @@ public static class DogGenders
 
     public static readonly string[] All = [Male, Female, Unknown];
 }
+
+public static class DogSizes
+{
+    public const string Small = "Small";
+    public const string Medium = "Medium";
+    public const string Large = "Large";
+
+    public static readonly string[] All = [Small, Medium, Large];
+}

@@ -9,35 +9,76 @@ namespace KZNDoghouse.Web.Tests;
 public class DogServiceTests
 {
     [Fact]
-    public async Task RegisterDogAsync_AssignsIdCreatedByAndCreatedAt()
+    public async Task RegisterDogAsync_UsesDatabaseGeneratedIdAndSetsAuditFields()
     {
         var repository = new Mock<IDogRepository>();
+        var imageRepository = new Mock<IDogImageRepository>();
+
+        var databaseId = Guid.NewGuid();
+
         repository
             .Setup(x => x.CreateAsync(It.IsAny<Dog>()))
-            .ReturnsAsync((Dog d) => d);
+            .ReturnsAsync((Dog d) =>
+            {
+                Assert.Equal(Guid.Empty, d.Id);
 
-        var service = new DogService(repository.Object);
+                return new Dog
+                {
+                    Id = databaseId,
+                    Name = d.Name,
+                    CreatedBy = d.CreatedBy,
+                    CreatedAt = d.CreatedAt
+                };
+            });
 
-        var dog = new Dog { Name = "Rosie" };
+        var service = new DogService(
+            repository.Object,
+            imageRepository.Object);
+
+        var dog = new Dog
+        {
+            Name = "Rosie"
+        };
+
         var createdByUserId = Guid.NewGuid();
 
-        var result = await service.RegisterDogAsync(dog, createdByUserId);
+        var result =
+            await service.RegisterDogAsync(
+                dog,
+                createdByUserId);
 
-        Assert.NotEqual(Guid.Empty, result.Id);
-        Assert.Equal(createdByUserId, result.CreatedBy);
-        Assert.True(result.CreatedAt <= DateTime.UtcNow);
+        Assert.Equal(
+            databaseId,
+            result.Id);
+
+        Assert.Equal(
+            createdByUserId,
+            result.CreatedBy);
+
+        Assert.True(
+            result.CreatedAt <= DateTime.UtcNow);
     }
 
     [Fact]
     public async Task ChangeStatusAsync_DelegatesToRepository()
     {
         var repository = new Mock<IDogRepository>();
-        var service = new DogService(repository.Object);
+        var imageRepository = new Mock<IDogImageRepository>();
+
+        var service = new DogService(
+            repository.Object,
+            imageRepository.Object);
 
         var dogId = Guid.NewGuid();
 
-        await service.ChangeStatusAsync(dogId, "Adopted");
+        await service.ChangeStatusAsync(
+            dogId,
+            "Adopted");
 
-        repository.Verify(x => x.UpdateStatusAsync(dogId, "Adopted"), Times.Once);
+        repository.Verify(
+            x => x.UpdateStatusAsync(
+                dogId,
+                "Adopted"),
+            Times.Once);
     }
 }

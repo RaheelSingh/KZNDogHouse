@@ -2889,3 +2889,917 @@ a:hover {
     }
 }
 
+
+/* Media galleries */
+
+.public-brand-logo,
+.portal-sidebar-brand-logo {
+    object-fit: contain;
+    border-radius: 50%;
+}
+
+.portal-sidebar-brand-logo {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    background-color: var(--kzn-white);
+}
+
+.kzn-dog-avatar-photo {
+    object-fit: cover;
+    padding: 0;
+}
+
+.dog-gallery {
+    position: relative;
+    width: 100%;
+}
+
+.dog-gallery-stage {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    background-color: #cfdcc9;
+}
+
+.dog-gallery-card .dog-gallery-stage {
+    aspect-ratio: 1 / 1;
+}
+
+.dog-gallery-detail .dog-gallery-stage {
+    aspect-ratio: 4 / 3;
+    border-radius: 24px;
+}
+
+.dog-gallery-portal .dog-gallery-stage {
+    aspect-ratio: 4 / 3;
+    border-radius: 14px;
+}
+
+.dog-gallery-frame,
+.dog-gallery-placeholder {
+    width: 100%;
+    height: 100%;
+}
+
+.dog-gallery-frame {
+    position: absolute;
+    inset: 0;
+    display: block;
+    object-fit: cover;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.65s ease-in-out;
+}
+
+.dog-gallery-frame.is-active {
+    position: relative;
+    opacity: 1;
+    visibility: visible;
+}
+
+.dog-gallery-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(14, 14, 14, 0.14);
+    font-family: "Fraunces", Georgia, serif;
+    font-size: 4rem;
+    font-weight: 600;
+}
+
+.dog-gallery-detail .dog-gallery-placeholder {
+    font-size: 7rem;
+}
+
+.dog-gallery-arrow {
+    position: absolute;
+    top: 50%;
+    z-index: 4;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background-color: rgba(18, 53, 36, 0.82);
+    color: var(--kzn-white);
+    font-size: 1.1rem;
+    transform: translateY(-50%);
+}
+
+.dog-gallery-card .dog-gallery-arrow {
+    top: auto;
+    bottom: 10px;
+    width: 30px;
+    height: 30px;
+    font-size: 0.8rem;
+}
+
+.dog-gallery-arrow-left {
+    left: 12px;
+}
+
+.dog-gallery-arrow-right {
+    right: 12px;
+}
+
+.dog-gallery-indicators {
+    position: absolute;
+    z-index: 5;
+    left: 50%;
+    bottom: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 5px 8px;
+    border-radius: 999px;
+    background-color: rgba(18, 53, 36, 0.56);
+    transform: translateX(-50%);
+}
+
+.dog-gallery-indicator {
+    width: 7px;
+    height: 7px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background-color: rgba(255, 255, 255, 0.58);
+    transition: width 0.2s ease, background-color 0.2s ease;
+}
+
+.dog-gallery-indicator.is-active {
+    width: 18px;
+    background-color: var(--kzn-white);
+}
+
+.portal-image-manager {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.portal-image-manager-item {
+    overflow: hidden;
+    border: 1px solid var(--kzn-border);
+    border-radius: 10px;
+}
+
+.portal-image-manager-item > img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+}
+
+.portal-image-manager-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.6rem;
+}
+
+
+/* Dog details workspace */
+
+.dog-detail-layout {
+    display: grid;
+    grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+    align-items: start;
+    gap: 1.5rem;
+}
+
+.dog-detail-layout .portal-card {
+    height: auto;
+}
+
+.dog-detail-summary,
+.dog-detail-workspace {
+    min-width: 0;
+}
+
+.dog-detail-summary-card {
+    padding: 1.15rem;
+}
+
+.dog-detail-name {
+    color: var(--kzn-green-dark);
+    font-size: 1.45rem;
+    font-weight: 650;
+}
+
+.dog-detail-facts {
+    display: grid;
+    gap: 0;
+}
+
+.dog-detail-facts > div {
+    display: grid;
+    grid-template-columns: minmax(90px, 0.8fr) minmax(0, 1fr);
+    gap: 0.8rem;
+    padding: 0.45rem 0;
+}
+
+.dog-detail-facts dt {
+    color: var(--kzn-text);
+    font-size: 0.82rem;
+    font-weight: 650;
+}
+
+.dog-detail-facts dd {
+    margin: 0;
+    color: var(--kzn-text);
+    font-size: 0.82rem;
+    overflow-wrap: anywhere;
+}
+
+.dog-detail-tabs {
+    margin-bottom: 1rem;
+}
+
+.dog-detail-tabs .nav-link {
+    color: var(--kzn-text-muted);
+}
+
+.dog-detail-tabs .nav-link.active {
+    color: var(--kzn-green-dark);
+    font-weight: 650;
+}
+
+.dog-detail-tab-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    margin-left: 0.25rem;
+    padding: 0 0.35rem;
+    border-radius: 999px;
+    background-color: var(--kzn-green-light);
+    color: var(--kzn-green-dark);
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.dog-detail-tab-content {
+    min-width: 0;
+}
+
+.dog-detail-record-list {
+    display: grid;
+}
+
+.dog-detail-record {
+    padding: 0.8rem 0;
+    border-bottom: 1px solid var(--kzn-border);
+}
+
+.dog-detail-record:first-child {
+    padding-top: 0;
+}
+
+.dog-detail-record:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
+}
+
+.dog-detail-medical-record,
+.dog-detail-fostering-record {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.dog-detail-note-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.dog-detail-return-form {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.dog-photo-manager-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.dog-photo-upload-form {
+    margin-bottom: 1.25rem;
+    padding: 1rem;
+    border: 1px solid var(--kzn-border);
+    border-radius: 12px;
+    background-color: var(--kzn-cream);
+}
+
+.dog-photo-upload-control {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.dog-photo-manager-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.dog-photo-primary-label {
+    color: var(--kzn-green-dark);
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.dog-photo-empty {
+    padding: 2rem 1rem;
+    border: 1px dashed var(--kzn-border);
+    border-radius: 12px;
+    color: var(--kzn-text-muted);
+    text-align: center;
+}
+
+@media (max-width: 1199.98px) {
+    .dog-detail-layout {
+        grid-template-columns: minmax(280px, 330px) minmax(0, 1fr);
+    }
+
+    .dog-photo-manager-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 991.98px) {
+    .dog-detail-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .dog-detail-summary {
+        max-width: 560px;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .dog-detail-note-form,
+    .dog-photo-upload-control {
+        grid-template-columns: 1fr;
+    }
+
+    .dog-detail-note-form .btn,
+    .dog-photo-upload-control .btn {
+        width: 100%;
+    }
+
+    .dog-detail-medical-record,
+    .dog-detail-fostering-record,
+    .dog-photo-manager-head {
+        flex-direction: column;
+    }
+
+    .dog-detail-return-form {
+        width: 100%;
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .dog-photo-manager-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Event media */
+
+.portal-event-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 1rem;
+}
+
+.portal-event-image {
+    width: 96px;
+    height: 74px;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.portal-event-content {
+    min-width: 0;
+}
+
+.portal-inline-file {
+    max-width: 260px;
+}
+
+.public-event-feature-date {
+    position: relative;
+    overflow: hidden;
+}
+
+.public-event-feature-image,
+.public-event-card-image {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.public-event-date-overlay {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+
+.public-event-feature-date.has-image .public-event-date-overlay {
+    background-color: rgba(18, 53, 36, 0.55);
+    color: var(--kzn-white);
+}
+
+.public-event-top {
+    position: relative;
+    overflow: hidden;
+}
+
+.public-event-top.has-image .public-date-badge {
+    position: relative;
+    z-index: 2;
+}
+
+/* Inventory */
+
+.portal-summary-chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 34px;
+    padding: 0.35rem 0.75rem;
+    border: 1px solid var(--kzn-border);
+    border-radius: 999px;
+    background-color: var(--kzn-white);
+    color: var(--kzn-text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.portal-summary-chip-warning {
+    border-color: rgba(181, 66, 66, 0.3);
+    color: var(--kzn-danger);
+}
+
+.portal-inventory-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.portal-inventory-card {
+    height: auto;
+}
+
+.portal-inventory-card-head {
+    display: flex;
+    gap: 1rem;
+}
+
+.portal-inventory-image {
+    width: 92px;
+    height: 92px;
+    flex-shrink: 0;
+    object-fit: cover;
+    border-radius: 10px;
+}
+
+.portal-inventory-image-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--kzn-cream-dark);
+    color: var(--kzn-green-dark);
+    font-size: 1.4rem;
+    font-weight: 700;
+}
+
+.portal-inventory-title {
+    margin: 0;
+    color: var(--kzn-green-dark);
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.portal-inventory-quantity {
+    margin-top: 0.75rem;
+    color: var(--kzn-green-dark);
+    font-size: 1.6rem;
+    font-weight: 700;
+}
+
+.portal-inventory-quantity span {
+    color: var(--kzn-text-muted);
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.portal-inventory-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--kzn-border);
+}
+
+.portal-inventory-history {
+    border-top: 1px solid var(--kzn-border);
+}
+
+.portal-inventory-history-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--kzn-border);
+    font-size: 0.76rem;
+}
+
+.portal-inventory-history-row strong,
+.portal-inventory-history-row span,
+.portal-inventory-history-row small {
+    display: block;
+}
+
+.portal-inventory-history-row small {
+    margin-top: 0.15rem;
+    color: var(--kzn-text-muted);
+}
+
+@media (max-width: 991.98px) {
+    .portal-inventory-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .portal-event-row {
+        grid-template-columns: 1fr;
+    }
+
+    .portal-event-image {
+        width: 100%;
+        height: 180px;
+    }
+
+    .portal-image-manager {
+        grid-template-columns: 1fr;
+    }
+
+    .public-event-feature {
+        grid-template-columns: 1fr;
+    }
+
+    .public-event-feature-date {
+        min-height: 240px;
+    }
+
+    .portal-inventory-card-head {
+        align-items: flex-start;
+    }
+}
+
+
+@media (min-width: 768px) and (max-width: 1199.98px) {
+    .portal-image-manager.dog-photo-manager-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* Calendar and inventory workspace layout */
+
+.portal-page-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.portal-page-summary {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.portal-workspace-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 360px);
+    align-items: start;
+    gap: 1.25rem;
+}
+
+.portal-workspace-main,
+.portal-workspace-aside {
+    min-width: 0;
+}
+
+.portal-workspace-grid .portal-card {
+    height: auto;
+}
+
+.portal-workspace-filter-card {
+    margin-bottom: 1rem;
+}
+
+.portal-workspace-results {
+    min-height: 0;
+}
+
+.portal-workspace-form-card {
+    position: sticky;
+    top: 88px;
+}
+
+.portal-workspace-form-title {
+    margin: 0 0 0.35rem;
+    color: var(--kzn-green-dark);
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.portal-segmented-control {
+    display: inline-flex;
+    flex-wrap: wrap;
+}
+
+/* Calendar */
+
+.portal-calendar-day {
+    margin-bottom: 1rem;
+    padding: 0;
+    overflow: hidden;
+}
+
+.portal-calendar-day-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.9rem 1rem;
+    background-color: var(--kzn-cream);
+    border-bottom: 1px solid var(--kzn-border);
+}
+
+.portal-calendar-day-heading h2 {
+    margin: 0;
+    color: var(--kzn-green-dark);
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.portal-calendar-day-heading span {
+    color: var(--kzn-text-muted);
+    font-size: 0.75rem;
+}
+
+.portal-calendar-event-list {
+    display: grid;
+}
+
+.portal-calendar-event {
+    display: grid;
+    grid-template-columns: 82px minmax(0, 1fr);
+    gap: 0.9rem;
+    padding: 1rem;
+    border-bottom: 1px solid var(--kzn-border);
+}
+
+.portal-calendar-event:last-child {
+    border-bottom: 0;
+}
+
+.portal-calendar-event-media {
+    min-width: 0;
+}
+
+.portal-calendar-event .portal-event-image {
+    width: 82px;
+    height: 68px;
+    border-radius: 9px;
+}
+
+.portal-event-image-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--kzn-green-light);
+    color: var(--kzn-green-dark);
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+.portal-calendar-event-body {
+    min-width: 0;
+}
+
+.portal-calendar-event-title-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.portal-calendar-event-title-row h3 {
+    margin: 0;
+    color: var(--kzn-text);
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.portal-calendar-event-time {
+    margin-top: 0.15rem;
+    color: var(--kzn-text-muted);
+    font-size: 0.78rem;
+}
+
+.portal-calendar-badges {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.35rem;
+}
+
+.portal-calendar-badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 25px;
+    padding: 0.2rem 0.55rem;
+    border: 1px solid var(--kzn-border);
+    border-radius: 999px;
+    color: var(--kzn-text-muted);
+    font-size: 0.7rem;
+    font-weight: 650;
+}
+
+.portal-calendar-badge-public {
+    border-color: rgba(19, 75, 49, 0.24);
+    background-color: var(--kzn-green-light);
+    color: var(--kzn-green-dark);
+}
+
+.portal-calendar-event-description {
+    margin: 0.5rem 0 0;
+    color: var(--kzn-text-muted);
+    font-size: 0.82rem;
+    line-height: 1.45;
+}
+
+.portal-calendar-event-actions {
+    display: flex;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.8rem;
+}
+
+/* Compact inline upload editor */
+
+.portal-inline-editor {
+    min-width: 0;
+}
+
+.portal-inline-editor > summary {
+    display: inline-flex;
+    align-items: center;
+    min-height: 31px;
+    padding: 0.3rem 0.7rem;
+    border: 1px solid var(--kzn-green-dark);
+    border-radius: 8px;
+    color: var(--kzn-green-dark);
+    cursor: pointer;
+    font-size: 0.76rem;
+    font-weight: 600;
+    list-style: none;
+}
+
+.portal-inline-editor > summary::-webkit-details-marker {
+    display: none;
+}
+
+.portal-inline-editor[open] > summary {
+    margin-bottom: 0.55rem;
+    background-color: var(--kzn-green-light);
+}
+
+.portal-inline-editor-form {
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) auto;
+    gap: 0.5rem;
+    align-items: center;
+    max-width: 440px;
+}
+
+/* Inventory */
+
+.portal-workspace-grid .portal-inventory-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.portal-inventory-stock-form {
+    display: grid;
+    grid-template-columns: minmax(150px, 1.2fr) minmax(90px, 0.6fr) minmax(130px, 0.9fr);
+    gap: 0.65rem;
+    padding-top: 0.15rem;
+}
+
+.portal-inventory-stock-notes,
+.portal-inventory-stock-submit {
+    grid-column: 1 / -1;
+}
+
+.portal-inventory-stock-submit {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.portal-inventory-stock-submit .form-text {
+    margin: 0;
+    max-width: 620px;
+}
+
+@media (max-width: 1399.98px) {
+    .portal-workspace-grid {
+        grid-template-columns: minmax(0, 1fr) 330px;
+    }
+
+    .portal-workspace-grid .portal-inventory-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 1199.98px) {
+    .portal-workspace-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .portal-workspace-form-card {
+        position: static;
+    }
+
+    .portal-workspace-aside {
+        max-width: none;
+    }
+
+    .portal-workspace-grid .portal-inventory-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 767.98px) {
+    .portal-page-heading,
+    .portal-calendar-event-title-row,
+    .portal-inventory-stock-submit {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .portal-page-summary,
+    .portal-calendar-badges {
+        justify-content: flex-start;
+    }
+
+    .portal-calendar-event {
+        grid-template-columns: 64px minmax(0, 1fr);
+    }
+
+    .portal-calendar-event .portal-event-image {
+        width: 64px;
+        height: 58px;
+    }
+
+    .portal-inline-editor-form,
+    .portal-inventory-stock-form,
+    .portal-workspace-grid .portal-inventory-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .portal-inventory-stock-notes,
+    .portal-inventory-stock-submit {
+        grid-column: auto;
+    }
+}
+

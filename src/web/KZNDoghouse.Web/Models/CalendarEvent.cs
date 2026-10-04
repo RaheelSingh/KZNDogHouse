@@ -34,6 +34,12 @@ public class CalendarEvent : BaseModel
     [Column("dog_id")]
     public Guid? DogId { get; set; }
 
+    [Column("image_path")]
+    public string? ImagePath { get; set; }
+
+    [Column("image_url")]
+    public string? ImageUrl { get; set; }
+
     [Column("created_by")]
     public Guid? CreatedBy { get; set; }
 
