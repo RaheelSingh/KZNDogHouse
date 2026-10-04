@@ -1,4 +1,5 @@
 @model IReadOnlyList<AvailabilitySlotListItem>
+@using KZNDoghouse.Web.Constants
 
 @{
     ViewData["Title"] = "Availability";
@@ -7,7 +8,7 @@
 
 <div class="mb-4">
     <h1 class="portal-page-title mb-2">Availability</h1>
-    <p class="text-muted mb-0">Review pending volunteer availability submissions.</p>
+    <p class="text-muted mb-0">Review volunteer availability submissions.</p>
 </div>
 
 @if (TempData["SuccessMessage"] is string successMessage)
@@ -15,9 +16,110 @@
     <div class="alert alert-success" role="alert">@successMessage</div>
 }
 
+@if (TempData["ErrorMessage"] is string errorMessage)
+{
+    <div class="alert alert-danger" role="alert">@errorMessage</div>
+}
+
 <div class="portal-card">
 
-    <div class="table-responsive">
+    <div class="portal-filter-bar"
+         data-portal-filter="availabilityRows"
+         data-portal-empty="availabilityEmpty"
+         data-portal-result-count="availabilityResultCount">
+
+        <div class="portal-filter-search">
+            <input type="search"
+                   class="form-control"
+                   placeholder="Search volunteer"
+                   aria-label="Search volunteer availability"
+                   data-portal-search />
+        </div>
+
+        <div>
+            <select class="form-select"
+                    aria-label="Filter availability by status"
+                    data-portal-filter-field="status">
+                <option value="">All statuses</option>
+                @foreach (var status in AvailabilitySlotStatuses.All)
+                {
+                    if (status == AvailabilitySlotStatuses.Pending)
+                    {
+                        <option value="@status" selected>@status</option>
+                    }
+                    else
+                    {
+                        <option value="@status">@status</option>
+                    }
+                }
+            </select>
+        </div>
+
+        <div>
+            <select class="form-select"
+                    aria-label="Filter by time slot"
+                    data-portal-filter-field="slot">
+                <option value="">All time slots</option>
+                @foreach (var slotName in AvailabilitySlotNames.All)
+                {
+                    <option value="@slotName">@slotName</option>
+                }
+            </select>
+        </div>
+
+        <div class="portal-filter-date">
+            <label>From</label>
+            <input type="date"
+                   class="form-control"
+                   data-portal-date-from="date" />
+        </div>
+
+        <div class="portal-filter-date">
+            <label>To</label>
+            <input type="date"
+                   class="form-control"
+                   data-portal-date-to="date" />
+        </div>
+
+        <button type="button"
+                class="portal-sort-button"
+                data-portal-sort-toggle
+                data-sort-field="sortDate"
+                data-sort-type="date"
+                data-sort-direction="asc"
+                data-sort-asc-label="Oldest"
+                data-sort-desc-label="Newest"
+                title="Sort by date, oldest first"
+                aria-label="Sort by date, oldest first">
+
+            <svg class="portal-sort-icon portal-sort-icon-up" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 6h9"></path><path d="M4 11h6"></path><path d="M4 16h3"></path>
+                <path d="M18 19V5"></path><path d="m15 8 3-3 3 3"></path>
+            </svg>
+
+            <svg class="portal-sort-icon portal-sort-icon-down" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 6h9"></path><path d="M4 11h6"></path><path d="M4 16h3"></path>
+                <path d="M18 5v14"></path><path d="m15 16 3 3 3-3"></path>
+            </svg>
+
+            <span data-portal-sort-label>Oldest</span>
+
+        </button>
+
+        <button type="button"
+                class="btn btn-kzn-outline portal-filter-reset"
+                data-portal-filter-reset>
+            Reset
+        </button>
+
+    </div>
+
+    <div class="portal-filter-summary">
+        <span id="availabilityResultCount">@Model.Count results</span>
+    </div>
+
+    <div class="table-responsive portal-filter-results">
+
         <table class="table align-middle mb-0">
             <thead>
                 <tr>
@@ -25,39 +127,77 @@
                     <th>Week</th>
                     <th>Day</th>
                     <th>Slot</th>
+                    <th>Status</th>
                     <th>Submitted</th>
                     <th></th>
                 </tr>
             </thead>
-            <tbody>
-                
-@foreach (var item in Model)
-{
-    var slot = item.Slot;
 
-    <tr>
-        <td>@item.VolunteerName</td>
-        <td>@slot.WeekStart.ToString("dd MMM yyyy")</td>
-        <td>@slot.DayDate.ToString("ddd dd MMM")</td>
-        <td>@slot.Slot</td>
-        <td>@slot.SubmittedAt.ToString("dd MMM, HH:mm")</td>
-        <td class="text-end d-flex gap-2 justify-content-end">
-            <form asp-controller="Availability" asp-action="Approve" asp-route-id="@slot.Id" method="post">
-                <button type="submit" class="btn btn-kzn-primary btn-sm">Approve</button>
-            </form>
-            <form asp-controller="Availability" asp-action="Reject" asp-route-id="@slot.Id" method="post">
-                <button type="submit" class="btn btn-kzn-outline btn-sm">Reject</button>
-            </form>
-        </td>
-    </tr>
-}
+            <tbody id="availabilityRows">
 
-@if (!Model.Any())
-{
-    <tr><td colspan="6" class="text-center text-muted py-4">No pending submissions.</td></tr>
-}
+                @foreach (var item in Model)
+                {
+                    var slot = item.Slot;
+
+                    <tr data-portal-row
+                        data-search="@item.VolunteerName"
+                        data-status="@slot.Status"
+                        data-slot="@slot.Slot"
+                        data-date="@slot.DayDate.ToString("yyyy-MM-dd")"
+                        data-sort-date="@slot.DayDate.ToString("O")">
+
+                        <td>@item.VolunteerName</td>
+                        <td>@slot.WeekStart.ToString("dd MMM yyyy")</td>
+                        <td>@slot.DayDate.ToString("ddd dd MMM")</td>
+                        <td>@slot.Slot</td>
+                        <td>@slot.Status</td>
+                        <td>@slot.SubmittedAt.ToString("dd MMM, HH:mm")</td>
+
+                        <td class="text-end">
+
+                            @if (slot.Status == AvailabilitySlotStatuses.Pending)
+                            {
+                                <div class="d-flex gap-2 justify-content-end">
+                                    <form asp-controller="Availability"
+                                          asp-action="Approve"
+                                          asp-route-id="@slot.Id"
+                                          method="post">
+                                        <button type="submit" class="btn btn-kzn-primary btn-sm">
+                                            Approve
+                                        </button>
+                                    </form>
+
+                                    <form asp-controller="Availability"
+                                          asp-action="Reject"
+                                          asp-route-id="@slot.Id"
+                                          method="post">
+                                        <button type="submit" class="btn btn-kzn-outline btn-sm">
+                                            Reject
+                                        </button>
+                                    </form>
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="text-muted small">
+                                    Reviewed
+                                </span>
+                            }
+
+                        </td>
+
+                    </tr>
+                }
+
             </tbody>
         </table>
+
+    </div>
+
+    <div id="availabilityEmpty"
+         class="portal-filter-empty"
+         hidden>
+        No availability submissions match the current search and filters.
     </div>
 
 </div>

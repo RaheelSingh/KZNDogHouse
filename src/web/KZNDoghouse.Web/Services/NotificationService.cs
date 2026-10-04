@@ -25,9 +25,13 @@ public interface INotificationService
 
     Task<IReadOnlyList<AppNotification>> GetRecentForRecipientAsync(
         Guid recipientId,
-        int take = 50);
+        int take = 250);
 
     Task<int> GetUnreadCountAsync(Guid recipientId);
+
+    Task MarkAsReadAsync(
+        Guid notificationId,
+        Guid recipientId);
 
     Task MarkAllAsReadAsync(Guid recipientId);
 }
@@ -100,7 +104,7 @@ public class NotificationService : INotificationService
     public Task<IReadOnlyList<AppNotification>>
         GetRecentForRecipientAsync(
             Guid recipientId,
-            int take = 50)
+            int take = 250)
     {
         return _notificationRepository
             .GetRecentForRecipientAsync(
@@ -113,6 +117,16 @@ public class NotificationService : INotificationService
     {
         return _notificationRepository
             .GetUnreadCountAsync(recipientId);
+    }
+
+    public Task MarkAsReadAsync(
+        Guid notificationId,
+        Guid recipientId)
+    {
+        return _notificationRepository
+            .MarkAsReadAsync(
+                notificationId,
+                recipientId);
     }
 
     public Task MarkAllAsReadAsync(

@@ -1,4 +1,5 @@
 @model IReadOnlyList<FosterApplicationListItem>
+@using KZNDoghouse.Web.Constants
 
 @{
     ViewData["Title"] = "Foster Applications";
@@ -22,7 +23,81 @@
 
 <div class="portal-card">
 
-    <div class="table-responsive">
+    <div class="portal-filter-bar"
+         data-portal-filter="fosterApplicationRows"
+         data-portal-empty="fosterApplicationsEmpty"
+         data-portal-result-count="fosterApplicationsResultCount">
+
+        <div class="portal-filter-search">
+            <input type="search"
+                   class="form-control"
+                   placeholder="Search applicant, email or dog"
+                   aria-label="Search foster applications"
+                   data-portal-search />
+        </div>
+
+        <div>
+            <select class="form-select"
+                    aria-label="Filter foster applications"
+                    data-portal-filter-field="state">
+                <option value="Open" selected>Open applications</option>
+                <option value="">All applications</option>
+                <option value="Completed">Completed</option>
+            </select>
+        </div>
+
+        <div class="portal-filter-date">
+            <label>From</label>
+            <input type="date"
+                   class="form-control"
+                   data-portal-date-from="date" />
+        </div>
+
+        <div class="portal-filter-date">
+            <label>To</label>
+            <input type="date"
+                   class="form-control"
+                   data-portal-date-to="date" />
+        </div>
+
+        <button type="button"
+                class="portal-sort-button"
+                data-portal-sort-toggle
+                data-sort-field="sortDate"
+                data-sort-type="date"
+                data-sort-direction="desc"
+                data-sort-asc-label="Oldest"
+                data-sort-desc-label="Newest"
+                title="Sort by date, newest first"
+                aria-label="Sort by date, newest first">
+
+            <svg class="portal-sort-icon portal-sort-icon-up" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 6h9"></path><path d="M4 11h6"></path><path d="M4 16h3"></path>
+                <path d="M18 19V5"></path><path d="m15 8 3-3 3 3"></path>
+            </svg>
+
+            <svg class="portal-sort-icon portal-sort-icon-down" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 6h9"></path><path d="M4 11h6"></path><path d="M4 16h3"></path>
+                <path d="M18 5v14"></path><path d="m15 16 3 3 3-3"></path>
+            </svg>
+
+            <span data-portal-sort-label>Newest</span>
+
+        </button>
+
+        <button type="button"
+                class="btn btn-kzn-outline portal-filter-reset"
+                data-portal-filter-reset>
+            Reset
+        </button>
+
+    </div>
+
+    <div class="portal-filter-summary">
+        <span id="fosterApplicationsResultCount">@Model.Count results</span>
+    </div>
+
+    <div class="table-responsive portal-filter-results">
         <table class="table align-middle mb-0">
             <thead>
                 <tr>
@@ -33,51 +108,82 @@
                     <th></th>
                 </tr>
             </thead>
-            <tbody>
-@foreach (var item in Model)
-{
-    var application = item.Application;
 
-    <tr>
-        <td>
-            <div class="fw-semibold">@application.ApplicantName</div>
-            <div class="text-muted small">@application.ApplicantEmail</div>
-        </td>
-        <td>@item.DogName</td>
-        <td>@application.SubmittedAt.ToString("dd MMM yyyy")</td>
-        <td>
-            <span class="kzn-status-badge @(application.Status == "Approved" ? "kzn-status-available" : application.Status == "Rejected" ? "kzn-status-under-treatment" : "kzn-status-in-care")">
-                @application.Status
-            </span>
-        </td>
-        <td class="text-end">
-            @if (application.Status == "Submitted" || application.Status == "Under Review")
-            {
-                <form asp-controller="FosterApplications" asp-action="Approve" asp-route-id="@application.Id" method="post" class="d-inline">
-                    <button type="submit" class="btn btn-kzn-primary btn-sm">Approve</button>
-                </form>
+            <tbody id="fosterApplicationRows">
 
-                <button type="button" class="btn btn-kzn-outline btn-sm" data-bs-toggle="collapse" data-bs-target="#reject-@application.Id">
-                    Reject
-                </button>
+                @foreach (var item in Model)
+                {
+                    var application = item.Application;
+                    var isOpen = application.Status == FosterApplicationStatuses.Submitted
+                        || application.Status == FosterApplicationStatuses.UnderReview;
+                    var state = isOpen ? "Open" : "Completed";
 
-                <div class="collapse mt-2" id="reject-@application.Id">
-                    <form asp-controller="FosterApplications" asp-action="Reject" asp-route-id="@application.Id" method="post" class="d-flex gap-2">
-                        <input name="rejectionReason" class="form-control form-control-sm" placeholder="Reason" required />
-                        <button type="submit" class="btn btn-kzn-outline btn-sm">Confirm</button>
-                    </form>
-                </div>
-            }
-        </td>
-    </tr>
-}
+                    <tr data-portal-row
+                        data-search="@application.ApplicantName @application.ApplicantEmail @item.DogName"
+                        data-state="@state"
+                        data-date="@application.SubmittedAt.ToString("yyyy-MM-dd")"
+                        data-sort-date="@application.SubmittedAt.ToString("O")">
 
-@if (!Model.Any())
-{
-    <tr><td colspan="5" class="text-center text-muted py-4">No applications yet.</td></tr>
-}
+                        <td>
+                            <div class="fw-semibold">@application.ApplicantName</div>
+                            <div class="text-muted small">@application.ApplicantEmail</div>
+                        </td>
+
+                        <td>@item.DogName</td>
+                        <td>@application.SubmittedAt.ToString("dd MMM yyyy")</td>
+                        <td>@application.Status</td>
+
+                        <td class="text-end">
+
+                            @if (isOpen)
+                            {
+                                <form asp-controller="FosterApplications"
+                                      asp-action="Approve"
+                                      asp-route-id="@application.Id"
+                                      method="post"
+                                      class="d-inline">
+                                    <button type="submit" class="btn btn-kzn-primary btn-sm">Approve</button>
+                                </form>
+
+                                <button type="button"
+                                        class="btn btn-kzn-outline btn-sm"
+                                        data-bs-toggle="collapse"
+                                        data-bs-target="#reject-@application.Id">
+                                    Reject
+                                </button>
+
+                                <div class="collapse mt-2" id="reject-@application.Id">
+                                    <form asp-controller="FosterApplications"
+                                          asp-action="Reject"
+                                          asp-route-id="@application.Id"
+                                          method="post"
+                                          class="d-flex gap-2">
+                                        <input name="rejectionReason"
+                                               class="form-control form-control-sm"
+                                               placeholder="Reason"
+                                               required />
+                                        <button type="submit" class="btn btn-kzn-outline btn-sm">Confirm</button>
+                                    </form>
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="text-muted small">Completed</span>
+                            }
+
+                        </td>
+
+                    </tr>
+                }
+
             </tbody>
         </table>
+    </div>
+
+    <div id="fosterApplicationsEmpty"
+         class="portal-filter-empty"
+         hidden>
+        No foster applications match the current search and filters.
     </div>
 
 </div>

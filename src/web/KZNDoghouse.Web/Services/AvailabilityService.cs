@@ -4,14 +4,19 @@ using KZNDoghouse.Web.Repositories;
 
 namespace KZNDoghouse.Web.Services;
 
-// Services/AvailabilityService.cs — interface and implementation, corrected
 public interface IAvailabilityService
 {
+    Task<IReadOnlyList<AvailabilitySlot>> GetAllAsync();
+
     Task<IReadOnlyList<AvailabilitySlot>> GetPendingAsync();
 
-    Task ApproveAsync(AvailabilitySlot slot, Guid reviewedByProfileId);
+    Task ApproveAsync(
+        AvailabilitySlot slot,
+        Guid reviewedByProfileId);
 
-    Task RejectAsync(AvailabilitySlot slot, Guid reviewedByProfileId);
+    Task RejectAsync(
+        AvailabilitySlot slot,
+        Guid reviewedByProfileId);
 }
 
 public class AvailabilityService : IAvailabilityService
@@ -27,12 +32,20 @@ public class AvailabilityService : IAvailabilityService
         _notificationService = notificationService;
     }
 
+    public Task<IReadOnlyList<AvailabilitySlot>> GetAllAsync() =>
+        _repository.GetAllAsync();
+
     public Task<IReadOnlyList<AvailabilitySlot>> GetPendingAsync() =>
         _repository.GetPendingAsync();
 
-    public async Task ApproveAsync(AvailabilitySlot slot, Guid reviewedByProfileId)
+    public async Task ApproveAsync(
+        AvailabilitySlot slot,
+        Guid reviewedByProfileId)
     {
-        await _repository.ReviewAsync(slot.Id, AvailabilitySlotStatuses.Approved, reviewedByProfileId);
+        await _repository.ReviewAsync(
+            slot.Id,
+            AvailabilitySlotStatuses.Approved,
+            reviewedByProfileId);
 
         await _notificationService.NotifyUserAsync(
             slot.VolunteerId,
@@ -41,9 +54,14 @@ public class AvailabilityService : IAvailabilityService
             $"Your {slot.Slot} slot on {slot.DayDate:dd MMM} was approved.");
     }
 
-    public async Task RejectAsync(AvailabilitySlot slot, Guid reviewedByProfileId)
+    public async Task RejectAsync(
+        AvailabilitySlot slot,
+        Guid reviewedByProfileId)
     {
-        await _repository.ReviewAsync(slot.Id, AvailabilitySlotStatuses.Rejected, reviewedByProfileId);
+        await _repository.ReviewAsync(
+            slot.Id,
+            AvailabilitySlotStatuses.Rejected,
+            reviewedByProfileId);
 
         await _notificationService.NotifyUserAsync(
             slot.VolunteerId,

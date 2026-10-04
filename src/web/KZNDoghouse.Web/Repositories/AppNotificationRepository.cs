@@ -13,6 +13,10 @@ public interface IAppNotificationRepository
 
     Task<int> GetUnreadCountAsync(Guid recipientId);
 
+    Task MarkAsReadAsync(
+        Guid notificationId,
+        Guid recipientId);
+
     Task MarkAllAsReadAsync(Guid recipientId);
 }
 
@@ -76,6 +80,21 @@ public class AppNotificationRepository : IAppNotificationRepository
             .Get();
 
         return response.Models?.Count ?? 0;
+    }
+
+    public async Task MarkAsReadAsync(
+        Guid notificationId,
+        Guid recipientId)
+    {
+        var client =
+            await _supabaseClientFactory.CreateServiceClientAsync();
+
+        await client
+            .From<AppNotification>()
+            .Where(x => x.Id == notificationId)
+            .Where(x => x.RecipientId == recipientId)
+            .Set(x => x.IsRead, true)
+            .Update();
     }
 
     public async Task MarkAllAsReadAsync(

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using KZNDoghouse.Web.Constants;
 using KZNDoghouse.Web.Repositories;
 using Supabase.Gotrue;
@@ -7,11 +8,11 @@ namespace KZNDoghouse.Web.Services;
 
 public interface IAuthService
 {
-    Task<AuthLoginResult?> SignInAsync(
+    Task<AuthSignInResult> SignInAsync(
         string email,
         string password);
 
-    Task<bool> RegisterPublicAsync(
+    Task<RegistrationResult> RegisterPublicAsync(
         string firstName,
         string lastName,
         string email,
@@ -19,11 +20,36 @@ public interface IAuthService
         bool wantsToVolunteer);
 }
 
+public enum AuthSignInStatus
+{
+    Success,
+    InvalidCredentials,
+    InactiveAccount,
+    AccountUnavailable,
+    RateLimited,
+    ServiceUnavailable
+}
+
+public enum RegistrationStatus
+{
+    Success,
+    RateLimited,
+    ServiceUnavailable,
+    Failed
+}
+
 public record AuthLoginResult(
     string UserId,
     string Email,
     string DisplayName,
     string Role);
+
+public record AuthSignInResult(
+    AuthSignInStatus Status,
+    AuthLoginResult? Account = null);
+
+public record RegistrationResult(
+    RegistrationStatus Status);
 
 public class AuthService : IAuthService
 {
@@ -44,7 +70,7 @@ public class AuthService : IAuthService
         _logger = logger;
     }
 
-    public async Task<AuthLoginResult?> SignInAsync(
+    public async Task<AuthSignInResult> SignInAsync(
         string email,
         string password)
     {
@@ -54,42 +80,88 @@ public class AuthService : IAuthService
                 await _supabaseClientFactory.CreateAnonClientAsync();
 
             var session =
-                await client.Auth.SignIn(email, password);
+                await client.Auth.SignIn(
+                    email.Trim(),
+                    password);
 
-            if (session?.User == null)
+            if (session?.User == null
+                || string.IsNullOrWhiteSpace(session.User.Id))
             {
-                return null;
-            }
-
-            var userId = session.User.Id;
-
-            if (string.IsNullOrWhiteSpace(userId))
-            {
-                return null;
+                return new AuthSignInResult(
+                    AuthSignInStatus.InvalidCredentials);
             }
 
             var profile =
                 await _userProfileRepository
-                    .GetByAuthUserIdAsync(userId);
+                    .GetByAuthUserIdAsync(session.User.Id);
 
-            if (profile == null || !profile.IsActive)
+            if (profile == null)
             {
-                return null;
+                _logger.LogWarning(
+                    "Authenticated Supabase user {UserId} has no application profile.",
+                    session.User.Id);
+
+                return new AuthSignInResult(
+                    AuthSignInStatus.AccountUnavailable);
             }
 
-            return new AuthLoginResult(
-                userId,
-                session.User.Email ?? email,
+            if (!profile.IsActive)
+            {
+                return new AuthSignInResult(
+                    AuthSignInStatus.InactiveAccount);
+            }
+
+            var account = new AuthLoginResult(
+                session.User.Id,
+                session.User.Email ?? email.Trim(),
                 profile.FullName,
                 profile.Role);
+
+            return new AuthSignInResult(
+                AuthSignInStatus.Success,
+                account);
         }
-        catch (GotrueException)
+        catch (GotrueException ex)
         {
-            return null;
+            var statusCode =
+                TryGetSupabaseStatusCode(ex.Message);
+
+            if (statusCode == 429
+                || ex.Message.Contains(
+                    "rate limit",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return new AuthSignInResult(
+                    AuthSignInStatus.RateLimited);
+            }
+
+            if (statusCode >= 500)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "Supabase authentication service returned a server error.");
+
+                return new AuthSignInResult(
+                    AuthSignInStatus.ServiceUnavailable);
+            }
+
+            return new AuthSignInResult(
+                AuthSignInStatus.InvalidCredentials);
+        }
+        catch (Exception ex) when (
+            ex is HttpRequestException
+            || ex is TaskCanceledException)
+        {
+            _logger.LogWarning(
+                ex,
+                "The authentication service could not be reached.");
+
+            return new AuthSignInResult(
+                AuthSignInStatus.ServiceUnavailable);
         }
     }
 
-    public async Task<bool> RegisterPublicAsync(
+    public async Task<RegistrationResult> RegisterPublicAsync(
         string firstName,
         string lastName,
         string email,
@@ -118,7 +190,8 @@ public class AuthService : IAuthService
 
             if (session?.User == null)
             {
-                return false;
+                return new RegistrationResult(
+                    RegistrationStatus.Failed);
             }
 
             if (wantsToVolunteer)
@@ -140,15 +213,72 @@ public class AuthService : IAuthService
                 }
             }
 
-            return true;
+            return new RegistrationResult(
+                RegistrationStatus.Success);
         }
         catch (GotrueException ex)
         {
-            _logger.LogWarning(
-                "Supabase registration failed: {Message}",
-                ex.Message);
+            var statusCode =
+                TryGetSupabaseStatusCode(ex.Message);
 
-            return false;
+            if (statusCode == 429
+                || ex.Message.Contains(
+                    "rate limit",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return new RegistrationResult(
+                    RegistrationStatus.RateLimited);
+            }
+
+            if (statusCode >= 500)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "Supabase registration service returned a server error.");
+
+                return new RegistrationResult(
+                    RegistrationStatus.ServiceUnavailable);
+            }
+
+            _logger.LogInformation(
+                "A registration request was rejected by the authentication provider.");
+
+            return new RegistrationResult(
+                RegistrationStatus.Failed);
         }
+        catch (Exception ex) when (
+            ex is HttpRequestException
+            || ex is TaskCanceledException)
+        {
+            _logger.LogWarning(
+                ex,
+                "The registration service could not be reached.");
+
+            return new RegistrationResult(
+                RegistrationStatus.ServiceUnavailable);
+        }
+    }
+
+    private static int? TryGetSupabaseStatusCode(
+        string message)
+    {
+        try
+        {
+            using var document =
+                JsonDocument.Parse(message);
+
+            if (document.RootElement.TryGetProperty(
+                    "code",
+                    out var code)
+                && code.TryGetInt32(out var statusCode))
+            {
+                return statusCode;
+            }
+        }
+        catch (JsonException)
+        {
+        }
+
+        return null;
     }
 }

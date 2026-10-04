@@ -1,8 +1,10 @@
+using System.Threading.RateLimiting;
 using KZNDoghouse.Web.Configuration;
 using KZNDoghouse.Web.Constants;
 using KZNDoghouse.Web.Repositories;
 using KZNDoghouse.Web.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +21,8 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     IAuthService,
     AuthService>();
+
+builder.Services.AddScoped<AuthCookieEvents>();
 
 builder.Services.AddScoped<
     IUserProfileRepository,
@@ -37,6 +41,10 @@ builder.Services
         options.AccessDeniedPath = "/Auth/AccessDenied";
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
         options.SlidingExpiration = true;
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        options.EventsType = typeof(AuthCookieEvents);
     });
 
 builder.Services.AddAuthorization(options =>
@@ -49,6 +57,54 @@ builder.Services.AddAuthorization(options =>
                 UserRoles.Staff,
                 UserRoles.Administrator);
         });
+});
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode =
+        StatusCodes.Status429TooManyRequests;
+
+    options.AddPolicy(
+        RateLimitPolicies.Login,
+        context =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: GetClientKey(context),
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 10,
+                    Window = TimeSpan.FromMinutes(5),
+                    QueueLimit = 0,
+                    AutoReplenishment = true
+                }));
+
+    options.AddPolicy(
+        RateLimitPolicies.Register,
+        context =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: GetClientKey(context),
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 5,
+                    Window = TimeSpan.FromMinutes(10),
+                    QueueLimit = 0,
+                    AutoReplenishment = true
+                }));
+
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        var isRegister =
+            context.HttpContext.Request.Path
+                .StartsWithSegments(
+                    "/Auth/Register");
+
+        var target = isRegister
+            ? "/Auth/Register?rateLimited=true"
+            : "/Auth/Login?rateLimited=true";
+
+        context.HttpContext.Response.Redirect(target);
+
+        await Task.CompletedTask;
+    };
 });
 
 builder.Services.AddScoped<IDogRepository, DogRepository>();
@@ -80,9 +136,21 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+app.Use(async (context, next) =>
+{
+    context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    context.Response.Headers["X-Frame-Options"] = "DENY";
+    context.Response.Headers["Referrer-Policy"] =
+        "strict-origin-when-cross-origin";
+
+    await next();
+});
+
 app.UseHttpsRedirection();
 
 app.UseRouting();
+
+app.UseRateLimiter();
 
 app.UseAuthentication();
 
@@ -98,3 +166,10 @@ app.MapControllerRoute(
     .WithStaticAssets();
 
 app.Run();
+
+static string GetClientKey(HttpContext context)
+{
+    return context.Connection.RemoteIpAddress
+        ?.ToString()
+        ?? "unknown";
+}

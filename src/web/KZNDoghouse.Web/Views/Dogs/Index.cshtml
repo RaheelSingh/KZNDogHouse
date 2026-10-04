@@ -6,7 +6,12 @@
     ViewData["Title"] = "Dogs";
     Layout = "_PortalLayout";
 
-    var selectedStatus = ViewData["SelectedStatus"] as string;
+    var sizes = Model
+        .Where(x => !string.IsNullOrWhiteSpace(x.Size))
+        .Select(x => x.Size!)
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .OrderBy(x => x)
+        .ToList();
 }
 
 <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-3">
@@ -18,7 +23,7 @@
         </h1>
 
         <p class="text-muted mb-0">
-            @Model.Count dogs currently in our system.
+            @Model.Count dogs currently in the system.
         </p>
 
     </div>
@@ -38,29 +43,109 @@
     </div>
 }
 
-<div class="d-flex flex-wrap gap-2 mb-3">
-
-    <a class="kzn-filter-pill @(selectedStatus == null ? "active" : "")"
-       asp-controller="Dogs"
-       asp-action="Index">
-        All
-    </a>
-
-    @foreach (var status in DogStatuses.All)
-    {
-        <a class="kzn-filter-pill @(selectedStatus == status ? "active" : "")"
-           asp-controller="Dogs"
-           asp-action="Index"
-           asp-route-status="@status">
-            @status
-        </a>
-    }
-
-</div>
-
 <div class="portal-card">
 
-    <div class="table-responsive">
+    <div class="portal-filter-bar"
+         data-portal-filter="dogRows"
+         data-portal-empty="dogsEmpty"
+         data-portal-result-count="dogsResultCount">
+
+        <div class="portal-filter-search">
+
+            <label for="dogSearch" class="visually-hidden">
+                Search dogs
+            </label>
+
+            <input id="dogSearch"
+                   type="search"
+                   class="form-control"
+                   placeholder="Search name, breed or kennel"
+                   data-portal-search />
+
+        </div>
+
+        <div>
+
+            <select class="form-select"
+                    aria-label="Filter dogs by status"
+                    data-portal-filter-field="status">
+
+                <option value="">
+                    All statuses
+                </option>
+
+                @foreach (var status in DogStatuses.All)
+                {
+                    <option value="@status">
+                        @status
+                    </option>
+                }
+
+            </select>
+
+        </div>
+
+        <div>
+
+            <select class="form-select"
+                    aria-label="Filter dogs by size"
+                    data-portal-filter-field="size">
+
+                <option value="">
+                    All sizes
+                </option>
+
+                @foreach (var size in sizes)
+                {
+                    <option value="@size">
+                        @size
+                    </option>
+                }
+
+            </select>
+
+        </div>
+
+        <button type="button"
+                class="portal-sort-button"
+                data-portal-sort-toggle
+                data-sort-field="sortName"
+                data-sort-type="text"
+                data-sort-direction="asc"
+                data-sort-asc-label="A–Z"
+                data-sort-desc-label="Z–A"
+                title="Sort dog names A to Z"
+                aria-label="Sort dog names A to Z">
+
+            <svg class="portal-sort-icon portal-sort-icon-up" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 6h9"></path><path d="M4 11h6"></path><path d="M4 16h3"></path>
+                <path d="M18 19V5"></path><path d="m15 8 3-3 3 3"></path>
+            </svg>
+
+            <svg class="portal-sort-icon portal-sort-icon-down" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 6h9"></path><path d="M4 11h6"></path><path d="M4 16h3"></path>
+                <path d="M18 5v14"></path><path d="m15 16 3 3 3-3"></path>
+            </svg>
+
+            <span data-portal-sort-label>A–Z</span>
+
+        </button>
+
+        <button type="button"
+                class="btn btn-kzn-outline portal-filter-reset"
+                data-portal-filter-reset>
+            Reset
+        </button>
+
+    </div>
+
+    <div class="portal-filter-summary">
+        <span id="dogsResultCount">
+            @Model.Count results
+        </span>
+    </div>
+
+    <div class="table-responsive portal-filter-results">
 
         <table class="table align-middle mb-0">
 
@@ -76,18 +161,22 @@
 
             </thead>
 
-            <tbody>
+            <tbody id="dogRows">
 
                 @foreach (var dog in Model)
                 {
-                    <tr>
+                    <tr data-portal-row
+                        data-search="@dog.Name @dog.Breed @dog.KennelLocation"
+                        data-status="@dog.Status"
+                        data-size="@dog.Size"
+                        data-sort-name="@dog.Name">
 
                         <td>
 
                             <div class="d-flex align-items-center gap-2">
 
                                 <div class="kzn-dog-avatar">
-                                    @dog.Name.Substring(0, 1).ToUpper()
+                                    @(string.IsNullOrWhiteSpace(dog.Name) ? "?" : dog.Name.Substring(0, 1).ToUpper())
                                 </div>
 
                                 <div>
@@ -111,8 +200,7 @@
                         </td>
 
                         <td>
-                            <partial name="_DogStatusBadge"
-                                     model="@dog.Status" />
+                            <partial name="_DogStatusBadge" model="@dog.Status" />
                         </td>
 
                         <td>
@@ -137,20 +225,16 @@
                     </tr>
                 }
 
-                @if (!Model.Any())
-                {
-                    <tr>
-                        <td colspan="5"
-                            class="text-center text-muted py-4">
-                            No dogs match this filter.
-                        </td>
-                    </tr>
-                }
-
             </tbody>
 
         </table>
 
+    </div>
+
+    <div id="dogsEmpty"
+         class="portal-filter-empty"
+         hidden>
+        No dogs match the current search and filters.
     </div>
 
 </div>

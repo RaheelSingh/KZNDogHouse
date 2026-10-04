@@ -21,95 +21,128 @@ public class AvailabilityController : Controller
         _userProfileRepository = userProfileRepository;
     }
 
-[HttpGet]
-public async Task<IActionResult> Index()
-{
-    var pending = await _availabilityService.GetPendingAsync();
-
-    var items = new List<AvailabilitySlotListItem>();
-
-    foreach (var slot in pending)
+    [HttpGet]
+    public async Task<IActionResult> Index()
     {
-        var volunteerProfile =
-            await _userProfileRepository.GetByIdAsync(slot.VolunteerId);
+        var slotsTask =
+            _availabilityService.GetAllAsync();
 
-        items.Add(new AvailabilitySlotListItem
+        var usersTask =
+            _userProfileRepository.GetAllAsync();
+
+        await Task.WhenAll(
+            slotsTask,
+            usersTask);
+
+        var slots = await slotsTask;
+        var users = await usersTask;
+
+        var userNames = users
+            .ToDictionary(
+                x => x.Id,
+                x => x.FullName);
+
+        var items = slots
+            .Select(slot => new AvailabilitySlotListItem
+            {
+                Slot = slot,
+                VolunteerName = userNames.TryGetValue(
+                    slot.VolunteerId,
+                    out var name)
+                        ? name
+                        : "Unknown volunteer"
+            })
+            .ToList();
+
+        return View(items);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Approve(Guid id)
+    {
+        var profile =
+            await GetCurrentProfileAsync();
+
+        if (profile == null)
         {
-            Slot = slot,
-            VolunteerName = volunteerProfile?.FullName ?? "Unknown volunteer"
-        });
-    }
+            return Challenge();
+        }
 
-    return View(items);
-}
+        var slot =
+            await FindPendingSlotAsync(id);
 
- [HttpPost]
-[ValidateAntiForgeryToken]
-public async Task<IActionResult> Approve(Guid id)
-{
-    var profile = await GetCurrentProfileAsync();
+        if (slot == null)
+        {
+            TempData["ErrorMessage"] =
+                "That submission could not be found.";
 
-    if (profile == null)
-    {
-        return Challenge();
-    }
+            return RedirectToAction(nameof(Index));
+        }
 
-    var slot = await FindPendingSlotAsync(id);
+        await _availabilityService
+            .ApproveAsync(slot, profile.Id);
 
-    if (slot == null)
-    {
-        TempData["ErrorMessage"] = "That submission could not be found.";
+        TempData["SuccessMessage"] =
+            "Availability approved.";
+
         return RedirectToAction(nameof(Index));
     }
 
-    await _availabilityService.ApproveAsync(slot, profile.Id);
-
-    TempData["SuccessMessage"] = "Availability approved.";
-
-    return RedirectToAction(nameof(Index));
-}
-[HttpPost]
-[ValidateAntiForgeryToken]
-public async Task<IActionResult> Reject(Guid id)
-{
-    var profile = await GetCurrentProfileAsync();
-
-    if (profile == null)
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Reject(Guid id)
     {
-        return Challenge();
-    }
+        var profile =
+            await GetCurrentProfileAsync();
 
-    var slot = await FindPendingSlotAsync(id);
+        if (profile == null)
+        {
+            return Challenge();
+        }
 
-    if (slot == null)
-    {
-        TempData["ErrorMessage"] = "That submission could not be found.";
+        var slot =
+            await FindPendingSlotAsync(id);
+
+        if (slot == null)
+        {
+            TempData["ErrorMessage"] =
+                "That submission could not be found.";
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        await _availabilityService
+            .RejectAsync(slot, profile.Id);
+
+        TempData["SuccessMessage"] =
+            "Availability rejected.";
+
         return RedirectToAction(nameof(Index));
     }
-
-    await _availabilityService.RejectAsync(slot, profile.Id);
-
-    TempData["SuccessMessage"] = "Availability rejected.";
-
-    return RedirectToAction(nameof(Index));
-}
 
     private async Task<UserProfile?> GetCurrentProfileAsync()
     {
-        var authId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var authId =
+            User.FindFirstValue(
+                ClaimTypes.NameIdentifier);
 
         if (string.IsNullOrWhiteSpace(authId))
         {
             return null;
         }
 
-        return await _userProfileRepository.GetByAuthUserIdAsync(authId);
+        return await _userProfileRepository
+            .GetByAuthUserIdAsync(authId);
     }
 
-    private async Task<AvailabilitySlot?> FindPendingSlotAsync(Guid id)
-{
-    var pending = await _availabilityService.GetPendingAsync();
+    private async Task<AvailabilitySlot?> FindPendingSlotAsync(
+        Guid id)
+    {
+        var pending =
+            await _availabilityService.GetPendingAsync();
 
-    return pending.FirstOrDefault(x => x.Id == id);
-}
+        return pending
+            .FirstOrDefault(x => x.Id == id);
+    }
 }

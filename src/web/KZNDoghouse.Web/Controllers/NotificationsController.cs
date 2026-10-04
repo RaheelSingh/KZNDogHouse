@@ -36,9 +36,6 @@ public class NotificationsController : Controller
             await _notificationService
                 .GetRecentForRecipientAsync(profile.Id);
 
-        await _notificationService
-            .MarkAllAsReadAsync(profile.Id);
-
         return View(notifications);
     }
 
@@ -61,6 +58,45 @@ public class NotificationsController : Controller
         {
             count
         });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> MarkRead(Guid id)
+    {
+        var profile =
+            await GetCurrentProfileAsync();
+
+        if (profile == null)
+        {
+            return Challenge();
+        }
+
+        await _notificationService
+            .MarkAsReadAsync(id, profile.Id);
+
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> MarkAllRead()
+    {
+        var profile =
+            await GetCurrentProfileAsync();
+
+        if (profile == null)
+        {
+            return Challenge();
+        }
+
+        await _notificationService
+            .MarkAllAsReadAsync(profile.Id);
+
+        TempData["SuccessMessage"] =
+            "All notifications have been marked as read.";
+
+        return RedirectToAction(nameof(Index));
     }
 
     private async Task<UserProfile?> GetCurrentProfileAsync()

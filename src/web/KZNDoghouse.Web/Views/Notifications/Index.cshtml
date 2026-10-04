@@ -1,4 +1,5 @@
 @model IReadOnlyList<AppNotification>
+@using KZNDoghouse.Web.Constants
 
 @{
     ViewData["Title"] = "Notifications";
@@ -7,63 +8,194 @@
     var grouped = Model
         .GroupBy(x => x.CreatedAt.Date)
         .OrderByDescending(g => g.Key);
+
+    var unreadCount = Model.Count(x => !x.IsRead);
 }
 
-<div class="mb-4">
-    <h1 class="portal-page-title mb-2">
-        Notifications
-    </h1>
+<div class="d-flex justify-content-between align-items-start gap-3 mb-4 flex-wrap">
 
-    <p class="text-muted mb-0">
-        Notifications for your account.
-    </p>
+    <div>
+        <h1 class="portal-page-title mb-2">Notifications</h1>
+        <p class="text-muted mb-0">Notifications for your account.</p>
+    </div>
+
+    @if (unreadCount > 1)
+    {
+        <form asp-controller="Notifications"
+              asp-action="MarkAllRead"
+              method="post">
+            <button type="submit" class="btn btn-kzn-outline">
+                Mark all as read
+            </button>
+        </form>
+    }
+
 </div>
 
-@foreach (var day in grouped)
+@if (TempData["SuccessMessage"] is string successMessage)
 {
-    <h6 class="text-muted mt-4 mb-2">
-        @(day.Key == DateTime.UtcNow.Date
-            ? "Today"
-            : day.Key.ToString("dd MMM yyyy"))
-    </h6>
+    <div class="alert alert-success" role="alert">@successMessage</div>
+}
 
-    @foreach (var notification in day.OrderByDescending(x => x.CreatedAt))
+<div class="portal-card mb-3">
+
+    <div class="portal-filter-bar"
+         data-portal-filter="notificationRows"
+         data-portal-empty="notificationsEmpty"
+         data-portal-result-count="notificationsResultCount">
+
+        <div class="portal-filter-search">
+            <input type="search"
+                   class="form-control"
+                   placeholder="Search notifications"
+                   aria-label="Search notifications"
+                   data-portal-search />
+        </div>
+
+        <div>
+            <select class="form-select"
+                    aria-label="Filter notifications by category"
+                    data-portal-filter-field="category">
+                <option value="">All categories</option>
+                @foreach (var category in NotificationCategories.All)
+                {
+                    <option value="@category">@category</option>
+                }
+            </select>
+        </div>
+
+        <div>
+            <select class="form-select"
+                    aria-label="Filter notifications by read status"
+                    data-portal-filter-field="read">
+                <option value="">All notifications</option>
+                <option value="Unread">Unread</option>
+                <option value="Read">Read</option>
+            </select>
+        </div>
+
+        <div class="portal-filter-date">
+            <label>From</label>
+            <input type="date"
+                   class="form-control"
+                   data-portal-date-from="date" />
+        </div>
+
+        <div class="portal-filter-date">
+            <label>To</label>
+            <input type="date"
+                   class="form-control"
+                   data-portal-date-to="date" />
+        </div>
+
+        <button type="button"
+                class="btn btn-kzn-outline portal-filter-reset"
+                data-portal-filter-reset>
+            Reset
+        </button>
+
+    </div>
+
+    <div class="portal-filter-summary">
+        <span id="notificationsResultCount">@Model.Count results</span>
+        <span>@unreadCount unread</span>
+    </div>
+
+</div>
+
+<div id="notificationRows"
+     class="portal-filter-results portal-filter-results-cards">
+
+    @foreach (var day in grouped)
     {
-        <div class="portal-card portal-notification-item @(notification.IsRead ? "" : "portal-notification-unread") mb-2">
-            <div class="portal-notification-content">
-                <div>
-                    <div class="d-flex align-items-center gap-2">
-                        @if (!notification.IsRead)
-                        {
-                            <span class="portal-notification-dot"
-                                  aria-label="Unread notification">
+        <div data-portal-group>
+
+            <h6 class="text-muted mt-4 mb-2">
+                @(day.Key == DateTime.UtcNow.Date
+                    ? "Today"
+                    : day.Key.ToString("dd MMM yyyy"))
+            </h6>
+
+            @foreach (var notification in day.OrderByDescending(x => x.CreatedAt))
+            {
+                var readState = notification.IsRead ? "Read" : "Unread";
+
+                <div class="portal-card portal-notification-item @(notification.IsRead ? "" : "portal-notification-unread") mb-2"
+                     data-portal-row
+                     data-search="@notification.Title @notification.Body @notification.Category"
+                     data-category="@notification.Category"
+                     data-read="@readState"
+                     data-date="@notification.CreatedAt.ToString("yyyy-MM-dd")">
+
+                    <div class="portal-notification-content">
+
+                        <div>
+
+                            <div class="d-flex align-items-center gap-2">
+
+                                @if (!notification.IsRead)
+                                {
+                                    <span class="portal-notification-dot"
+                                          aria-label="Unread notification">
+                                    </span>
+                                }
+
+                                <div class="fw-semibold">
+                                    @notification.Title
+                                </div>
+
+                            </div>
+
+                            @if (!string.IsNullOrWhiteSpace(notification.Body))
+                            {
+                                <div class="text-muted small mt-1">
+                                    @notification.Body
+                                </div>
+                            }
+
+                            <div class="portal-notification-meta">
+                                <span>@notification.Category</span>
+                                <span>·</span>
+                                <span>@readState</span>
+                            </div>
+
+                        </div>
+
+                        <div class="portal-notification-actions">
+
+                            <span class="text-muted small text-nowrap">
+                                @notification.CreatedAt.ToString("HH:mm")
                             </span>
-                        }
 
-                        <div class="fw-semibold">
-                            @notification.Title
+                            @if (!notification.IsRead)
+                            {
+                                <form asp-controller="Notifications"
+                                      asp-action="MarkRead"
+                                      asp-route-id="@notification.Id"
+                                      method="post">
+                                    <button type="submit" class="btn btn-kzn-outline btn-sm">
+                                        Mark as read
+                                    </button>
+                                </form>
+                            }
+
                         </div>
+
                     </div>
 
-                    @if (!string.IsNullOrWhiteSpace(notification.Body))
-                    {
-                        <div class="text-muted small mt-1">
-                            @notification.Body
-                        </div>
-                    }
-
-                    <div class="portal-notification-category">
-                        @notification.Category
-                    </div>
                 </div>
+            }
 
-                <div class="text-muted small text-nowrap">
-                    @notification.CreatedAt.ToString("HH:mm")
-                </div>
-            </div>
         </div>
     }
-}
+
+</div>
+
+<div id="notificationsEmpty"
+     class="portal-card portal-filter-empty"
+     hidden>
+    No notifications match the current search and filters.
+</div>
 
 @if (!Model.Any())
 {

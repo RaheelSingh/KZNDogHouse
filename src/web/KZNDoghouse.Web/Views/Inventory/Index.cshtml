@@ -6,6 +6,13 @@
     Layout = "_PortalLayout";
 
     var lowStockItems = Model.Where(x => x.IsLowStock()).ToList();
+
+    var categories = Model
+        .Where(x => !string.IsNullOrWhiteSpace(x.Category))
+        .Select(x => x.Category!)
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .OrderBy(x => x)
+        .ToList();
 }
 
 <div class="mb-4">
@@ -36,8 +43,80 @@
 
         <div class="portal-card">
 
-            <div class="table-responsive">
-                <table class="table align-middle mb-0">
+            <div class="portal-filter-bar"
+                 data-portal-filter="inventoryTable"
+                 data-portal-empty="inventoryEmpty"
+                 data-portal-result-count="inventoryResultCount">
+
+                <div class="portal-filter-search">
+                    <input type="search"
+                           class="form-control"
+                           placeholder="Search item, category or unit"
+                           aria-label="Search inventory"
+                           data-portal-search />
+                </div>
+
+                <div>
+                    <select class="form-select"
+                            aria-label="Filter inventory by category"
+                            data-portal-filter-field="category">
+                        <option value="">All categories</option>
+                        @foreach (var category in categories)
+                        {
+                            <option value="@category">@category</option>
+                        }
+                    </select>
+                </div>
+
+                <div>
+                    <select class="form-select"
+                            aria-label="Filter inventory by stock level"
+                            data-portal-filter-field="stock">
+                        <option value="">All stock levels</option>
+                        <option value="Low">Low stock</option>
+                        <option value="Healthy">Above threshold</option>
+                    </select>
+                </div>
+
+                <button type="button"
+                        class="portal-sort-button"
+                        data-portal-sort-toggle
+                        data-sort-field="sortName"
+                        data-sort-type="text"
+                        data-sort-direction="asc"
+                        data-sort-asc-label="A–Z"
+                        data-sort-desc-label="Z–A"
+                        title="Sort item names A to Z"
+                        aria-label="Sort item names A to Z">
+
+                    <svg class="portal-sort-icon portal-sort-icon-up" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M4 6h9"></path><path d="M4 11h6"></path><path d="M4 16h3"></path>
+                        <path d="M18 19V5"></path><path d="m15 8 3-3 3 3"></path>
+                    </svg>
+
+                    <svg class="portal-sort-icon portal-sort-icon-down" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M4 6h9"></path><path d="M4 11h6"></path><path d="M4 16h3"></path>
+                        <path d="M18 5v14"></path><path d="m15 16 3 3 3-3"></path>
+                    </svg>
+
+                    <span data-portal-sort-label>A–Z</span>
+
+                </button>
+
+                <button type="button"
+                        class="btn btn-kzn-outline portal-filter-reset"
+                        data-portal-filter-reset>
+                    Reset
+                </button>
+
+            </div>
+
+            <div class="portal-filter-summary">
+                <span id="inventoryResultCount">@Model.Count results</span>
+            </div>
+
+            <div class="table-responsive portal-filter-results">
+                <table id="inventoryTable" class="table align-middle mb-0">
                     <thead>
                         <tr>
                             <th>Item</th>
@@ -47,9 +126,17 @@
                             <th></th>
                         </tr>
                     </thead>
-                    <tbody>
-                        @foreach (var item in Model)
-                        {
+
+                    @foreach (var item in Model)
+                    {
+                        var stockState = item.IsLowStock() ? "Low" : "Healthy";
+
+                        <tbody data-portal-row
+                               data-search="@item.Name @item.Category @item.Unit"
+                               data-category="@item.Category"
+                               data-stock="@stockState"
+                               data-sort-name="@item.Name">
+
                             <tr>
                                 <td>@item.Name</td>
                                 <td>@(item.Category ?? "—")</td>
@@ -62,14 +149,22 @@
                                 </td>
                                 <td>@item.LowStockThreshold</td>
                                 <td class="text-end">
-                                    <button type="button" class="btn btn-kzn-outline btn-sm" data-bs-toggle="collapse" data-bs-target="#txn-@item.Id">
+                                    <button type="button"
+                                            class="btn btn-kzn-outline btn-sm"
+                                            data-bs-toggle="collapse"
+                                            data-bs-target="#txn-@item.Id">
                                         Record transaction
                                     </button>
                                 </td>
                             </tr>
+
                             <tr class="collapse" id="txn-@item.Id">
                                 <td colspan="5">
-                                    <form asp-controller="Inventory" asp-action="RecordTransaction" method="post" class="row g-2 align-items-end">
+                                    <form asp-controller="Inventory"
+                                          asp-action="RecordTransaction"
+                                          method="post"
+                                          class="row g-2 align-items-end">
+
                                         <input type="hidden" name="itemId" value="@item.Id" />
 
                                         <div class="col-md-3">
@@ -100,17 +195,21 @@
                                         <div class="col-md-1">
                                             <button type="submit" class="btn btn-kzn-primary w-100">Save</button>
                                         </div>
+
                                     </form>
                                 </td>
                             </tr>
-                        }
 
-                        @if (!Model.Any())
-                        {
-                            <tr><td colspan="5" class="text-center text-muted py-4">No inventory items yet.</td></tr>
-                        }
-                    </tbody>
+                        </tbody>
+                    }
+
                 </table>
+            </div>
+
+            <div id="inventoryEmpty"
+                 class="portal-filter-empty"
+                 hidden>
+                No inventory items match the current search and filters.
             </div>
 
         </div>

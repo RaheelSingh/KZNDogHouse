@@ -38,3 +38,9 @@ public static class AuthorizationPolicies
 {
     public const string PortalAccess = "PortalAccess";
 }
+
+public static class RateLimitPolicies
+{
+    public const string Login = "LoginAttempts";
+    public const string Register = "RegistrationAttempts";
+}

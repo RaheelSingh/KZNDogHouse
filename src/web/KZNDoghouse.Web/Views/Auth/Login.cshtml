@@ -20,6 +20,14 @@
                     </div>
                 }
 
+                @if (ViewData["RateLimitMessage"] is string rateLimitMessage)
+                {
+                    <div class="alert alert-warning"
+                         role="alert">
+                        @rateLimitMessage
+                    </div>
+                }
+
                 <div class="mb-4">
 
                     <h1 class="h3 kzn-card-title">
@@ -51,7 +59,10 @@
 
                         <input asp-for="Email"
                                class="form-control"
-                               autocomplete="email" />
+                               autocomplete="email"
+                               inputmode="email"
+                               autocapitalize="none"
+                               spellcheck="false" />
 
                         <span asp-validation-for="Email"
                               class="text-danger">

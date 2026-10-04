@@ -4,12 +4,14 @@ namespace KZNDoghouse.Web.Models;
 
 public class LoginViewModel
 {
-    [Required]
-    [EmailAddress]
+    [Required(ErrorMessage = "Email is required.")]
+    [EmailAddress(ErrorMessage = "Enter a valid email address.")]
+    [StringLength(150)]
     public string Email { get; set; } = string.Empty;
 
-    [Required]
+    [Required(ErrorMessage = "Password is required.")]
     [DataType(DataType.Password)]
+    [StringLength(128, ErrorMessage = "Password is too long.")]
     public string Password { get; set; } = string.Empty;
 
     [Display(Name = "Remember me")]
