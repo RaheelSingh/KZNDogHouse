@@ -12,6 +12,12 @@ public interface INotificationService
         string title,
         string? body);
 
+    Task NotifyActiveRoleAsync(
+        string role,
+        string category,
+        string title,
+        string? body);
+
     Task NotifyActiveVolunteersAsync(
         string category,
         string title,
@@ -59,23 +65,36 @@ public class NotificationService : INotificationService
         return _notificationRepository.CreateAsync(notification);
     }
 
-    public async Task NotifyActiveVolunteersAsync(
+    public async Task NotifyActiveRoleAsync(
+        string role,
         string category,
         string title,
         string? body)
     {
-        var volunteers =
+        var users =
             await _userProfileRepository
-                .GetActiveByRoleAsync(UserRoles.Volunteer);
+                .GetActiveByRoleAsync(role);
 
-        foreach (var volunteer in volunteers)
+        foreach (var user in users)
         {
             await NotifyUserAsync(
-                volunteer.Id,
+                user.Id,
                 category,
                 title,
                 body);
         }
+    }
+
+    public Task NotifyActiveVolunteersAsync(
+        string category,
+        string title,
+        string? body)
+    {
+        return NotifyActiveRoleAsync(
+            UserRoles.Volunteer,
+            category,
+            title,
+            body);
     }
 
     public Task<IReadOnlyList<AppNotification>>

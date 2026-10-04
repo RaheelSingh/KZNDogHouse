@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using KZNDoghouse.Web.Constants;
+using KZNDoghouse.Web.Models;
 using KZNDoghouse.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,10 +21,35 @@ public class UserAccessController : Controller
     [HttpGet]
     public async Task<IActionResult> Index()
     {
-        var users =
-            await _userService.GetAllUsersAsync();
+        var currentAuthUserId =
+            User.FindFirstValue(
+                ClaimTypes.NameIdentifier);
 
-        return View(users);
+        if (string.IsNullOrWhiteSpace(currentAuthUserId))
+        {
+            return Challenge();
+        }
+
+        var usersTask =
+            _userService.GetAllUsersAsync(
+                currentAuthUserId);
+
+        var pendingRequestsTask =
+            _userService.GetPendingVolunteerRequestsAsync();
+
+        await Task.WhenAll(
+            usersTask,
+            pendingRequestsTask);
+
+        var model = new UserAccessViewModel
+        {
+            Users = await usersTask,
+            PendingVolunteerRequests =
+                await pendingRequestsTask,
+            CurrentAuthUserId = currentAuthUserId
+        };
+
+        return View(model);
     }
 
     [HttpPost]
@@ -49,6 +75,58 @@ public class UserAccessController : Controller
                 isActive,
                 currentAuthUserId);
 
+        SetResultMessage(result);
+
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ApproveVolunteer(
+        Guid profileId)
+    {
+        return await ReviewVolunteerRequest(
+            profileId,
+            true);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RejectVolunteer(
+        Guid profileId)
+    {
+        return await ReviewVolunteerRequest(
+            profileId,
+            false);
+    }
+
+    private async Task<IActionResult> ReviewVolunteerRequest(
+        Guid profileId,
+        bool approve)
+    {
+        var currentAuthUserId =
+            User.FindFirstValue(
+                ClaimTypes.NameIdentifier);
+
+        if (string.IsNullOrWhiteSpace(currentAuthUserId))
+        {
+            return Challenge();
+        }
+
+        var result =
+            await _userService.ReviewVolunteerRequestAsync(
+                profileId,
+                approve,
+                currentAuthUserId);
+
+        SetResultMessage(result);
+
+        return RedirectToAction(nameof(Index));
+    }
+
+    private void SetResultMessage(
+        UserAccessUpdateResult result)
+    {
         if (result.Success)
         {
             TempData["SuccessMessage"] =
@@ -59,7 +137,5 @@ public class UserAccessController : Controller
             TempData["ErrorMessage"] =
                 result.Message;
         }
-
-        return RedirectToAction(nameof(Index));
     }
 }

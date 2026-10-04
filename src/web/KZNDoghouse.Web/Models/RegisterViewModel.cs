@@ -32,4 +32,7 @@ public class RegisterViewModel
         nameof(Password),
         ErrorMessage = "The passwords do not match.")]
     public string ConfirmPassword { get; set; } = string.Empty;
+
+    [Display(Name = "I would like to volunteer with KZN Doghouse")]
+    public bool WantsToVolunteer { get; set; }
 }

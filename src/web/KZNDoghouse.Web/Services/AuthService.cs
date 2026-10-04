@@ -1,3 +1,4 @@
+using KZNDoghouse.Web.Constants;
 using KZNDoghouse.Web.Repositories;
 using Supabase.Gotrue;
 using Supabase.Gotrue.Exceptions;
@@ -14,7 +15,8 @@ public interface IAuthService
         string firstName,
         string lastName,
         string email,
-        string password);
+        string password,
+        bool wantsToVolunteer);
 }
 
 public record AuthLoginResult(
@@ -27,13 +29,19 @@ public class AuthService : IAuthService
 {
     private readonly ISupabaseClientFactory _supabaseClientFactory;
     private readonly IUserProfileRepository _userProfileRepository;
+    private readonly INotificationService _notificationService;
+    private readonly ILogger<AuthService> _logger;
 
     public AuthService(
         ISupabaseClientFactory supabaseClientFactory,
-        IUserProfileRepository userProfileRepository)
+        IUserProfileRepository userProfileRepository,
+        INotificationService notificationService,
+        ILogger<AuthService> logger)
     {
         _supabaseClientFactory = supabaseClientFactory;
         _userProfileRepository = userProfileRepository;
+        _notificationService = notificationService;
+        _logger = logger;
     }
 
     public async Task<AuthLoginResult?> SignInAsync(
@@ -85,7 +93,8 @@ public class AuthService : IAuthService
         string firstName,
         string lastName,
         string email,
-        string password)
+        string password,
+        bool wantsToVolunteer)
     {
         try
         {
@@ -97,7 +106,8 @@ public class AuthService : IAuthService
                 Data = new Dictionary<string, object>
                 {
                     { "first_name", firstName.Trim() },
-                    { "last_name", lastName.Trim() }
+                    { "last_name", lastName.Trim() },
+                    { "volunteer_interest", wantsToVolunteer }
                 }
             };
 
@@ -106,11 +116,38 @@ public class AuthService : IAuthService
                 password,
                 options);
 
-            return session?.User != null;
+            if (session?.User == null)
+            {
+                return false;
+            }
+
+            if (wantsToVolunteer)
+            {
+                try
+                {
+                    await _notificationService.NotifyActiveRoleAsync(
+                        UserRoles.Administrator,
+                        NotificationCategories.General,
+                        "New volunteer request",
+                        $"{firstName.Trim()} {lastName.Trim()} has requested volunteer access.");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(
+                        ex,
+                        "Account {UserId} was created but the volunteer request notification could not be sent.",
+                        session.User.Id);
+                }
+            }
+
+            return true;
         }
         catch (GotrueException ex)
         {
-            Console.WriteLine($"Supabase registration error: {ex.Message}");
+            _logger.LogWarning(
+                "Supabase registration failed: {Message}",
+                ex.Message);
+
             return false;
         }
     }

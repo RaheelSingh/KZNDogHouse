@@ -7,9 +7,33 @@ create table if not exists public.user_profiles (
     role text not null default 'Public'
         check (role in ('Public', 'Volunteer', 'Staff', 'Administrator', 'Vet')),
     is_active boolean not null default true,
+    volunteer_request_status text not null default 'None',
+    volunteer_requested_at timestamptz null,
+    volunteer_reviewed_at timestamptz null,
+    volunteer_reviewed_by uuid null references public.user_profiles(id) on delete set null,
     created_at timestamptz not null default now(),
     updated_at timestamptz null
 );
+
+alter table public.user_profiles
+    add column if not exists volunteer_request_status text not null default 'None',
+    add column if not exists volunteer_requested_at timestamptz null,
+    add column if not exists volunteer_reviewed_at timestamptz null,
+    add column if not exists volunteer_reviewed_by uuid null references public.user_profiles(id) on delete set null;
+
+do $$
+begin
+    if not exists (
+        select 1
+        from pg_constraint
+        where conname = 'user_profiles_volunteer_request_status_check'
+    ) then
+        alter table public.user_profiles
+            add constraint user_profiles_volunteer_request_status_check
+            check (volunteer_request_status in ('None', 'Pending', 'Approved', 'Rejected'));
+    end if;
+end;
+$$;
 
 alter table public.user_profiles enable row level security;
 
@@ -26,30 +50,36 @@ security definer
 set search_path = ''
 as $$
 declare
-    requested_role text;
-    resolved_role text := 'Public';
+    wants_to_volunteer boolean := false;
 begin
-    requested_role := new.raw_user_meta_data ->> 'role';
-
-    -- Self-registration (mobile app) can only ever grant 'Volunteer'.
-    -- Staff/Administrator/Vet are assigned internally, never from client input.
-    if lower(coalesce(requested_role, '')) = 'volunteer' then
-        resolved_role := 'Volunteer';
-    end if;
+    wants_to_volunteer :=
+        lower(coalesce(
+            new.raw_user_meta_data ->> 'volunteer_interest',
+            'false')) = 'true';
 
     insert into public.user_profiles (
         auth_user_id,
         first_name,
         last_name,
         email,
-        role
+        role,
+        volunteer_request_status,
+        volunteer_requested_at
     )
     values (
         new.id,
         coalesce(new.raw_user_meta_data ->> 'first_name', ''),
         coalesce(new.raw_user_meta_data ->> 'last_name', ''),
         coalesce(new.email, ''),
-        resolved_role
+        'Public',
+        case
+            when wants_to_volunteer then 'Pending'
+            else 'None'
+        end,
+        case
+            when wants_to_volunteer then now()
+            else null
+        end
     );
 
     return new;

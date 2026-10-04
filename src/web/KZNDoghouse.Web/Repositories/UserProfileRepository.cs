@@ -1,3 +1,4 @@
+using KZNDoghouse.Web.Constants;
 using KZNDoghouse.Web.Models;
 using KZNDoghouse.Web.Services;
 
@@ -13,10 +14,20 @@ public interface IUserProfileRepository
 
     Task<IReadOnlyList<UserProfile>> GetActiveByRoleAsync(string role);
 
+    Task<IReadOnlyList<UserProfile>> GetPendingVolunteerRequestsAsync();
+
     Task UpdateAccessAsync(
         Guid profileId,
         string role,
         bool isActive);
+
+    Task ApproveVolunteerRequestAsync(
+        Guid profileId,
+        Guid reviewedByProfileId);
+
+    Task RejectVolunteerRequestAsync(
+        Guid profileId,
+        Guid reviewedByProfileId);
 }
 
 public class UserProfileRepository : IUserProfileRepository
@@ -82,6 +93,51 @@ public class UserProfileRepository : IUserProfileRepository
             .ToList();
     }
 
+    public async Task<IReadOnlyList<UserProfile>> GetActiveByRoleAsync(
+        string role)
+    {
+        var client =
+            await _supabaseClientFactory.CreateServiceClientAsync();
+
+        var response = await client
+            .From<UserProfile>()
+            .Where(x => x.Role == role)
+            .Where(x => x.IsActive == true)
+            .Get();
+
+        if (response.Models == null)
+        {
+            return Array.Empty<UserProfile>();
+        }
+
+        return response.Models.ToList();
+    }
+
+    public async Task<IReadOnlyList<UserProfile>>
+        GetPendingVolunteerRequestsAsync()
+    {
+        var client =
+            await _supabaseClientFactory.CreateServiceClientAsync();
+
+        var response = await client
+            .From<UserProfile>()
+            .Where(x =>
+                x.VolunteerRequestStatus ==
+                VolunteerRequestStatuses.Pending)
+            .Get();
+
+        if (response.Models == null)
+        {
+            return Array.Empty<UserProfile>();
+        }
+
+        return response.Models
+            .OrderBy(x => x.VolunteerRequestedAt)
+            .ThenBy(x => x.LastName)
+            .ThenBy(x => x.FirstName)
+            .ToList();
+    }
+
     public async Task UpdateAccessAsync(
         Guid profileId,
         string role,
@@ -99,21 +155,50 @@ public class UserProfileRepository : IUserProfileRepository
             .Update();
     }
 
-    public async Task<IReadOnlyList<UserProfile>> GetActiveByRoleAsync(string role)
-{
-    var client = await _supabaseClientFactory.CreateServiceClientAsync();
-
-    var response = await client
-        .From<UserProfile>()
-        .Where(x => x.Role == role)
-        .Where(x => x.IsActive == true)
-        .Get();
-
-    if (response.Models == null)
+    public async Task ApproveVolunteerRequestAsync(
+        Guid profileId,
+        Guid reviewedByProfileId)
     {
-        return Array.Empty<UserProfile>();
+        var client =
+            await _supabaseClientFactory.CreateServiceClientAsync();
+
+        await client
+            .From<UserProfile>()
+            .Where(x => x.Id == profileId)
+            .Set(x => x.Role, UserRoles.Volunteer)
+            .Set(
+                x => x.VolunteerRequestStatus,
+                VolunteerRequestStatuses.Approved)
+            .Set(
+                x => x.VolunteerReviewedAt!,
+                DateTime.UtcNow)
+            .Set(
+                x => x.VolunteerReviewedBy!,
+                reviewedByProfileId)
+            .Set(x => x.UpdatedAt!, DateTime.UtcNow)
+            .Update();
     }
 
-    return response.Models.ToList();
-}
+    public async Task RejectVolunteerRequestAsync(
+        Guid profileId,
+        Guid reviewedByProfileId)
+    {
+        var client =
+            await _supabaseClientFactory.CreateServiceClientAsync();
+
+        await client
+            .From<UserProfile>()
+            .Where(x => x.Id == profileId)
+            .Set(
+                x => x.VolunteerRequestStatus,
+                VolunteerRequestStatuses.Rejected)
+            .Set(
+                x => x.VolunteerReviewedAt!,
+                DateTime.UtcNow)
+            .Set(
+                x => x.VolunteerReviewedBy!,
+                reviewedByProfileId)
+            .Set(x => x.UpdatedAt!, DateTime.UtcNow)
+            .Update();
+    }
 }

@@ -113,14 +113,17 @@ public class AuthController : Controller
 
     [AllowAnonymous]
     [HttpGet]
-    public IActionResult Register()
+    public IActionResult Register(bool volunteer = false)
     {
         if (User.Identity?.IsAuthenticated == true)
         {
             return RedirectToAction("Index", "Home");
         }
 
-        return View(new RegisterViewModel());
+        return View(new RegisterViewModel
+        {
+            WantsToVolunteer = volunteer
+        });
     }
 
     [AllowAnonymous]
@@ -139,7 +142,8 @@ public class AuthController : Controller
                 model.FirstName,
                 model.LastName,
                 model.Email,
-                model.Password);
+                model.Password,
+                model.WantsToVolunteer);
 
         if (!success)
         {
@@ -151,7 +155,9 @@ public class AuthController : Controller
         }
 
         TempData["RegistrationMessage"] =
-            "Your account has been created. Please confirm your email if required, then sign in.";
+            model.WantsToVolunteer
+                ? "Your Public account has been created and your volunteer request has been sent for administrator review. You can sign in while the request is pending."
+                : "Your account has been created. You can now sign in.";
 
         return RedirectToAction(nameof(Login));
     }
