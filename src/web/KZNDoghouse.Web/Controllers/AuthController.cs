@@ -137,6 +137,13 @@ public class AuthController : Controller
                 "Portal");
         }
 
+        if (account.Role == UserRoles.Vet)
+        {
+            return RedirectToAction(
+                "Index",
+                "VetDogs");
+        }
+
         return RedirectToAction(
             "Index",
             "Home");

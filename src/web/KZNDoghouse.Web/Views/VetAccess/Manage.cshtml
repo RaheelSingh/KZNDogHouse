@@ -1,0 +1,184 @@
+@model VetAccessViewModel
+
+@{
+    ViewData["Title"] = "Vet Dog Access";
+    Layout = "_PortalLayout";
+}
+
+<div class="mb-4">
+
+    <a asp-controller="UserAccess"
+       asp-action="Index"
+       class="public-breadcrumb-link">
+        ← Back to Users & Access
+    </a>
+
+    <h1 class="portal-page-title mt-3 mb-2">
+        Vet Dog Access
+    </h1>
+
+    <p class="text-muted mb-0">
+        Choose which dogs @Model.VetUser.FullName can access for medical care.
+    </p>
+
+</div>
+
+@if (TempData["SuccessMessage"] is string successMessage)
+{
+    <div class="alert alert-success"
+         role="alert">
+        @successMessage
+    </div>
+}
+
+@if (TempData["ErrorMessage"] is string errorMessage)
+{
+    <div class="alert alert-danger"
+         role="alert">
+        @errorMessage
+    </div>
+}
+
+<div class="portal-card">
+
+    <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+
+        <div>
+
+            <h5 class="mb-1">
+                Authorised Dogs
+            </h5>
+
+            <p class="text-muted small mb-0">
+                The vet will only see medical information for selected dogs.
+            </p>
+
+        </div>
+
+        <span class="text-muted small">
+            @Model.AuthorizedDogIds.Count selected
+        </span>
+
+    </div>
+
+    <div class="portal-filter-bar"
+         data-portal-filter="vetAccessRows"
+         data-portal-empty="vetAccessEmpty"
+         data-portal-result-count="vetAccessResultCount">
+
+        <div class="portal-filter-search">
+
+            <label for="vetDogSearch"
+                   class="visually-hidden">
+                Search dogs
+            </label>
+
+            <input id="vetDogSearch"
+                   type="search"
+                   class="form-control"
+                   placeholder="Search dog name or breed"
+                   data-portal-search />
+
+        </div>
+
+        <div>
+
+            <select class="form-select"
+                    aria-label="Filter by dog status"
+                    data-portal-filter-field="status">
+
+                <option value="">
+                    All statuses
+                </option>
+
+                @foreach (var status in DogStatuses.All)
+                {
+                    <option value="@status">
+                        @status
+                    </option>
+                }
+
+            </select>
+
+        </div>
+
+        <button type="button"
+                class="btn btn-kzn-outline portal-filter-reset"
+                data-portal-filter-reset>
+            Reset
+        </button>
+
+    </div>
+
+    <div class="portal-filter-summary">
+
+        <span id="vetAccessResultCount">
+            @Model.Dogs.Count results
+        </span>
+
+    </div>
+
+    <form asp-controller="VetAccess"
+          asp-action="Update"
+          method="post">
+
+        <input type="hidden"
+               name="profileId"
+               value="@Model.VetUser.Id" />
+
+        <div id="vetAccessRows"
+             class="vet-access-list portal-filter-results">
+
+            @foreach (var dog in Model.Dogs)
+            {
+                var isChecked =
+                    Model.AuthorizedDogIds
+                        .Contains(dog.Id);
+
+                <label class="vet-access-row"
+                       data-portal-row
+                       data-search="@dog.Name @dog.Breed"
+                       data-status="@dog.Status">
+
+                    <span>
+
+                        <strong>
+                            @dog.Name
+                        </strong>
+
+                        <small>
+                            @(dog.Breed ?? "Mixed breed")
+                            · @dog.Status
+                        </small>
+
+                    </span>
+
+                    <input type="checkbox"
+                           class="form-check-input"
+                           name="dogIds"
+                           value="@dog.Id"
+                           checked="@isChecked" />
+
+                </label>
+            }
+
+        </div>
+
+        <div id="vetAccessEmpty"
+             class="portal-filter-empty"
+             hidden>
+            No dogs match the current search and filters.
+        </div>
+
+        <div class="d-flex justify-content-end mt-3">
+
+            <button type="submit"
+                    class="btn btn-kzn-primary">
+                Save Dog Access
+            </button>
+
+        </div>
+
+    </form>
+
+</div>

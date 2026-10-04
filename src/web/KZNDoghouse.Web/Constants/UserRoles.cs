@@ -37,6 +37,7 @@ public static class VolunteerRequestStatuses
 public static class AuthorizationPolicies
 {
     public const string PortalAccess = "PortalAccess";
+    public const string VetMedicalAccess = "VetMedicalAccess";
 }
 
 public static class RateLimitPolicies

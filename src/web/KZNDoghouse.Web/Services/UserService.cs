@@ -32,13 +32,16 @@ public class UserService : IUserService
 {
     private readonly IUserProfileRepository _userProfileRepository;
     private readonly INotificationService _notificationService;
+    private readonly IVetAccessRepository _vetAccessRepository;
 
     public UserService(
         IUserProfileRepository userProfileRepository,
-        INotificationService notificationService)
+        INotificationService notificationService,
+        IVetAccessRepository vetAccessRepository)
     {
         _userProfileRepository = userProfileRepository;
         _notificationService = notificationService;
+        _vetAccessRepository = vetAccessRepository;
     }
 
     public async Task<IReadOnlyList<UserProfile>> GetAllUsersAsync(
@@ -107,10 +110,25 @@ public class UserService : IUserService
                 currentAuthUserId);
         }
 
+        var wasVet =
+            profile.Role == UserRoles.Vet;
+
         await _userProfileRepository.UpdateAccessAsync(
             profileId,
             role,
             isActive);
+
+        if (role == UserRoles.Vet)
+        {
+            await _vetAccessRepository
+                .EnsureVetProfileAsync(profile.Id);
+        }
+        else if (wasVet)
+        {
+            await _vetAccessRepository
+                .RevokeAllForUserProfileAsync(
+                    profile.Id);
+        }
 
         return new UserAccessUpdateResult(
             true,

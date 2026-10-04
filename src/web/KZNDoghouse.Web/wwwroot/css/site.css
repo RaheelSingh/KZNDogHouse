@@ -2824,3 +2824,68 @@ a:hover {
     border-color: var(--kzn-green-dark);
     color: var(--kzn-white);
 }
+
+/* Vet access */
+
+.vet-access-list {
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--kzn-border);
+}
+
+.vet-access-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.85rem 0.25rem;
+    border-bottom: 1px solid var(--kzn-border);
+    cursor: pointer;
+}
+
+.vet-access-row:hover {
+    background-color: var(--kzn-cream);
+}
+
+.vet-access-row strong,
+.vet-access-row small {
+    display: block;
+}
+
+.vet-access-row strong {
+    color: var(--kzn-text);
+    font-size: 0.84rem;
+}
+
+.vet-access-row small {
+    margin-top: 0.15rem;
+    color: var(--kzn-text-muted);
+    font-size: 0.72rem;
+}
+
+.vet-access-row .form-check-input {
+    flex-shrink: 0;
+    width: 1.1rem;
+    height: 1.1rem;
+}
+
+.vet-medical-record {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.9rem 0;
+    border-top: 1px solid var(--kzn-border);
+}
+
+.vet-medical-record:first-of-type {
+    border-top: 0;
+}
+
+@media (max-width: 575.98px) {
+    .vet-medical-record {
+        flex-direction: column;
+        gap: 0.4rem;
+    }
+}
+

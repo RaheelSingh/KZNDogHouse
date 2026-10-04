@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace KZNDoghouse.Web.Controllers;
 
-[Authorize(Roles = "Staff,Administrator")]
+[Authorize(Roles = "Staff,Administrator,Vet")]
 public class NotificationsController : Controller
 {
     private readonly INotificationService _notificationService;

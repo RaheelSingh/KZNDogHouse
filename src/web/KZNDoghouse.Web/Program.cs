@@ -57,6 +57,14 @@ builder.Services.AddAuthorization(options =>
                 UserRoles.Staff,
                 UserRoles.Administrator);
         });
+
+    options.AddPolicy(
+        AuthorizationPolicies.VetMedicalAccess,
+        policy =>
+        {
+            policy.RequireRole(
+                UserRoles.Vet);
+        });
 });
 
 builder.Services.AddRateLimiter(options =>
@@ -127,6 +135,8 @@ builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<IAppNotificationRepository, AppNotificationRepository>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IPortalDashboardService, PortalDashboardService>();
+builder.Services.AddScoped<IVetAccessRepository, VetAccessRepository>();
+builder.Services.AddScoped<IVetAccessService, VetAccessService>();
 
 var app = builder.Build();
 

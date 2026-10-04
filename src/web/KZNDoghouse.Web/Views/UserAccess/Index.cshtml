@@ -407,12 +407,27 @@
 
                         <td class="text-end">
 
-                            <button type="submit"
-                                    form="user-form-@user.Id"
-                                    class="btn btn-kzn-primary"
-                                    disabled="@isCurrentUser">
-                                Save
-                            </button>
+                            <div class="d-inline-flex flex-wrap justify-content-end gap-2">
+
+                                <button type="submit"
+                                        form="user-form-@user.Id"
+                                        class="btn btn-kzn-primary"
+                                        disabled="@isCurrentUser">
+                                    Save
+                                </button>
+
+                                @if (user.Role == UserRoles.Vet
+                                    && user.IsActive)
+                                {
+                                    <a asp-controller="VetAccess"
+                                       asp-action="Manage"
+                                       asp-route-profileId="@user.Id"
+                                       class="btn btn-kzn-outline">
+                                        Dog access
+                                    </a>
+                                }
+
+                            </div>
 
                         </td>
 

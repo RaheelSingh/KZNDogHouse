@@ -2,11 +2,18 @@
     var currentController =
         ViewContext.RouteData.Values["controller"]
             ?.ToString();
+
+    var isVet =
+        User.IsInRole(UserRoles.Vet);
+
+    var isStaffOrAdministrator =
+        User.IsInRole(UserRoles.Staff)
+        || User.IsInRole(UserRoles.Administrator);
 }
 
 <div class="portal-sidebar-inner">
 
-    <a asp-controller="Portal"
+    <a asp-controller="@(isVet ? "VetDogs" : "Portal")"
        asp-action="Index"
        class="portal-sidebar-brand">
 
@@ -22,47 +29,62 @@
 
     <nav class="nav flex-column portal-sidebar-nav">
 
-        <a class="nav-link @(currentController == "Portal" ? "active" : "")"
-           asp-controller="Portal"
-           asp-action="Index">
-            Dashboard
-        </a>
+        @if (isStaffOrAdministrator)
+        {
+            <a class="nav-link @(currentController == "Portal" ? "active" : "")"
+               asp-controller="Portal"
+               asp-action="Index">
+                Dashboard
+            </a>
 
-        <a class="nav-link @(currentController == "Dogs" ? "active" : "")"
-           asp-controller="Dogs"
-           asp-action="Index">
-            Dogs
-        </a>
+            <a class="nav-link @(currentController == "Dogs" ? "active" : "")"
+               asp-controller="Dogs"
+               asp-action="Index">
+                Dogs
+            </a>
 
-        <a class="nav-link @(currentController == "Calendar" ? "active" : "")"
-           asp-controller="Calendar"
-           asp-action="Index">
-            Calendar
-        </a>
+            <a class="nav-link @(currentController == "Calendar" ? "active" : "")"
+               asp-controller="Calendar"
+               asp-action="Index">
+                Calendar
+            </a>
 
-        <a class="nav-link @(currentController == "Availability" ? "active" : "")"
-           asp-controller="Availability"
-           asp-action="Index">
-            Availability
-        </a>
+            <a class="nav-link @(currentController == "Availability" ? "active" : "")"
+               asp-controller="Availability"
+               asp-action="Index">
+                Availability
+            </a>
 
-        <a class="nav-link @(currentController == "Inventory" ? "active" : "")"
-           asp-controller="Inventory"
-           asp-action="Index">
-            Inventory
-        </a>
+            <a class="nav-link @(currentController == "Inventory" ? "active" : "")"
+               asp-controller="Inventory"
+               asp-action="Index">
+                Inventory
+            </a>
 
-        <a class="nav-link @(currentController == "FosterApplications" ? "active" : "")"
-           asp-controller="FosterApplications"
-           asp-action="Index">
-            Foster Applications
-        </a>
+            <a class="nav-link @(currentController == "FosterApplications" ? "active" : "")"
+               asp-controller="FosterApplications"
+               asp-action="Index">
+                Foster Applications
+            </a>
+        }
 
-        <a class="nav-link @(currentController == "Notifications" ? "active" : "")"
-           asp-controller="Notifications"
-           asp-action="Index">
-            Notifications
-        </a>
+        @if (isVet)
+        {
+            <a class="nav-link @(currentController == "VetDogs" ? "active" : "")"
+               asp-controller="VetDogs"
+               asp-action="Index">
+                My Dogs
+            </a>
+        }
+
+        @if (isStaffOrAdministrator || isVet)
+        {
+            <a class="nav-link @(currentController == "Notifications" ? "active" : "")"
+               asp-controller="Notifications"
+               asp-action="Index">
+                Notifications
+            </a>
+        }
 
         @if (User.IsInRole(UserRoles.Administrator))
         {
@@ -70,7 +92,7 @@
                 Admin
             </div>
 
-            <a class="nav-link @(currentController == "UserAccess" ? "active" : "")"
+            <a class="nav-link @(currentController == "UserAccess" || currentController == "VetAccess" ? "active" : "")"
                asp-controller="UserAccess"
                asp-action="Index">
                 Users & Access
