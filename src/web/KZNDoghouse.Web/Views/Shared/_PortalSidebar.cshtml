@@ -2,82 +2,101 @@
     var currentController =
         ViewContext.RouteData.Values["controller"]
             ?.ToString();
-
-    var dashboardActive =
-        currentController == "Portal";
-
-    var userAccessActive =
-        currentController == "UserAccess";
 }
 
-<div class="p-3">
+<div class="portal-sidebar-inner">
 
-    <a asp-controller="Home"
-    asp-action="Index"
-    class="portal-sidebar-brand"
-    title="Return to public website">
+    <a asp-controller="Portal"
+       asp-action="Index"
+       class="portal-sidebar-brand">
 
-        <h5 class="mb-4">
-            KZN Doghouse
-        </h5>
+        <span class="portal-sidebar-brand-mark">
+            KZN
+        </span>
+
+        <span>
+            Doghouse
+        </span>
 
     </a>
 
-    <nav class="nav flex-column gap-1">
+    <nav class="nav flex-column portal-sidebar-nav">
 
-        <a class="nav-link @(dashboardActive ? "active" : "")"
+        <a class="nav-link @(currentController == "Portal" ? "active" : "")"
            asp-controller="Portal"
            asp-action="Index">
             Dashboard
         </a>
 
-        
         <a class="nav-link @(currentController == "Dogs" ? "active" : "")"
-            asp-controller="Dogs"
-            asp-action="Index">
-             Dogs
+           asp-controller="Dogs"
+           asp-action="Index">
+            Dogs
         </a>
 
         <a class="nav-link @(currentController == "Calendar" ? "active" : "")"
-            asp-controller="Calendar"
-            asp-action="Index">
+           asp-controller="Calendar"
+           asp-action="Index">
             Calendar
         </a>
 
         <a class="nav-link @(currentController == "Availability" ? "active" : "")"
-            asp-controller="Availability"
-            asp-action="Index">
+           asp-controller="Availability"
+           asp-action="Index">
             Availability
         </a>
 
-
         <a class="nav-link @(currentController == "Inventory" ? "active" : "")"
-            asp-controller="Inventory"
-            asp-action="Index">
+           asp-controller="Inventory"
+           asp-action="Index">
             Inventory
         </a>
-        
+
+        <a class="nav-link @(currentController == "FosterApplications" ? "active" : "")"
+           asp-controller="FosterApplications"
+           asp-action="Index">
+            Foster Applications
+        </a>
+
         <a class="nav-link @(currentController == "Notifications" ? "active" : "")"
-            asp-controller="Notifications"
-             asp-action="Index">
-             Notifications
+           asp-controller="Notifications"
+           asp-action="Index">
+            Notifications
         </a>
 
         @if (User.IsInRole(UserRoles.Administrator))
         {
-            <a class="nav-link @(userAccessActive ? "active" : "")"
+            <div class="portal-sidebar-section">
+                Admin
+            </div>
+
+            <a class="nav-link @(currentController == "UserAccess" ? "active" : "")"
                asp-controller="UserAccess"
                asp-action="Index">
                 Users & Access
             </a>
         }
 
-        <a class="nav-link @(currentController == "FosterApplications" ? "active" : "")"
-            asp-controller="FosterApplications"
-            asp-action="Index">
-            Foster Applications
+    </nav>
+
+    <div class="portal-sidebar-footer">
+
+        <a asp-controller="Home"
+           asp-action="Index"
+           class="portal-return-link">
+
+            <svg viewBox="0 0 24 24"
+                 aria-hidden="true">
+                <path d="M19 12H5"></path>
+                <path d="m12 19-7-7 7-7"></path>
+            </svg>
+
+            <span>
+                Return to Website
+            </span>
+
         </a>
 
-    </nav>
+    </div>
 
 </div>

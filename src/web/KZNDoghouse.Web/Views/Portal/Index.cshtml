@@ -1,68 +1,245 @@
+@model PortalDashboardViewModel
+
 @{
     ViewData["Title"] = "Dashboard";
     Layout = "_PortalLayout";
 }
 
-<div>
+<div class="portal-dashboard-heading">
 
-    <h1 class="portal-page-title">
-        Dashboard
-    </h1>
+    <div>
+        <h1 class="portal-page-title mb-1">
+            Dashboard
+        </h1>
 
-    <p class="text-muted mb-4">
-        Welcome to the KZN Doghouse internal management system.
-    </p>
+        <p class="text-muted mb-0">
+            Welcome back, @User.Identity?.Name.
+        </p>
+    </div>
 
-    <div class="row g-3">
+    <span class="portal-dashboard-date">
+        @DateTime.Now.ToString("dddd, dd MMMM yyyy")
+    </span>
 
-        <div class="col-md-4">
+</div>
 
-            <div class="portal-card">
+<div class="row g-3 mb-4">
 
-                <h5>
-                    Dogs
-                </h5>
+    <div class="col-sm-6 col-xl-3">
+        <a asp-controller="Dogs"
+           asp-action="Index"
+           class="portal-stat-card">
+            <span class="portal-stat-label">Dogs in care</span>
+            <strong>@Model.DogsInCareCount</strong>
+            <span class="portal-stat-link">View dogs</span>
+        </a>
+    </div>
 
-                <p>
-                    Dog records and management will be available here.
-                </p>
+    <div class="col-sm-6 col-xl-3">
+        <a asp-controller="Dogs"
+           asp-action="Index"
+           class="portal-stat-card">
+            <span class="portal-stat-label">Dogs in foster</span>
+            <strong>@Model.DogsInFosterCount</strong>
+            <span class="portal-stat-link">View records</span>
+        </a>
+    </div>
 
+    <div class="col-sm-6 col-xl-3">
+        <a asp-controller="Dogs"
+           asp-action="Index"
+           class="portal-stat-card portal-stat-card-attention">
+            <span class="portal-stat-label">Need attention</span>
+            <strong>@Model.DogsNeedingAttentionCount</strong>
+            <span class="portal-stat-link">Review dogs</span>
+        </a>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <a asp-controller="FosterApplications"
+           asp-action="Index"
+           class="portal-stat-card">
+            <span class="portal-stat-label">Pending requests</span>
+            <strong>@Model.PendingRequestsCount</strong>
+            <span class="portal-stat-link">Review requests</span>
+        </a>
+    </div>
+
+</div>
+
+<div class="row g-3 mb-4">
+
+    <div class="col-xl-7">
+        <section class="portal-card portal-dashboard-panel">
+            <div class="portal-panel-heading">
+                <div>
+                    <h2>Today's Schedule</h2>
+                    <p>Events and activities scheduled for today.</p>
+                </div>
+
+                <a asp-controller="Calendar"
+                   asp-action="Index">
+                    View calendar
+                </a>
             </div>
 
-        </div>
+            @if (Model.TodaysEvents.Any())
+            {
+                <div class="portal-schedule-list">
+                    @foreach (var calendarEvent in Model.TodaysEvents)
+                    {
+                        <div class="portal-schedule-item">
+                            <div class="portal-schedule-time">
+                                @calendarEvent.StartAt.ToString("HH:mm")
+                            </div>
 
-        <div class="col-md-4">
+                            <div>
+                                <strong>@calendarEvent.Title</strong>
+                                <span>
+                                    @calendarEvent.Category
+                                    @if (!string.IsNullOrWhiteSpace(calendarEvent.Location))
+                                    {
+                                        <text> · @calendarEvent.Location</text>
+                                    }
+                                </span>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="portal-dashboard-empty">
+                    No events are scheduled for today.
+                </div>
+            }
+        </section>
+    </div>
 
-            <div class="portal-card">
+    <div class="col-xl-5">
+        <section class="portal-card portal-dashboard-panel">
+            <div class="portal-panel-heading">
+                <div>
+                    <h2>Dogs Needing Attention</h2>
+                    <p>Dogs currently marked as under treatment.</p>
+                </div>
 
-                <h5>
-                    Volunteers
-                </h5>
-
-                <p>
-                    Volunteer availability and management will be available here.
-                </p>
-
+                <a asp-controller="Dogs"
+                   asp-action="Index">
+                    View dogs
+                </a>
             </div>
 
-        </div>
+            @if (Model.DogsNeedingAttention.Any())
+            {
+                <div class="portal-attention-list">
+                    @foreach (var dog in Model.DogsNeedingAttention)
+                    {
+                        <a asp-controller="Dogs"
+                           asp-action="Details"
+                           asp-route-id="@dog.Id"
+                           class="portal-attention-item">
+                            <span class="portal-attention-avatar">
+                                @(string.IsNullOrWhiteSpace(dog.Name)
+                                    ? "?"
+                                    : dog.Name[0].ToString().ToUpperInvariant())
+                            </span>
 
-        <div class="col-md-4">
+                            <span>
+                                <strong>@dog.Name</strong>
+                                <small>@dog.Breed</small>
+                            </span>
 
-            <div class="portal-card">
+                            <span class="portal-attention-status">
+                                Under treatment
+                            </span>
+                        </a>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="portal-dashboard-empty">
+                    No dogs are currently marked as under treatment.
+                </div>
+            }
+        </section>
+    </div>
 
-                <h5>
-                    Inventory
-                </h5>
+</div>
 
-                <p>
-                    Inventory and stock information will be available here.
-                </p>
+<div class="row g-3">
 
+    <div class="col-xl-8">
+        <section class="portal-card portal-dashboard-panel">
+            <div class="portal-panel-heading">
+                <div>
+                    <h2>Quick Access</h2>
+                    <p>Common shelter management actions.</p>
+                </div>
             </div>
 
-        </div>
+            <div class="portal-quick-grid">
+                <a asp-controller="Dogs"
+                   asp-action="Create"
+                   class="portal-quick-link">
+                    <strong>Add Dog</strong>
+                    <span>Create a new dog record</span>
+                </a>
 
+                <a asp-controller="Calendar"
+                   asp-action="Index"
+                   class="portal-quick-link">
+                    <strong>Calendar</strong>
+                    <span>Manage shelter events</span>
+                </a>
+
+                <a asp-controller="Availability"
+                   asp-action="Index"
+                   class="portal-quick-link">
+                    <strong>Availability</strong>
+                    <span>Review volunteer availability</span>
+                </a>
+
+                <a asp-controller="Inventory"
+                   asp-action="Index"
+                   class="portal-quick-link">
+                    <strong>Inventory</strong>
+                    <span>Review stock and supplies</span>
+                </a>
+            </div>
+        </section>
+    </div>
+
+    <div class="col-xl-4">
+        <section class="portal-card portal-dashboard-panel">
+            <div class="portal-panel-heading">
+                <div>
+                    <h2>Pending Work</h2>
+                    <p>Items currently waiting for attention.</p>
+                </div>
+            </div>
+
+            <div class="portal-pending-list">
+                <a asp-controller="FosterApplications"
+                   asp-action="Index">
+                    <span>Foster applications</span>
+                    <strong>@Model.PendingFosterApplicationsCount</strong>
+                </a>
+
+                <a asp-controller="Availability"
+                   asp-action="Index">
+                    <span>Availability submissions</span>
+                    <strong>@Model.PendingAvailabilityCount</strong>
+                </a>
+
+                <a asp-controller="Inventory"
+                   asp-action="Index">
+                    <span>Low-stock items</span>
+                    <strong>@Model.LowStockItemCount</strong>
+                </a>
+            </div>
+        </section>
     </div>
 
 </div>

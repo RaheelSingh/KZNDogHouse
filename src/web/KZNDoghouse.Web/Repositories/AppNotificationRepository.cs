@@ -7,21 +7,30 @@ public interface IAppNotificationRepository
 {
     Task<AppNotification> CreateAsync(AppNotification notification);
 
-    Task<IReadOnlyList<AppNotification>> GetRecentAsync(int take);
+    Task<IReadOnlyList<AppNotification>> GetRecentForRecipientAsync(
+        Guid recipientId,
+        int take);
+
+    Task<int> GetUnreadCountAsync(Guid recipientId);
+
+    Task MarkAllAsReadAsync(Guid recipientId);
 }
 
 public class AppNotificationRepository : IAppNotificationRepository
 {
     private readonly ISupabaseClientFactory _supabaseClientFactory;
 
-    public AppNotificationRepository(ISupabaseClientFactory supabaseClientFactory)
+    public AppNotificationRepository(
+        ISupabaseClientFactory supabaseClientFactory)
     {
         _supabaseClientFactory = supabaseClientFactory;
     }
 
-    public async Task<AppNotification> CreateAsync(AppNotification notification)
+    public async Task<AppNotification> CreateAsync(
+        AppNotification notification)
     {
-        var client = await _supabaseClientFactory.CreateServiceClientAsync();
+        var client =
+            await _supabaseClientFactory.CreateServiceClientAsync();
 
         var response = await client
             .From<AppNotification>()
@@ -30,12 +39,17 @@ public class AppNotificationRepository : IAppNotificationRepository
         return response.Models.First();
     }
 
-    public async Task<IReadOnlyList<AppNotification>> GetRecentAsync(int take)
+    public async Task<IReadOnlyList<AppNotification>>
+        GetRecentForRecipientAsync(
+            Guid recipientId,
+            int take)
     {
-        var client = await _supabaseClientFactory.CreateServiceClientAsync();
+        var client =
+            await _supabaseClientFactory.CreateServiceClientAsync();
 
         var response = await client
             .From<AppNotification>()
+            .Where(x => x.RecipientId == recipientId)
             .Get();
 
         if (response.Models == null)
@@ -47,5 +61,34 @@ public class AppNotificationRepository : IAppNotificationRepository
             .OrderByDescending(x => x.CreatedAt)
             .Take(take)
             .ToList();
+    }
+
+    public async Task<int> GetUnreadCountAsync(
+        Guid recipientId)
+    {
+        var client =
+            await _supabaseClientFactory.CreateServiceClientAsync();
+
+        var response = await client
+            .From<AppNotification>()
+            .Where(x => x.RecipientId == recipientId)
+            .Where(x => x.IsRead == false)
+            .Get();
+
+        return response.Models?.Count ?? 0;
+    }
+
+    public async Task MarkAllAsReadAsync(
+        Guid recipientId)
+    {
+        var client =
+            await _supabaseClientFactory.CreateServiceClientAsync();
+
+        await client
+            .From<AppNotification>()
+            .Where(x => x.RecipientId == recipientId)
+            .Where(x => x.IsRead == false)
+            .Set(x => x.IsRead, true)
+            .Update();
     }
 }

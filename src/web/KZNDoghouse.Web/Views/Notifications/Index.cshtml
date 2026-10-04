@@ -10,27 +10,53 @@
 }
 
 <div class="mb-4">
-    <h1 class="portal-page-title mb-2">Notifications</h1>
-    <p class="text-muted mb-0">Everything happening across the shelter.</p>
+    <h1 class="portal-page-title mb-2">
+        Notifications
+    </h1>
+
+    <p class="text-muted mb-0">
+        Notifications for your account.
+    </p>
 </div>
 
 @foreach (var day in grouped)
 {
     <h6 class="text-muted mt-4 mb-2">
-        @(day.Key == DateTime.UtcNow.Date ? "Today" : day.Key.ToString("dd MMM yyyy"))
+        @(day.Key == DateTime.UtcNow.Date
+            ? "Today"
+            : day.Key.ToString("dd MMM yyyy"))
     </h6>
 
     @foreach (var notification in day.OrderByDescending(x => x.CreatedAt))
     {
-        <div class="portal-card mb-2">
-            <div class="d-flex justify-content-between">
+        <div class="portal-card portal-notification-item @(notification.IsRead ? "" : "portal-notification-unread") mb-2">
+            <div class="portal-notification-content">
                 <div>
-                    <div class="fw-semibold">@notification.Title</div>
+                    <div class="d-flex align-items-center gap-2">
+                        @if (!notification.IsRead)
+                        {
+                            <span class="portal-notification-dot"
+                                  aria-label="Unread notification">
+                            </span>
+                        }
+
+                        <div class="fw-semibold">
+                            @notification.Title
+                        </div>
+                    </div>
+
                     @if (!string.IsNullOrWhiteSpace(notification.Body))
                     {
-                        <div class="text-muted small">@notification.Body</div>
+                        <div class="text-muted small mt-1">
+                            @notification.Body
+                        </div>
                     }
+
+                    <div class="portal-notification-category">
+                        @notification.Category
+                    </div>
                 </div>
+
                 <div class="text-muted small text-nowrap">
                     @notification.CreatedAt.ToString("HH:mm")
                 </div>

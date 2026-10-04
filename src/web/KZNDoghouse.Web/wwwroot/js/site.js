@@ -1,4 +1,47 @@
-﻿// Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
-// for details on configuring this project to bundle and minify static web assets.
+﻿document.addEventListener("DOMContentLoaded", async () => {
+    const badge =
+        document.getElementById("portalNotificationBadge");
 
-// Write your JavaScript code.
+    if (!badge) {
+        return;
+    }
+
+    const url =
+        badge.dataset.unreadUrl;
+
+    if (!url) {
+        return;
+    }
+
+    try {
+        const response = await fetch(url, {
+            method: "GET",
+            credentials: "same-origin",
+            headers: {
+                "X-Requested-With": "XMLHttpRequest"
+            }
+        });
+
+        if (!response.ok) {
+            return;
+        }
+
+        const result = await response.json();
+        const count = Number(result.count ?? 0);
+
+        if (count <= 0) {
+            badge.hidden = true;
+            return;
+        }
+
+        badge.textContent =
+            count > 99
+                ? "99+"
+                : count.toString();
+
+        badge.hidden = false;
+    }
+    catch {
+        badge.hidden = true;
+    }
+});

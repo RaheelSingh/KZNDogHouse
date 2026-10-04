@@ -70,6 +70,7 @@ builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<IAppNotificationRepository, AppNotificationRepository>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IPortalDashboardService, PortalDashboardService>();
 
 var app = builder.Build();
 
