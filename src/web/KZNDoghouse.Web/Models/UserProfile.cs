@@ -28,6 +28,19 @@ public class UserProfile : BaseModel
     [Column("is_active")]
     public bool IsActive { get; set; } = true;
 
+    [Column("volunteer_request_status")]
+    public string VolunteerRequestStatus { get; set; } =
+        VolunteerRequestStatuses.None;
+
+    [Column("volunteer_requested_at")]
+    public DateTime? VolunteerRequestedAt { get; set; }
+
+    [Column("volunteer_reviewed_at")]
+    public DateTime? VolunteerReviewedAt { get; set; }
+
+    [Column("volunteer_reviewed_by")]
+    public Guid? VolunteerReviewedBy { get; set; }
+
     [Column("created_at")]
     public DateTime CreatedAt { get; set; }
 

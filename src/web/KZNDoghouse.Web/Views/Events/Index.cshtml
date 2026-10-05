@@ -1,0 +1,309 @@
+@model EventsPageViewModel
+
+@{
+    ViewData["Title"] = "Events";
+
+    var loadFailed = ViewData["LoadFailed"] as bool? == true;
+    var filter = Model.Filter;
+
+    string ChipUrl(string? category) =>
+        Url.Action("Index", "Events", new { category }) ?? "#";
+
+    var failedMessage = new PublicMessageViewModel
+    {
+        Title = "We could not load our events",
+        Message = "Please try again in a few minutes."
+    };
+
+    var emptyMessage = new PublicMessageViewModel
+    {
+        Title = "No events to show yet",
+        Message = "We are planning our next events. Please check back soon."
+    };
+
+    var noMatchMessage = new PublicMessageViewModel
+    {
+        Title = "No events in this category",
+        Message = "Try a different category, or show all events."
+    };
+
+    var allUpcoming = new List<PublicEventItem>();
+    if (Model.Featured != null)
+    {
+        allUpcoming.Add(Model.Featured);
+    }
+    allUpcoming.AddRange(Model.Upcoming);
+
+    var defaultFeature = Model.Featured ?? Model.Past.FirstOrDefault();
+
+    var slideImages = allUpcoming
+        .Concat(Model.Past)
+        .Select(x => x.ImageUrl)
+        .Where(x => !string.IsNullOrWhiteSpace(x))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .Take(5)
+        .ToList();
+
+    if (slideImages.Count == 0)
+    {
+        slideImages = new List<string?>
+        {
+            Url.Content("~/images/public/event-fallback-1.jpg"),
+            Url.Content("~/images/public/event-fallback-2.jpg"),
+            Url.Content("~/images/public/event-fallback-3.jpg")
+        };
+    }
+}
+
+<section class="public-page-header public-events-header" data-event-hero-slideshow>
+    <div class="public-events-header-slides" aria-hidden="true">
+        @for (var index = 0; index < slideImages.Count; index++)
+        {
+            <div class="public-events-header-slide @(index == 0 ? "is-active" : string.Empty)"
+                 data-event-hero-slide
+                 style="background-image:url('@slideImages[index]')"></div>
+        }
+    </div>
+    <div class="public-events-header-overlay" aria-hidden="true"></div>
+    <partial name="_PublicPawTrail" model="@("public-paw-events-left")" />
+    <partial name="_PublicPawTrail" model="@("public-paw-events-right")" />
+
+    <div class="container public-events-header-content">
+        <p class="public-page-eyebrow">Events</p>
+        <h1 class="public-page-title">Come say hello.</h1>
+        <p class="public-page-subtitle">
+            Adoption days, fundraisers, and volunteer meetups &mdash; all the ways to spend time with us in person.
+        </p>
+
+        @if (!loadFailed && Model.Categories.Count > 1)
+        {
+            <nav class="public-chip-row" aria-label="Filter events">
+                <a href="@ChipUrl(null)"
+                   class="public-chip@(filter.IsActive ? string.Empty : " active")"
+                   aria-current="@(filter.IsActive ? null : "true")">
+                    All events
+                </a>
+
+                @foreach (var category in Model.Categories)
+                {
+                    var isActive = filter.Category == category;
+                    <a href="@ChipUrl(category)"
+                       class="public-chip@(isActive ? " active" : string.Empty)"
+                       aria-current="@(isActive ? "true" : null)">
+                        @category
+                    </a>
+                }
+            </nav>
+        }
+    </div>
+</section>
+
+<section class="public-section" data-public-event-explorer>
+    <div class="container">
+        @if (loadFailed)
+        {
+            <partial name="_PublicEmptyState" model="failedMessage" />
+        }
+        else if (Model.OverallCount == 0)
+        {
+            <partial name="_PublicEmptyState" model="emptyMessage" />
+        }
+        else if (filter.IsActive && defaultFeature == null)
+        {
+            <partial name="_PublicEmptyState" model="noMatchMessage" />
+            <p class="text-center mt-4">
+                <a asp-action="Index" class="btn btn-kzn-primary">Show all events</a>
+            </p>
+        }
+        else if (defaultFeature != null)
+        {
+            var defaultIsPast = defaultFeature.StartAt < DateTime.Now;
+            var defaultRsvp = Url.Action(
+                "Index",
+                "Contact",
+                new
+                {
+                    topic = "other",
+                    message = $"I would like to RSVP for {defaultFeature.Title} on {defaultFeature.DateText}."
+                }) ?? "/contact";
+
+            <article class="public-event-feature mb-5" data-event-feature>
+                <div class="public-event-feature-date @(string.IsNullOrWhiteSpace(defaultFeature.ImageUrl) ? string.Empty : "has-image")">
+                    <img data-feature-image
+                         class="public-event-feature-image @(string.IsNullOrWhiteSpace(defaultFeature.ImageUrl) ? "d-none" : string.Empty)"
+                         src="@(defaultFeature.ImageUrl ?? Url.Content("~/images/public/event-fallback-1.jpg"))"
+                         alt="Image for @defaultFeature.Title"
+                         decoding="async" />
+                    <div class="public-event-date-overlay">
+                        <span data-feature-month>@defaultFeature.MonthText</span>
+                        <strong data-feature-day>@defaultFeature.DayText</strong>
+                    </div>
+                </div>
+
+                <div class="public-event-feature-body">
+                    <span class="public-pill-tag" data-feature-category>@defaultFeature.Category</span>
+                    <h2 data-feature-title>@defaultFeature.Title</h2>
+                    <p data-feature-description>
+                        @(string.IsNullOrWhiteSpace(defaultFeature.Description)
+                            ? "Join us and spend time with the KZN Doghouse community."
+                            : defaultFeature.Description)
+                    </p>
+
+                    <p class="public-event-meta">
+                        <span data-feature-date>@defaultFeature.DateText</span>
+                        <span data-feature-time>@defaultFeature.TimeText</span>
+                        <span data-feature-location class="@(string.IsNullOrWhiteSpace(defaultFeature.Location) ? "d-none" : string.Empty)">@defaultFeature.Location</span>
+                    </p>
+
+                    <a href="@defaultRsvp"
+                       class="btn btn-kzn-primary @(defaultIsPast ? "d-none" : string.Empty)"
+                       data-feature-rsvp>
+                        RSVP for this event
+                    </a>
+                    <span class="public-event-ended-note @(!defaultIsPast ? "d-none" : string.Empty)"
+                          data-feature-ended>
+                        This event has finished.
+                    </span>
+                </div>
+            </article>
+
+            @if (allUpcoming.Count > 0)
+            {
+                <div class="public-section-head">
+                    <div>
+                        <h2 class="public-section-title">Upcoming events</h2>
+                        <p class="public-section-text">Click any event to bring its details into focus above.</p>
+                    </div>
+                </div>
+
+                <div class="row g-4 mb-5" data-upcoming-event-list>
+                    @foreach (var item in allUpcoming)
+                    {
+                        var isDefault = ReferenceEquals(item, Model.Featured);
+                        var rsvpUrl = Url.Action(
+                            "Index",
+                            "Contact",
+                            new
+                            {
+                                topic = "other",
+                                message = $"I would like to RSVP for {item.Title} on {item.DateText}."
+                            }) ?? "/contact";
+
+                        <div class="col-md-4 @(isDefault ? "d-none" : string.Empty)" data-event-source-wrapper>
+                            <button type="button"
+                                    class="public-event-card public-event-select-card w-100 text-start"
+                                    data-event-source
+                                    data-event-group="upcoming"
+                                    data-title="@item.Title"
+                                    data-category="@item.Category"
+                                    data-description="@(string.IsNullOrWhiteSpace(item.Description) ? "Join us and spend time with the KZN Doghouse community." : item.Description)"
+                                    data-date="@item.DateText"
+                                    data-time="@item.TimeText"
+                                    data-location="@item.Location"
+                                    data-month="@item.MonthText"
+                                    data-day="@item.DayText"
+                                    data-image="@item.ImageUrl"
+                                    data-rsvp="@rsvpUrl"
+                                    data-is-past="false"
+                                    data-default-feature="@(isDefault ? "true" : "false")">
+                                <div class="public-event-top @(string.IsNullOrWhiteSpace(item.ImageUrl) ? string.Empty : "has-image")">
+                                    @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
+                                    {
+                                        <img class="public-event-card-image" src="@item.ImageUrl" alt="Image for @item.Title" loading="lazy" decoding="async" />
+                                    }
+                                    <span class="public-date-badge">
+                                        <span>@item.MonthText</span>
+                                        <strong>@item.DayText</strong>
+                                    </span>
+                                </div>
+                                <div class="public-event-body">
+                                    <p class="public-event-category">@item.Category</p>
+                                    <h3>@item.Title</h3>
+                                    <p class="public-event-meta">
+                                        <span>@item.TimeText</span>
+                                        @if (!string.IsNullOrWhiteSpace(item.Location))
+                                        {
+                                            <span>@item.Location</span>
+                                        }
+                                    </p>
+                                    @if (!string.IsNullOrWhiteSpace(item.Description))
+                                    {
+                                        <p class="public-event-text">@item.Description</p>
+                                    }
+                                </div>
+                            </button>
+                        </div>
+                    }
+                </div>
+            }
+
+            @if (Model.Past.Count > 0)
+            {
+                <div class="public-section-head mb-2">
+                    <div>
+                        <h2 class="public-section-title">Past events</h2>
+                        <p class="public-section-text">Select a previous event to view its full details above.</p>
+                    </div>
+                </div>
+
+                <ul class="public-past-list">
+                    @foreach (var item in Model.Past)
+                    {
+                        <li>
+                            <button type="button"
+                                    class="public-past-event-button"
+                                    data-event-source
+                                    data-event-group="past"
+                                    data-title="@item.Title"
+                                    data-category="@item.Category"
+                                    data-description="@(string.IsNullOrWhiteSpace(item.Description) ? "This event has finished." : item.Description)"
+                                    data-date="@item.DateText"
+                                    data-time="@item.TimeText"
+                                    data-location="@item.Location"
+                                    data-month="@item.MonthText"
+                                    data-day="@item.DayText"
+                                    data-image="@item.ImageUrl"
+                                    data-rsvp=""
+                                    data-is-past="true">
+                                <span class="public-past-thumb" aria-hidden="true">
+                                    @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
+                                    {
+                                        <img src="@item.ImageUrl" alt="" loading="lazy" decoding="async" />
+                                    }
+                                    else
+                                    {
+                                        <span>@item.DayText</span>
+                                    }
+                                </span>
+                                <span class="public-past-date">@item.FullDateText</span>
+                                <span class="public-past-title">@item.Title</span>
+                                <span class="public-past-note">
+                                    @(string.IsNullOrWhiteSpace(item.Description)
+                                        ? item.Category
+                                        : item.Description)
+                                </span>
+                            </button>
+                        </li>
+                    }
+                </ul>
+            }
+        }
+    </div>
+</section>
+
+<section class="public-cta public-grass-bg public-paw-stage">
+    <partial name="_PublicPawTrail" model="@("public-paw-bottom-right")" />
+    <div class="container">
+        <h2>Don't want to miss the next one?</h2>
+        <p class="mt-2">Get event reminders straight to your inbox.</p>
+        <div class="mt-4">
+            <a asp-controller="Contact"
+               asp-action="Index"
+               asp-route-topic="other"
+               asp-route-message="Please add me to the event reminders list."
+               class="btn btn-kzn-gold">
+                Subscribe for updates
+            </a>
+        </div>
+    </div>
+</section>

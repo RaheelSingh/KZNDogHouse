@@ -1,9 +1,9 @@
+using KZNDoghouse.Web.Constants;
 using KZNDoghouse.Web.DTOs;
-using KZNDoghouse.Web.Repositories;
 using KZNDoghouse.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Supabase.Gotrue.Exceptions;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace KZNDoghouse.Web.Controllers;
 
@@ -11,17 +11,15 @@ namespace KZNDoghouse.Web.Controllers;
 [Route("api")]
 public class ApiController : ControllerBase
 {
-    private readonly ISupabaseClientFactory _supabaseClientFactory;
-    private readonly IUserProfileRepository _userProfileRepository;
+    private readonly IApiAuthenticationService _apiAuthenticationService;
 
     public ApiController(
-        ISupabaseClientFactory supabaseClientFactory,
-        IUserProfileRepository userProfileRepository)
+        IApiAuthenticationService apiAuthenticationService)
     {
-        _supabaseClientFactory = supabaseClientFactory;
-        _userProfileRepository = userProfileRepository;
+        _apiAuthenticationService = apiAuthenticationService;
     }
 
+    [AllowAnonymous]
     [HttpGet("health")]
     public ActionResult<ApiResponse<object>> Health()
     {
@@ -40,62 +38,27 @@ public class ApiController : ControllerBase
 
     [AllowAnonymous]
     [HttpGet("me")]
+    [EnableRateLimiting(RateLimitPolicies.Api)]
     public async Task<ActionResult<ApiResponse<MeResponseDto>>> Me()
     {
-        var authHeader = Request.Headers.Authorization.ToString();
+        var profile = await _apiAuthenticationService.AuthenticateAsync(
+            Request.Headers.Authorization.ToString());
 
-        if (string.IsNullOrWhiteSpace(authHeader)
-            || !authHeader.StartsWith("Bearer "))
+        if (profile == null)
         {
             return Unauthorized(
                 ApiResponse<MeResponseDto>.Fail(
-                    "Missing or invalid Authorization header."));
+                    "Invalid, expired or inactive account token."));
         }
 
-        var token = authHeader["Bearer ".Length..].Trim();
-
-        try
+        var dto = new MeResponseDto
         {
-            var client =
-                await _supabaseClientFactory.CreateAnonClientAsync();
+            Id = profile.Id.ToString(),
+            Name = profile.FullName,
+            Email = profile.Email,
+            Role = profile.Role
+        };
 
-            var supabaseUser =
-                await client.Auth.GetUser(token);
-
-            if (supabaseUser == null
-                || string.IsNullOrWhiteSpace(supabaseUser.Id))
-            {
-                return Unauthorized(
-                    ApiResponse<MeResponseDto>.Fail(
-                        "Invalid or expired token."));
-            }
-
-            var profile =
-                await _userProfileRepository
-                    .GetByAuthUserIdAsync(supabaseUser.Id);
-
-            if (profile == null || !profile.IsActive)
-            {
-                return Unauthorized(
-                    ApiResponse<MeResponseDto>.Fail(
-                        "Account not found or inactive."));
-            }
-
-            var dto = new MeResponseDto
-            {
-                Id = profile.Id.ToString(),
-                Name = profile.FullName,
-                Email = profile.Email,
-                Role = profile.Role
-            };
-
-            return Ok(ApiResponse<MeResponseDto>.Ok(dto));
-        }
-        catch (GotrueException)
-        {
-            return Unauthorized(
-                ApiResponse<MeResponseDto>.Fail(
-                    "Invalid or expired token."));
-        }
+        return Ok(ApiResponse<MeResponseDto>.Ok(dto));
     }
 }

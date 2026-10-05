@@ -1,0 +1,25 @@
+@model PublicDogListItem
+
+<div class="public-dog-card public-card-zoom">
+    @if (!string.IsNullOrWhiteSpace(Model.PhotoUrl))
+    {
+        <img class="public-dog-photo" src="@Model.PhotoUrl" alt="Photo of @Model.Name" loading="lazy" />
+    }
+    else
+    {
+        <div class="public-dog-photo public-dog-photo-placeholder" aria-hidden="true">@Model.Initial</div>
+    }
+
+    <div class="public-dog-body">
+        <h3 class="public-dog-name">
+            <a asp-controller="PublicDogs"
+               asp-action="Details"
+               asp-route-id="@Model.Id"
+               class="public-dog-link stretched-link">
+                @Model.Name
+            </a>
+        </h3>
+        <p class="public-dog-meta">@Model.MetaText</p>
+        <span class="public-badge @(Model.IsFostered ? "public-badge-outline" : "public-badge-solid")">@Model.StatusLabel</span>
+    </div>
+</div>

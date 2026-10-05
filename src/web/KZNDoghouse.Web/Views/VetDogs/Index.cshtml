@@ -1,0 +1,147 @@
+@model IReadOnlyList<Dog>
+
+@{
+    ViewData["Title"] = "My Dogs";
+    Layout = "_PortalLayout";
+}
+
+<div class="mb-4">
+
+    <h1 class="portal-page-title mb-2">
+        My Dogs
+    </h1>
+
+    <p class="text-muted mb-0">
+        Dogs you are currently authorised to access for medical care.
+    </p>
+
+</div>
+
+<div class="portal-card">
+
+    <div class="portal-filter-bar"
+         data-portal-filter="vetDogRows"
+         data-portal-empty="vetDogEmpty"
+         data-portal-result-count="vetDogResultCount">
+
+        <div class="portal-filter-search">
+
+            <input type="search"
+                   class="form-control"
+                   placeholder="Search name or breed"
+                   aria-label="Search authorised dogs"
+                   data-portal-search />
+
+        </div>
+
+        <div>
+
+            <select class="form-select"
+                    aria-label="Filter by status"
+                    data-portal-filter-field="status">
+
+                <option value="">
+                    All statuses
+                </option>
+
+                @foreach (var status in DogStatuses.All)
+                {
+                    <option value="@status">
+                        @status
+                    </option>
+                }
+
+            </select>
+
+        </div>
+
+        <button type="button"
+                class="btn btn-kzn-outline portal-filter-reset"
+                data-portal-filter-reset>
+            Reset
+        </button>
+
+    </div>
+
+    <div class="portal-filter-summary">
+
+        <span id="vetDogResultCount">
+            @Model.Count results
+        </span>
+
+    </div>
+
+    <div class="table-responsive portal-filter-results">
+
+        <table class="table align-middle mb-0">
+
+            <thead>
+                <tr>
+                    <th>Dog</th>
+                    <th>Breed</th>
+                    <th>Status</th>
+                    <th>Vaccinated</th>
+                    <th></th>
+                </tr>
+            </thead>
+
+            <tbody id="vetDogRows">
+
+                @foreach (var dog in Model)
+                {
+                    <tr data-portal-row
+                        data-search="@dog.Name @dog.Breed"
+                        data-status="@dog.Status">
+
+                        <td class="fw-semibold">
+                            @dog.Name
+                        </td>
+
+                        <td>
+                            @(dog.Breed ?? "Mixed breed")
+                        </td>
+
+                        <td>
+                            @dog.Status
+                        </td>
+
+                        <td>
+                            @(dog.IsVaccinated ? "Yes" : "No")
+                        </td>
+
+                        <td class="text-end">
+
+                            <a asp-controller="VetDogs"
+                               asp-action="Details"
+                               asp-route-id="@dog.Id"
+                               class="btn btn-kzn-outline btn-sm">
+                                Medical Record
+                            </a>
+
+                        </td>
+
+                    </tr>
+                }
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+    <div id="vetDogEmpty"
+         class="portal-filter-empty"
+         hidden>
+
+        @if (Model.Any())
+        {
+            <text>No authorised dogs match the current search and filters.</text>
+        }
+        else
+        {
+            <text>No dogs have been assigned to your Vet account yet.</text>
+        }
+
+    </div>
+
+</div>

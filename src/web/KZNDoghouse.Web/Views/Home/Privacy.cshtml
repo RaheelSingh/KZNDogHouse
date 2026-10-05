@@ -1,6 +1,63 @@
-﻿@{
-    ViewData["Title"] = "Privacy Policy";
+@{
+    ViewData["Title"] = "Privacy";
+    ViewData["Eyebrow"] = "Privacy";
+    ViewData["Heading"] = "How we handle your information.";
+    ViewData["Subtitle"] = "A plain-language overview of the information used by the KZN Doghouse digital platform.";
 }
-<h1>@ViewData["Title"]</h1>
 
-<p>Use this page to detail your site's privacy policy.</p>
+<partial name="_PublicPageHeader" />
+
+<section class="public-section">
+    <div class="container">
+        <div class="public-policy-card">
+            <section>
+                <h2>Information we collect</h2>
+                <p>
+                    We collect information you choose to provide when you create an account,
+                    contact the shelter, submit a foster application, or use an authorised
+                    management function. This can include your name, contact details and the
+                    information needed to process your request.
+                </p>
+            </section>
+
+            <section>
+                <h2>How it is used</h2>
+                <p>
+                    Information is used to operate the shelter's digital services, respond to
+                    enquiries, manage fostering and volunteer workflows, maintain dog and
+                    inventory records, and provide access to authorised users.
+                </p>
+            </section>
+
+            <section>
+                <h2>Protected shelter information</h2>
+                <p>
+                    Detailed medical, operational and account information is restricted by role.
+                    Public visitors only see information approved for the public website.
+                    Approved veterinary users are limited to medical information for dogs they
+                    have been authorised to treat.
+                </p>
+            </section>
+
+            <section>
+                <h2>Storage and security</h2>
+                <p>
+                    The platform uses Supabase for authentication and central data storage.
+                    Access controls, validation and secure connections are used to reduce
+                    unauthorised access. No internet-connected system can guarantee absolute
+                    security, so access is limited to what each role needs.
+                </p>
+            </section>
+
+            <section>
+                <h2>Retention and questions</h2>
+                <p>
+                    Records are kept for as long as they are reasonably required for shelter
+                    operations, accountability and applicable legal obligations. If you have a
+                    question about information you submitted, contact us at
+                    <a href="mailto:@PublicSiteInfo.Email">@PublicSiteInfo.Email</a>.
+                </p>
+            </section>
+        </div>
+    </div>
+</section>

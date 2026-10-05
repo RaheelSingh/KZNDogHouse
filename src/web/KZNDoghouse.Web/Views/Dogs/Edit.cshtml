@@ -1,0 +1,161 @@
+@model DogFormViewModel
+@using KZNDoghouse.Web.Constants
+
+@{
+    ViewData["Title"] = "Edit Dog";
+    Layout = "_PortalLayout";
+    var dogId = ViewData["DogId"];
+}
+
+<div class="mb-4">
+    <h1 class="portal-page-title mb-2">Edit dog</h1>
+    <p class="text-muted mb-0">Update the profile or add more photos.</p>
+</div>
+
+<div class="portal-card">
+
+    <form asp-controller="Dogs"
+          asp-action="Edit"
+          asp-route-id="@dogId"
+          method="post"
+          enctype="multipart/form-data">
+
+        <div asp-validation-summary="ModelOnly"
+             class="alert alert-danger"></div>
+
+        <div class="row g-3">
+
+            <div class="col-md-6">
+                <label asp-for="Name" class="form-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger small"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="Breed" class="form-label"></label>
+                <input asp-for="Breed" class="form-control" />
+                <span asp-validation-for="Breed" class="text-danger small"></span>
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="Gender" class="form-label"></label>
+                <select asp-for="Gender" class="form-select">
+                    @foreach (var gender in DogGenders.All)
+                    {
+                        <option value="@gender">@gender</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="Size" class="form-label"></label>
+                <select asp-for="Size" class="form-select">
+                    <option value="">Not recorded</option>
+                    @foreach (var size in DogSizes.All)
+                    {
+                        <option value="@size">@size</option>
+                    }
+                </select>
+                <span asp-validation-for="Size" class="text-danger small"></span>
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="EstimatedAgeYears" class="form-label"></label>
+                <input asp-for="EstimatedAgeYears" class="form-control" />
+                <span asp-validation-for="EstimatedAgeYears" class="text-danger small"></span>
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="DateOfBirth" class="form-label"></label>
+                <input asp-for="DateOfBirth" class="form-control" />
+                <span asp-validation-for="DateOfBirth" class="text-danger small"></span>
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="WeightKg" class="form-label"></label>
+                <input asp-for="WeightKg" class="form-control" />
+                <span asp-validation-for="WeightKg" class="text-danger small"></span>
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="EyeColour" class="form-label"></label>
+                <input asp-for="EyeColour" class="form-control" />
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="KennelLocation" class="form-label"></label>
+                <input asp-for="KennelLocation" class="form-control" placeholder="e.g. Block B - Run 4" />
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="IntakeDate" class="form-label"></label>
+                <input asp-for="IntakeDate" class="form-control" />
+                <span asp-validation-for="IntakeDate" class="text-danger small"></span>
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="IntakeType" class="form-label"></label>
+                <select asp-for="IntakeType" class="form-select">
+                    <option value="">Not recorded</option>
+                    @foreach (var intakeType in DogIntakeTypes.All)
+                    {
+                        <option value="@intakeType">@intakeType</option>
+                    }
+                </select>
+                <span asp-validation-for="IntakeType" class="text-danger small"></span>
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="Status" class="form-label"></label>
+                <select asp-for="Status" class="form-select">
+                    @foreach (var status in DogStatuses.All)
+                    {
+                        <option value="@status">@status</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-8">
+                <label asp-for="Temperament" class="form-label"></label>
+                <input asp-for="Temperament" class="form-control" />
+            </div>
+
+            <div class="col-12">
+                <label asp-for="About" class="form-label"></label>
+                <textarea asp-for="About" class="form-control" rows="3"></textarea>
+            </div>
+
+            <div class="col-12">
+                <label asp-for="Images" class="form-label">Add more dog photos</label>
+                <input asp-for="Images"
+                       type="file"
+                       class="form-control"
+                       accept="image/jpeg,image/png,image/webp"
+                       data-max-file-bytes="5242880"
+                       data-max-files="10"
+                       multiple />
+                <div class="form-text">Existing photos stay in place. Manage the primary image and remove photos from the dog profile page.</div>
+            </div>
+
+            <div class="col-12 form-check">
+                <input asp-for="IsVaccinated" class="form-check-input" />
+                <label asp-for="IsVaccinated" class="form-check-label"></label>
+            </div>
+
+        </div>
+
+        <div class="mt-4 d-flex gap-2">
+            <button type="submit" class="btn btn-kzn-primary">Save changes</button>
+            <a asp-controller="Dogs"
+               asp-action="Details"
+               asp-route-id="@dogId"
+               class="btn btn-kzn-outline">Cancel</a>
+        </div>
+
+    </form>
+
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

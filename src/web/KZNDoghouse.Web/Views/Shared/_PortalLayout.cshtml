@@ -1,13 +1,37 @@
+@{
+    var displayName =
+        User.Identity?.Name ?? "Account";
+
+    var role =
+        User.FindFirst(
+            System.Security.Claims.ClaimTypes.Role)
+            ?.Value ?? "User";
+
+    var accountInitial =
+        string.IsNullOrWhiteSpace(displayName)
+            ? "?"
+            : displayName.Trim()[0]
+                .ToString()
+                .ToUpperInvariant();
+}
+
 <!DOCTYPE html>
 
 <html lang="en">
+
 <head>
+
     <meta charset="utf-8" />
 
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0" />
 
     <title>@ViewData["Title"] - KZN Doghouse Portal</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" />
 
     <link rel="stylesheet"
           href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
@@ -19,26 +43,29 @@
     <link rel="stylesheet"
           href="~/KZNDoghouse.Web.styles.css"
           asp-append-version="true" />
+
 </head>
 
 <body class="portal-body">
 
+    <a class="skip-link" href="#portal-main-content">Skip to main content</a>
+
     <div class="portal-wrapper">
 
-        <!-- Desktop sidebar -->
         <aside class="portal-sidebar portal-sidebar-desktop">
+
             <partial name="_PortalSidebar" />
+
         </aside>
 
         <div class="portal-content-wrapper">
 
             <header class="portal-header">
 
-                <div class="d-flex justify-content-between align-items-center">
+                <div class="portal-header-inner">
 
-                    <div class="d-flex align-items-center gap-3">
+                    <div class="portal-header-left">
 
-                        <!-- Mobile menu button -->
                         <button class="portal-menu-button"
                                 type="button"
                                 data-bs-toggle="offcanvas"
@@ -52,30 +79,145 @@
 
                         </button>
 
-                        <span class="fw-semibold">
-                            Internal Management System
-                        </span>
+                        <div class="portal-header-text">
+
+                            <span class="portal-header-system">
+                                Internal Management System
+                            </span>
+
+                            <strong class="portal-header-page">
+                                @ViewData["Title"]
+                            </strong>
+
+                        </div>
 
                     </div>
 
-                    <span class="text-muted portal-header-name">
-                        KZN Doghouse
-                    </span>
+                    <div class="portal-header-actions">
+
+                        <a asp-controller="Notifications"
+                           asp-action="Index"
+                           class="portal-header-icon"
+                           title="Notifications"
+                           aria-label="Notifications">
+
+                            <svg viewBox="0 0 24 24"
+                                 aria-hidden="true">
+
+                                <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
+
+                                <path d="M10 21h4"></path>
+
+                            </svg>
+
+                            <span id="portalNotificationBadge"
+                                  class="portal-notification-badge"
+                                  data-unread-url="@Url.Action("UnreadCount", "Notifications")"
+                                  hidden>
+                            </span>
+
+                        </a>
+
+                        <div class="dropdown">
+
+                            <button class="portal-account-button"
+                                    type="button"
+                                    data-bs-toggle="dropdown"
+                                    aria-expanded="false">
+
+                                <span class="portal-account-avatar">
+                                    @accountInitial
+                                </span>
+
+                                <span class="portal-account-meta">
+
+                                    <span class="portal-account-name">
+                                        @displayName
+                                    </span>
+
+                                    <span class="portal-account-role">
+                                        @role
+                                    </span>
+
+                                </span>
+
+                                <svg class="portal-account-chevron"
+                                     viewBox="0 0 24 24"
+                                     aria-hidden="true">
+
+                                    <path d="m7 10 5 5 5-5"></path>
+
+                                </svg>
+
+                            </button>
+
+                            <ul class="dropdown-menu dropdown-menu-end portal-account-menu">
+
+                                <li class="portal-account-menu-summary">
+
+                                    <strong>
+                                        @displayName
+                                    </strong>
+
+                                    <span>
+                                        @role
+                                    </span>
+
+                                </li>
+
+                                <li>
+                                    <hr class="dropdown-divider" />
+                                </li>
+
+                                <li>
+
+                                    <a class="dropdown-item"
+                                       asp-controller="Home"
+                                       asp-action="Index">
+
+                                        Return to Website
+
+                                    </a>
+
+                                </li>
+
+                                <li>
+
+                                    <form asp-controller="Auth"
+                                          asp-action="Logout"
+                                          method="post">
+
+                                        <button type="submit"
+                                                class="dropdown-item">
+
+                                            Sign Out
+
+                                        </button>
+
+                                    </form>
+
+                                </li>
+
+                            </ul>
+
+                        </div>
+
+                    </div>
 
                 </div>
 
             </header>
 
-            <main class="portal-main">
+            <main id="portal-main-content" class="portal-main" tabindex="-1">
+
                 @RenderBody()
+
             </main>
 
         </div>
 
     </div>
 
-
-    <!-- Mobile portal navigation -->
     <div class="offcanvas offcanvas-start portal-mobile-menu"
          tabindex="-1"
          id="portalMobileMenu"
@@ -85,7 +227,9 @@
 
             <h5 class="offcanvas-title"
                 id="portalMobileMenuLabel">
+
                 KZN Doghouse
+
             </h5>
 
             <button type="button"
@@ -104,7 +248,6 @@
 
     </div>
 
-
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
 
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
@@ -113,7 +256,10 @@
             asp-append-version="true">
     </script>
 
-    @await RenderSectionAsync("Scripts", required: false)
+    @await RenderSectionAsync(
+        "Scripts",
+        required: false)
 
 </body>
+
 </html>

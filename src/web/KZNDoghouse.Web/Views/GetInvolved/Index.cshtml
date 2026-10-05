@@ -1,0 +1,205 @@
+@model GetInvolvedViewModel
+
+@{
+    ViewData["Title"] = "Get Involved";
+    ViewData["Eyebrow"] = "Get Involved";
+    ViewData["Heading"] = "There are so many ways to help.";
+    ViewData["Subtitle"] = "Whether you've got a spare room, a spare Saturday, or a spare rand — there's a place for you at The KZN Doghouse.";
+}
+
+<partial name="_PublicPageHeader" />
+
+<div class="container">
+
+    <div class="public-stat-strip">
+
+        <div>
+            <div class="public-strip-number">1000+</div>
+            <div class="public-strip-label">Dogs rehomed</div>
+        </div>
+
+        <div>
+            <div class="public-strip-number">240</div>
+            <div class="public-strip-label">Active volunteers</div>
+        </div>
+
+        <div>
+            <div class="public-strip-number">100%</div>
+            <div class="public-strip-label">Funded by community</div>
+        </div>
+
+    </div>
+
+</div>
+
+<section class="public-section public-paw-stage" id="ways">
+
+    <partial name="_PublicPawTrail" model="@("public-paw-mid-right")" />
+
+    <div class="container">
+
+        <div class="row g-4">
+
+            <div class="col-md-6 col-lg-3">
+                <div class="public-way-card public-way-card-soft">
+                    <span class="public-icon-box"><partial name="_PublicIcon" model="@("home")" /></span>
+                    <h3>Foster a dog</h3>
+                    <p>
+                        Open your home for a few weeks while we find a dog
+                        their forever family. We cover food and vet costs.
+                    </p>
+                    <a asp-controller="Foster"
+                       asp-action="Apply"
+                       class="public-text-link">
+                        Apply to foster &rarr;
+                    </a>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3">
+                <div class="public-way-card public-way-card-soft">
+                    <span class="public-icon-box"><partial name="_PublicIcon" model="@("people")" /></span>
+                    <h3>Volunteer</h3>
+                    <p>
+                        Help with feeding, walking, events, or admin. A few
+                        hours a week makes a real difference.
+                    </p>
+                    <a asp-controller="Contact"
+                       asp-action="Index"
+                       asp-route-topic="volunteering"
+                       class="public-text-link">
+                        Apply to volunteer &rarr;
+                    </a>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3 public-scroll-anchor" id="donate">
+                <div class="public-way-card public-way-card-soft">
+                    <span class="public-icon-box"><partial name="_PublicIcon" model="@("gift")" /></span>
+                    <h3>Donate</h3>
+                    <p>
+                        Every rand goes toward food, medical care, and
+                        shelter for dogs who have nowhere else to go.
+                    </p>
+                    <a asp-controller="Contact"
+                       asp-action="Index"
+                       asp-route-topic="donations"
+                       class="public-text-link">
+                        Donate now &rarr;
+                    </a>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3">
+                <div class="public-way-card public-way-card-soft">
+                    <span class="public-icon-box"><partial name="_PublicIcon" model="@("heart")" /></span>
+                    <h3>Partner with us</h3>
+                    <p>
+                        Businesses and community groups can sponsor a kennel,
+                        host a drive, or support an event.
+                    </p>
+                    <a asp-controller="Contact"
+                       asp-action="Index"
+                       asp-route-topic="donations"
+                       class="public-text-link">
+                        Get in touch &rarr;
+                    </a>
+                </div>
+            </div>
+
+        </div>
+
+        @if (Model.UpcomingEvents.Count > 0)
+        {
+            <div class="public-events-panel">
+
+                <div class="public-section-head">
+
+                    <h2 class="public-panel-title">Upcoming events</h2>
+
+                    <a asp-controller="Events"
+                       asp-action="Index"
+                       class="public-text-link">
+                        See all events &rarr;
+                    </a>
+
+                </div>
+
+                <div class="row g-3">
+
+                    @foreach (var item in Model.UpcomingEvents)
+                    {
+                        <div class="col-md-4">
+
+                            <article class="public-mini-event">
+
+                                <span class="public-mini-date">@item.DateText</span>
+
+                                <h3>@item.Title</h3>
+
+                                @if (!string.IsNullOrWhiteSpace(item.Description))
+                                {
+                                    <p>@item.Description</p>
+                                }
+
+                            </article>
+
+                        </div>
+                    }
+
+                </div>
+
+            </div>
+        }
+
+        <div class="public-partner-card mt-5">
+
+            <div>
+
+                <h2>Corporate &amp; community partnerships</h2>
+
+                <p>
+                    We work with local businesses, schools, and community
+                    groups on kennel sponsorships, supply drives, and joint
+                    events. If your organisation wants to get involved, we'd
+                    love to hear from you.
+                </p>
+
+            </div>
+
+            <a asp-controller="Contact"
+               asp-action="Index"
+               asp-route-topic="donations"
+               class="btn btn-kzn-outline">
+                Contact our team
+            </a>
+
+        </div>
+
+    </div>
+
+</section>
+
+<section class="public-cta public-grass-bg public-paw-stage">
+
+    <partial name="_PublicPawTrail" model="@("public-paw-bottom-right")" />
+
+    <div class="container">
+
+        <h2>Every hour, every rand, every home counts.</h2>
+
+        <p class="mt-2">Join the fight for forgotten animals.</p>
+
+        <div class="mt-4">
+
+            <a href="#ways"
+               class="btn btn-kzn-gold">
+                Get involved today
+            </a>
+
+        </div>
+
+    </div>
+
+</section>
+

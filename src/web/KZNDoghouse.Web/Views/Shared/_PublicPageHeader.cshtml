@@ -1,0 +1,32 @@
+@{
+    var eyebrow = ViewData["Eyebrow"] as string;
+    var heading = ViewData["Heading"] as string ?? ViewData["Title"] as string;
+    var subtitle = ViewData["Subtitle"] as string;
+}
+
+<section class="public-page-header public-grass-bg public-paw-stage">
+    <partial name="_PublicPawTrail" model="@("public-paw-top-right")" />
+
+    <div class="container">
+
+        @if (!string.IsNullOrWhiteSpace(eyebrow))
+        {
+            <p class="public-page-eyebrow">
+                @eyebrow
+            </p>
+        }
+
+        <h1 class="public-page-title">
+            @heading
+        </h1>
+
+        @if (!string.IsNullOrWhiteSpace(subtitle))
+        {
+            <p class="public-page-subtitle">
+                @subtitle
+            </p>
+        }
+
+    </div>
+
+</section>

@@ -12,6 +12,14 @@
 
             <div class="kzn-card">
 
+                @if (ViewData["RateLimitMessage"] is string rateLimitMessage)
+                {
+                    <div class="alert alert-warning"
+                         role="alert">
+                        @rateLimitMessage
+                    </div>
+                }
+
                 <div class="mb-4">
 
                     <h1 class="h3 kzn-card-title">
@@ -76,7 +84,10 @@
 
                         <input asp-for="Email"
                                class="form-control"
-                               autocomplete="email" />
+                               autocomplete="email"
+                               inputmode="email"
+                               autocapitalize="none"
+                               spellcheck="false" />
 
                         <span asp-validation-for="Email"
                               class="text-danger">
@@ -117,6 +128,25 @@
                         <span asp-validation-for="ConfirmPassword"
                               class="text-danger">
                         </span>
+
+                    </div>
+
+                    <div class="public-volunteer-request mb-4">
+
+                        <div class="form-check">
+
+                            <input asp-for="WantsToVolunteer"
+                                   class="form-check-input" />
+
+                            <label asp-for="WantsToVolunteer"
+                                   class="form-check-label fw-semibold">
+                            </label>
+
+                        </div>
+
+                        <div class="form-text mt-2">
+                            Your account will always be created as a Public account first. If you request volunteer access, an administrator must approve it before you can use volunteer-only features or the mobile app.
+                        </div>
 
                     </div>
 

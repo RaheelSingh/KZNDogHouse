@@ -1,0 +1,268 @@
+@model VetDogDetailsViewModel
+
+@{
+    ViewData["Title"] = $"{Model.Dog.Name} Medical";
+    Layout = "_PortalLayout";
+
+    var dog = Model.Dog;
+}
+
+<div class="mb-4">
+
+    <a asp-controller="VetDogs"
+       asp-action="Index"
+       class="public-breadcrumb-link">
+        ← Back to My Dogs
+    </a>
+
+    <h1 class="portal-page-title mt-3 mb-2">
+        @dog.Name
+    </h1>
+
+    <p class="text-muted mb-0">
+        Medical access only.
+    </p>
+
+</div>
+
+@if (TempData["SuccessMessage"] is string successMessage)
+{
+    <div class="alert alert-success"
+         role="alert">
+        @successMessage
+    </div>
+}
+
+@if (TempData["ErrorMessage"] is string errorMessage)
+{
+    <div class="alert alert-danger"
+         role="alert">
+        @errorMessage
+    </div>
+}
+
+<div class="row g-3">
+
+    <div class="col-lg-4">
+
+        <div class="portal-card">
+
+            <h5 class="mb-3">
+                Dog Summary
+            </h5>
+
+            <dl class="row small mb-0">
+
+                <dt class="col-5">
+                    Breed
+                </dt>
+
+                <dd class="col-7">
+                    @(dog.Breed ?? "Mixed breed")
+                </dd>
+
+                <dt class="col-5">
+                    Gender
+                </dt>
+
+                <dd class="col-7">
+                    @dog.Gender
+                </dd>
+
+                <dt class="col-5">
+                    Age
+                </dt>
+
+                <dd class="col-7">
+                    @(dog.EstimatedAgeYears.HasValue
+                        ? $"{dog.EstimatedAgeYears} years"
+                        : "Unknown")
+                </dd>
+
+                <dt class="col-5">
+                    Weight
+                </dt>
+
+                <dd class="col-7">
+                    @(dog.WeightKg.HasValue
+                        ? $"{dog.WeightKg:0.##} kg"
+                        : "Unknown")
+                </dd>
+
+                <dt class="col-5">
+                    Vaccinated
+                </dt>
+
+                <dd class="col-7">
+                    @(dog.IsVaccinated ? "Yes" : "No")
+                </dd>
+
+                <dt class="col-5">
+                    Status
+                </dt>
+
+                <dd class="col-7">
+                    @dog.Status
+                </dd>
+
+            </dl>
+
+        </div>
+
+    </div>
+
+    <div class="col-lg-8">
+
+        <div class="portal-card mb-3">
+
+            <h5 class="mb-3">
+                Medical Records
+            </h5>
+
+            @if (!Model.MedicalRecords.Any())
+            {
+                <p class="text-muted mb-0">
+                    No medical records have been added yet.
+                </p>
+            }
+            else
+            {
+                @foreach (var record in Model.MedicalRecords)
+                {
+                    <div class="vet-medical-record">
+
+                        <div>
+
+                            <strong>
+                                @record.Title
+                            </strong>
+
+                            <div class="text-muted small">
+
+                                @record.RecordType
+
+                                @if (!string.IsNullOrWhiteSpace(record.VetName))
+                                {
+                                    <text> · @record.VetName</text>
+                                }
+
+                                · @record.Status
+
+                            </div>
+
+                            @if (!string.IsNullOrWhiteSpace(record.Details))
+                            {
+                                <div class="small mt-1">
+                                    @record.Details
+                                </div>
+                            }
+
+                            @if (record.NextActionDate.HasValue)
+                            {
+                                <div class="text-muted small mt-1">
+                                    Next action:
+                                    @record.NextActionDate.Value.ToString("dd MMM yyyy")
+                                </div>
+                            }
+
+                        </div>
+
+                        <time class="text-muted small">
+                            @record.CreatedAt.ToString("dd MMM yyyy")
+                        </time>
+
+                    </div>
+                }
+            }
+
+        </div>
+
+        <div class="portal-card">
+
+            <h5 class="mb-3">
+                Add Medical Record
+            </h5>
+
+            <form asp-controller="VetDogs"
+                  asp-action="AddMedicalRecord"
+                  method="post">
+
+                <input type="hidden"
+                       name="dogId"
+                       value="@dog.Id" />
+
+                <div class="row g-3">
+
+                    <div class="col-md-4">
+
+                        <label class="form-label">
+                            Type
+                        </label>
+
+                        <select name="recordType"
+                                class="form-select"
+                                required>
+
+                            @foreach (var type in MedicalRecordTypes.All)
+                            {
+                                <option value="@type">
+                                    @type
+                                </option>
+                            }
+
+                        </select>
+
+                    </div>
+
+                    <div class="col-md-8">
+
+                        <label class="form-label">
+                            Title
+                        </label>
+
+                        <input name="title"
+                               class="form-control"
+                               maxlength="150"
+                               required />
+
+                    </div>
+
+                    <div class="col-12">
+
+                        <label class="form-label">
+                            Details
+                        </label>
+
+                        <textarea name="details"
+                                  class="form-control"
+                                  maxlength="2000"
+                                  rows="3"></textarea>
+
+                    </div>
+
+                    <div class="col-md-6">
+
+                        <label class="form-label">
+                            Next action date
+                        </label>
+
+                        <input type="date"
+                               name="nextActionDate"
+                               class="form-control" />
+
+                    </div>
+
+                </div>
+
+                <button type="submit"
+                        class="btn btn-kzn-primary mt-3">
+                    Add Medical Record
+                </button>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>

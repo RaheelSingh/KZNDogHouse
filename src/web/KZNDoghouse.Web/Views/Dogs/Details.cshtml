@@ -1,0 +1,695 @@
+@model DogDetailsViewModel
+@using KZNDoghouse.Web.Constants
+
+@{
+    ViewData["Title"] = Model.Dog.Name;
+    Layout = "_PortalLayout";
+
+    var dog = Model.Dog;
+
+    var imageUrls = Model.Images
+        .Select(x => x.PublicUrl)
+        .Where(x => !string.IsNullOrWhiteSpace(x))
+        .ToList();
+}
+
+<div class="mb-3">
+    <a asp-controller="Dogs"
+       asp-action="Index"
+       class="text-muted small">
+        &larr; Dogs
+    </a>
+</div>
+
+@if (TempData["SuccessMessage"] is string successMessage)
+{
+    <div class="alert alert-success" role="alert">
+        @successMessage
+    </div>
+}
+
+@if (TempData["ErrorMessage"] is string errorMessage)
+{
+    <div class="alert alert-danger" role="alert">
+        @errorMessage
+    </div>
+}
+
+<div class="dog-detail-layout">
+
+    <aside class="dog-detail-summary">
+
+        <div class="portal-card dog-detail-summary-card">
+
+            <partial name="_DogGallery"
+                     model="@(new DogGalleryViewModel
+                     {
+                         DogName = dog.Name,
+                         Initial = string.IsNullOrWhiteSpace(dog.Name)
+                             ? "?"
+                             : dog.Name[..1].ToUpperInvariant(),
+                         ImageUrls = imageUrls.Count > 0
+                             ? imageUrls
+                             : string.IsNullOrWhiteSpace(dog.PhotoUrl)
+                                 ? Array.Empty<string>()
+                                 : new[] { dog.PhotoUrl },
+                         Variant = "portal",
+                         AutoPlay = false
+                     })" />
+
+            <div class="text-center mt-3">
+
+                <h3 class="dog-detail-name mb-1">
+                    @dog.Name
+                </h3>
+
+                <p class="text-muted mb-2">
+                    @(dog.Breed ?? "Mixed breed")
+                    @if (dog.EstimatedAgeYears.HasValue)
+                    {
+                        <text> · @dog.EstimatedAgeYears years</text>
+                    }
+                    · @dog.Gender
+                </p>
+
+                <partial name="_DogStatusBadge"
+                         model="@dog.Status" />
+
+            </div>
+
+            <hr />
+
+            <dl class="dog-detail-facts mb-0">
+
+                <div>
+                    <dt>Size</dt>
+                    <dd>@(dog.Size ?? "—")</dd>
+                </div>
+
+                <div>
+                    <dt>Weight</dt>
+                    <dd>
+                        @(dog.WeightKg.HasValue
+                            ? $"{dog.WeightKg:0.#} kg"
+                            : "—")
+                    </dd>
+                </div>
+
+                <div>
+                    <dt>Kennel</dt>
+                    <dd>@(dog.KennelLocation ?? "—")</dd>
+                </div>
+
+                <div>
+                    <dt>Intake date</dt>
+                    <dd>@dog.IntakeDate.ToString("dd MMM yyyy")</dd>
+                </div>
+
+                <div>
+                    <dt>Intake type</dt>
+                    <dd>@(dog.IntakeType ?? "—")</dd>
+                </div>
+
+                <div>
+                    <dt>Vaccinated</dt>
+                    <dd>@(dog.IsVaccinated ? "Yes" : "No")</dd>
+                </div>
+
+            </dl>
+
+            <a asp-controller="Dogs"
+               asp-action="Edit"
+               asp-route-id="@dog.Id"
+               class="btn btn-kzn-outline btn-sm mt-3 w-100">
+                Edit profile
+            </a>
+
+        </div>
+
+    </aside>
+
+    <section class="dog-detail-workspace">
+
+        <ul class="nav nav-tabs dog-detail-tabs"
+            role="tablist">
+
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active"
+                        id="about-tab-button"
+                        data-bs-toggle="tab"
+                        data-bs-target="#about-tab"
+                        type="button"
+                        role="tab"
+                        aria-controls="about-tab"
+                        aria-selected="true">
+                    About
+                </button>
+            </li>
+
+            <li class="nav-item" role="presentation">
+                <button class="nav-link"
+                        id="medical-tab-button"
+                        data-bs-toggle="tab"
+                        data-bs-target="#medical-tab"
+                        type="button"
+                        role="tab"
+                        aria-controls="medical-tab"
+                        aria-selected="false">
+                    Medical
+                </button>
+            </li>
+
+            <li class="nav-item" role="presentation">
+                <button class="nav-link"
+                        id="fostering-tab-button"
+                        data-bs-toggle="tab"
+                        data-bs-target="#fostering-tab"
+                        type="button"
+                        role="tab"
+                        aria-controls="fostering-tab"
+                        aria-selected="false">
+                    Fostering
+                </button>
+            </li>
+
+            <li class="nav-item" role="presentation">
+                <button class="nav-link"
+                        id="photos-tab-button"
+                        data-bs-toggle="tab"
+                        data-bs-target="#photos-tab"
+                        type="button"
+                        role="tab"
+                        aria-controls="photos-tab"
+                        aria-selected="false">
+                    Photos
+                    @if (Model.Images.Any())
+                    {
+                        <span class="dog-detail-tab-count">
+                            @Model.Images.Count
+                        </span>
+                    }
+                </button>
+            </li>
+
+        </ul>
+
+        <div class="tab-content dog-detail-tab-content">
+
+            <div class="tab-pane fade show active"
+                 id="about-tab"
+                 role="tabpanel"
+                 aria-labelledby="about-tab-button"
+                 tabindex="0">
+
+                <div class="portal-card mb-3">
+
+                    <h5 class="kzn-card-title">
+                        About @dog.Name
+                    </h5>
+
+                    <p class="mb-0">
+                        @(dog.About ?? "No description added yet.")
+                    </p>
+
+                    @if (!string.IsNullOrWhiteSpace(dog.Temperament))
+                    {
+                        <p class="text-muted mt-2 mb-0">
+                            Temperament: @dog.Temperament
+                        </p>
+                    }
+
+                </div>
+
+                <div class="portal-card">
+
+                    <h5 class="kzn-card-title">
+                        Staff notes
+                    </h5>
+
+                    @if (!Model.Notes.Any())
+                    {
+                        <p class="text-muted small mb-3">
+                            No staff notes yet.
+                        </p>
+                    }
+                    else
+                    {
+                        <div class="dog-detail-record-list">
+                            @foreach (var note in Model.Notes)
+                            {
+                                <div class="dog-detail-record">
+                                    <div>@note.Note</div>
+                                    <div class="text-muted small mt-1">
+                                        @note.CreatedAt.ToString("dd MMM yyyy HH:mm")
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    <form asp-controller="Dogs"
+                          asp-action="AddNote"
+                          method="post"
+                          class="dog-detail-note-form">
+
+                        <input type="hidden"
+                               name="dogId"
+                               value="@dog.Id" />
+
+                        <input name="note"
+                               class="form-control"
+                               placeholder="Log a staff note about @dog.Name..."
+                               required />
+
+                        <button type="submit"
+                                class="btn btn-kzn-primary">
+                            Save note
+                        </button>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+            <div class="tab-pane fade"
+                 id="medical-tab"
+                 role="tabpanel"
+                 aria-labelledby="medical-tab-button"
+                 tabindex="0">
+
+                <div class="portal-card mb-3">
+
+                    <h5 class="kzn-card-title">
+                        Medical records
+                    </h5>
+
+                    @if (!Model.MedicalRecords.Any())
+                    {
+                        <p class="text-muted mb-0">
+                            No medical records yet.
+                        </p>
+                    }
+                    else
+                    {
+                        <div class="dog-detail-record-list">
+
+                            @foreach (var record in Model.MedicalRecords)
+                            {
+                                <div class="dog-detail-record dog-detail-medical-record">
+
+                                    <div>
+
+                                        <div class="fw-semibold">
+                                            @record.Title
+                                        </div>
+
+                                        <div class="text-muted small">
+
+                                            @record.RecordType
+
+                                            @if (!string.IsNullOrWhiteSpace(record.VetName))
+                                            {
+                                                <text> · @record.VetName</text>
+                                            }
+
+                                            @if (record.NextActionDate.HasValue)
+                                            {
+                                                <text>
+                                                    · due @record.NextActionDate.Value.ToString("dd MMM")
+                                                </text>
+                                            }
+
+                                        </div>
+
+                                        @if (!string.IsNullOrWhiteSpace(record.Details))
+                                        {
+                                            <div class="small mt-1">
+                                                @record.Details
+                                            </div>
+                                        }
+
+                                    </div>
+
+                                    <div class="text-end">
+
+                                        <span class="kzn-status-badge @(record.Status == MedicalRecordStatuses.Active ? "kzn-status-under-treatment" : "kzn-status-available")">
+                                            @record.Status
+                                        </span>
+
+                                        @if (record.Status == MedicalRecordStatuses.Active)
+                                        {
+                                            <form asp-controller="Dogs"
+                                                  asp-action="ResolveMedicalRecord"
+                                                  method="post"
+                                                  class="mt-2">
+
+                                                <input type="hidden"
+                                                       name="dogId"
+                                                       value="@dog.Id" />
+
+                                                <input type="hidden"
+                                                       name="recordId"
+                                                       value="@record.Id" />
+
+                                                <button type="submit"
+                                                        class="btn btn-kzn-outline btn-sm">
+                                                    Mark resolved
+                                                </button>
+
+                                            </form>
+                                        }
+
+                                    </div>
+
+                                </div>
+                            }
+
+                        </div>
+                    }
+
+                </div>
+
+                <div class="portal-card">
+
+                    <h5 class="kzn-card-title">
+                        Log a new medical record
+                    </h5>
+
+                    <form asp-controller="Dogs"
+                          asp-action="AddMedicalRecord"
+                          method="post">
+
+                        <input type="hidden"
+                               name="dogId"
+                               value="@dog.Id" />
+
+                        <div class="row g-3">
+
+                            <div class="col-md-4">
+
+                                <label class="form-label">
+                                    Type
+                                </label>
+
+                                <select name="recordType"
+                                        class="form-select">
+
+                                    @foreach (var type in MedicalRecordTypes.All)
+                                    {
+                                        <option value="@type">
+                                            @type
+                                        </option>
+                                    }
+
+                                </select>
+
+                            </div>
+
+                            <div class="col-md-8">
+
+                                <label class="form-label">
+                                    Title
+                                </label>
+
+                                <input name="title"
+                                       class="form-control"
+                                       required />
+
+                            </div>
+
+                            <div class="col-md-6">
+
+                                <label class="form-label">
+                                    Vet name
+                                </label>
+
+                                <input name="vetName"
+                                       class="form-control" />
+
+                            </div>
+
+                            <div class="col-md-6">
+
+                                <label class="form-label">
+                                    Next action date
+                                </label>
+
+                                <input type="date"
+                                       name="nextActionDate"
+                                       class="form-control" />
+
+                            </div>
+
+                            <div class="col-12">
+
+                                <label class="form-label">
+                                    Details
+                                </label>
+
+                                <textarea name="details"
+                                          class="form-control"
+                                          rows="2"></textarea>
+
+                            </div>
+
+                        </div>
+
+                        <button type="submit"
+                                class="btn btn-kzn-primary mt-3">
+                            Add record
+                        </button>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+            <div class="tab-pane fade"
+                 id="fostering-tab"
+                 role="tabpanel"
+                 aria-labelledby="fostering-tab-button"
+                 tabindex="0">
+
+                <div class="portal-card">
+
+                    <h5 class="kzn-card-title">
+                        Fostering history
+                    </h5>
+
+                    @if (!Model.FosteringHistory.Any())
+                    {
+                        <p class="text-muted mb-0">
+                            No fostering history yet.
+                        </p>
+                    }
+                    else
+                    {
+                        <div class="dog-detail-record-list">
+
+                            @foreach (var record in Model.FosteringHistory)
+                            {
+                                <div class="dog-detail-record dog-detail-fostering-record">
+
+                                    <div class="small">
+
+                                        <div class="fw-semibold">
+                                            @(record.FosterName ?? "Unnamed foster")
+                                        </div>
+
+                                        <div class="text-muted">
+                                            @record.StartDate.ToString("dd MMM yyyy")
+                                            – @(record.EndDate?.ToString("dd MMM yyyy") ?? "ongoing")
+                                            · @record.Status
+                                        </div>
+
+                                        @if (!string.IsNullOrWhiteSpace(record.Feedback))
+                                        {
+                                            <div class="mt-1">
+                                                @record.Feedback
+                                            </div>
+                                        }
+
+                                    </div>
+
+                                    @if (record.Status == FosteringRecordStatuses.Active)
+                                    {
+                                        <form asp-controller="Dogs"
+                                              asp-action="ReturnFromFostering"
+                                              method="post"
+                                              class="dog-detail-return-form">
+
+                                            <input type="hidden"
+                                                   name="dogId"
+                                                   value="@dog.Id" />
+
+                                            <input type="hidden"
+                                                   name="fosteringRecordId"
+                                                   value="@record.Id" />
+
+                                            <input name="feedback"
+                                                   class="form-control form-control-sm"
+                                                   placeholder="Return feedback (optional)" />
+
+                                            <button type="submit"
+                                                    class="btn btn-kzn-outline btn-sm">
+                                                Mark returned
+                                            </button>
+
+                                        </form>
+                                    }
+
+                                </div>
+                            }
+
+                        </div>
+                    }
+
+                </div>
+
+            </div>
+
+            <div class="tab-pane fade"
+                 id="photos-tab"
+                 role="tabpanel"
+                 aria-labelledby="photos-tab-button"
+                 tabindex="0">
+
+                <div class="portal-card">
+
+                    <div class="dog-photo-manager-head">
+
+                        <div>
+                            <h5 class="kzn-card-title mb-1">
+                                Dog photos
+                            </h5>
+                            <p class="text-muted small mb-0">
+                                Upload up to 10 images. The primary image is shown first across the site.
+                            </p>
+                        </div>
+
+                        <span class="portal-summary-chip">
+                            @Model.Images.Count / 10 images
+                        </span>
+
+                    </div>
+
+                    <form asp-controller="Dogs"
+                          asp-action="UploadImages"
+                          method="post"
+                          enctype="multipart/form-data"
+                          class="dog-photo-upload-form"
+                          data-submit-once="true">
+
+                        <input type="hidden"
+                               name="dogId"
+                               value="@dog.Id" />
+
+                        <div class="dog-photo-upload-control">
+
+                            <input type="file"
+                                   name="images"
+                                   class="form-control"
+                                   accept="image/jpeg,image/png,image/webp"
+                                   multiple
+                                   required />
+
+                            <button type="submit"
+                                    class="btn btn-kzn-primary">
+                                Upload photos
+                            </button>
+
+                        </div>
+
+                        <div class="form-text">
+                            JPG, PNG or WebP. Maximum 5 MB per image.
+                        </div>
+
+                    </form>
+
+                    @if (!Model.Images.Any())
+                    {
+                        <div class="dog-photo-empty">
+                            No uploaded photos yet.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="portal-image-manager dog-photo-manager-grid">
+
+                            @foreach (var image in Model.Images)
+                            {
+                                <article class="portal-image-manager-item">
+
+                                    <img src="@image.PublicUrl"
+                                         alt="@(image.AltText ?? $"Photo of {dog.Name}")"
+                                         loading="lazy" />
+
+                                    <div class="portal-image-manager-actions">
+
+                                        @if (image.IsPrimary)
+                                        {
+                                            <span class="dog-photo-primary-label">
+                                                Primary
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <form asp-controller="Dogs"
+                                                  asp-action="SetPrimaryImage"
+                                                  method="post">
+
+                                                <input type="hidden"
+                                                       name="dogId"
+                                                       value="@dog.Id" />
+
+                                                <input type="hidden"
+                                                       name="imageId"
+                                                       value="@image.Id" />
+
+                                                <button type="submit"
+                                                        class="btn btn-kzn-outline btn-sm">
+                                                    Set primary
+                                                </button>
+
+                                            </form>
+                                        }
+
+                                        <form asp-controller="Dogs"
+                                              asp-action="DeleteImage"
+                                              method="post"
+                                              onsubmit="return confirm('Remove this image?');">
+
+                                            <input type="hidden"
+                                                   name="dogId"
+                                                   value="@dog.Id" />
+
+                                            <input type="hidden"
+                                                   name="imageId"
+                                                   value="@image.Id" />
+
+                                            <button type="submit"
+                                                    class="btn btn-outline-danger btn-sm">
+                                                Remove
+                                            </button>
+
+                                        </form>
+
+                                    </div>
+
+                                </article>
+                            }
+
+                        </div>
+                    }
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+</div>

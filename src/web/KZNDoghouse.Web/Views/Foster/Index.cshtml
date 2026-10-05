@@ -1,0 +1,141 @@
+@model FosterPageViewModel
+
+@{
+    ViewData["Title"] = "Foster";
+
+    var noDogsMessage = new PublicMessageViewModel
+    {
+        Title = "No dogs need a foster home right now",
+        Message = "Please check back soon, or apply and we will match you when a dog needs you."
+    };
+
+    var fosterDogs = Model.NeedFosterDogs.Take(4).ToList();
+}
+
+<section class="public-hero public-paw-stage">
+    <partial name="_PublicPawTrail" model="@("public-paw-hero-right")" />
+    <div class="container">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-6">
+                <p class="public-eyebrow">Foster Programme</p>
+                <h1 class="public-hero-title">Open your home.<br />Not forever - just<br />for now.</h1>
+                <p class="public-hero-text mt-4">Fostering gives a dog somewhere safe to land while they wait for their forever family. We cover the costs &mdash; you bring the couch space and the love.</p>
+                <div class="mt-4 d-flex flex-wrap gap-3">
+                    <a asp-action="Apply" class="btn btn-kzn-primary">Apply to Foster</a>
+                    <a asp-controller="PublicDogs" asp-action="Index" asp-route-status="ready" class="btn btn-kzn-outline">See Dogs Needing Foster</a>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="public-hero-media public-dog-cycle" data-dog-cycle data-dog-cycle-interval="7000">
+                    @if (fosterDogs.Count > 0)
+                    {
+                        <div class="public-dog-cycle-frame-wrap">
+                            @for (var index = 0; index < fosterDogs.Count; index++)
+                            {
+                                var dog = fosterDogs[index];
+                                var active = index == 0;
+                                <a asp-controller="PublicDogs" asp-action="Details" asp-route-id="@dog.Id" class="public-dog-cycle-frame @(active ? "is-active" : string.Empty)" data-dog-frame aria-hidden="@(active ? "false" : "true")">
+                                    @if (!string.IsNullOrWhiteSpace(dog.PhotoUrl))
+                                    {
+                                        <img class="public-dog-cycle-photo" src="@dog.PhotoUrl" alt="Photo of @dog.Name" loading="lazy" />
+                                    }
+                                    else
+                                    {
+                                        <div class="public-dog-cycle-placeholder">@dog.Initial</div>
+                                    }
+                                </a>
+                            }
+                        </div>
+
+                        @for (var index = 0; index < fosterDogs.Count; index++)
+                        {
+                            var dog = fosterDogs[index];
+                            var active = index == 0;
+                            <a asp-controller="PublicDogs" asp-action="Details" asp-route-id="@dog.Id" class="public-float-card public-float-card-tailored @(active ? "is-active" : string.Empty)" data-dog-caption aria-hidden="@(active ? "false" : "true")">
+                                <strong>@dog.Name needs a foster home</strong>
+                                <span>@dog.MetaText &middot; @dog.StatusLabel</span>
+                            </a>
+                        }
+                    }
+                    else
+                    {
+                        <div class="public-hero-photo" role="img" aria-label="Dogs needing foster">Dogs needing foster</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="public-section public-after-hero">
+    <div class="container">
+        <div class="row g-3">
+            <div class="col-md-4"><div class="public-info-tile"><h2>Food &amp; supplies</h2><p>Provided for the full duration of the foster</p></div></div>
+            <div class="col-md-4"><div class="public-info-tile"><h2>Vet care</h2><p>All medical costs stay covered by the shelter</p></div></div>
+            <div class="col-md-4"><div class="public-info-tile"><h2>Support on call</h2><p>Our team is a WhatsApp message away, always</p></div></div>
+        </div>
+    </div>
+</section>
+
+<section class="public-section public-paw-stage">
+    <partial name="_PublicPawTrail" model="@("public-paw-mid-right")" />
+    <div class="container">
+        <div class="public-section-head"><div><h2 class="public-section-title">How fostering works</h2><p class="public-section-text">From application to drop-off, here's exactly what happens.</p></div></div>
+        <ol class="public-steps">
+            <li><span class="public-step-number">01</span><h3>Apply</h3><p>Tell us about your home, your household and the kind of dog you could foster &mdash; size, energy level, and how long you can commit.</p></li>
+            <li><span class="public-step-number">02</span><h3>Home check</h3><p>A quick visit or video call so we can make sure your space works safely for a foster dog, especially if you have kids or other pets.</p></li>
+            <li><span class="public-step-number">03</span><h3>Matching</h3><p>We match you with a dog whose needs fit your home &mdash; whether that's a calm senior or a bouncy pup that needs training basics.</p></li>
+            <li><span class="public-step-number">04</span><h3>Fostering</h3><p>The dog moves in. We stay in touch throughout, cover vet visits, and help with anything that comes up.</p></li>
+            <li><span class="public-step-number">05</span><h3>Handover</h3><p>When the dog is adopted, we handle the handover &mdash; and you're first in line to foster again whenever you're ready.</p></li>
+        </ol>
+    </div>
+</section>
+
+<section class="public-section pt-0"><div class="container"><div class="public-banner"><div><h2>Dogs are waiting for a foster home right now</h2><p>Some just need a few weeks to recover. Others just need somewhere to wait for adoption day.</p></div><a asp-controller="PublicDogs" asp-action="Index" asp-route-status="ready" class="btn btn-kzn-outline-light">See Who Needs Foster</a></div></div></section>
+
+<section class="public-section public-section-alt public-grass-bg public-paw-stage">
+    <partial name="_PublicPawTrail" model="@("public-paw-mid-left")" />
+    <div class="container">
+        <div class="public-section-head"><div><h2 class="public-section-title">What you'll need</h2><p class="public-section-text">Fostering is flexible, but a few basics keep every dog safe.</p></div></div>
+        <div class="row g-3">
+            <div class="col-md-6"><div class="public-check-card"><span class="public-check-mark" aria-hidden="true">&#10003;</span><p><strong>A secure home or yard</strong> &mdash; fully fenced, or a safe indoor space if you're in an apartment.</p></div></div>
+            <div class="col-md-6"><div class="public-check-card"><span class="public-check-mark" aria-hidden="true">&#10003;</span><p><strong>Time to settle a dog in</strong> &mdash; especially in the first few days after they arrive.</p></div></div>
+            <div class="col-md-6"><div class="public-check-card"><span class="public-check-mark" aria-hidden="true">&#10003;</span><p><strong>Transport</strong> to and from the shelter for vet visits, or a willingness to arrange a lift.</p></div></div>
+            <div class="col-md-6"><div class="public-check-card"><span class="public-check-mark" aria-hidden="true">&#10003;</span><p><strong>Patience</strong> &mdash; rescue dogs are adjusting too, and every one settles at their own pace.</p></div></div>
+        </div>
+    </div>
+</section>
+
+<section class="public-section public-section-dark public-grass-bg">
+    <div class="container">
+        <div class="public-section-head"><div><h2 class="public-section-title">Dogs who need a foster right now</h2><p class="public-section-text">These dogs are ready to move into foster care today.</p></div></div>
+        @if (Model.NeedFosterDogs.Count == 0)
+        {
+            <partial name="_PublicEmptyState" model="noDogsMessage" />
+        }
+        else
+        {
+            <div class="row g-4">
+                @foreach (var dog in Model.NeedFosterDogs)
+                {
+                    <div class="col-sm-6 col-lg-3"><partial name="_PublicDogCard" model="dog" /></div>
+                }
+            </div>
+        }
+    </div>
+</section>
+
+<section class="public-section public-paw-stage">
+    <partial name="_PublicPawTrail" model="@("public-paw-bottom-right")" />
+    <div class="container">
+        <h2 class="public-section-title mb-4">Common questions</h2>
+        <dl class="public-faq">
+            <div><dt>How long does a foster placement last?</dt><dd>It varies &mdash; anywhere from a couple of weeks for a post-op recovery to a few months while we find the right adopter. We'll always be upfront about the expected timeline before you commit.</dd></div>
+            <div><dt>Do I need to have fostered before?</dt><dd>No. Most of our fosters are first-timers. We match you with a dog suited to your experience level and support you the whole way through.</dd></div>
+            <div><dt>What if it isn't working out?</dt><dd>Just call us. We'll always take a foster dog back if the placement isn't a fit &mdash; no questions, no guilt.</dd></div>
+            <div><dt>Can I adopt my foster dog?</dt><dd>Absolutely &mdash; it happens often. If you and your foster dog are a match, we'll fast-track the adoption process for you.</dd></div>
+        </dl>
+        <div class="public-cta-card"><h2>Ready to open your door?</h2><p>Applications take about ten minutes. We'll be in touch within 48 hours to arrange your home check.</p><a asp-action="Apply" class="btn btn-kzn-outline-light">Apply to Foster</a></div>
+    </div>
+</section>
