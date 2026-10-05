@@ -8,21 +8,13 @@
 }
 
 <nav class="navbar navbar-expand-lg public-navbar">
-
     <div class="container">
-
         <a class="navbar-brand public-brand"
            asp-controller="Home"
            asp-action="Index">
-
-            <img src="~/images/KZNDoghouseLogo.png"
-                 alt="KZN Doghouse logo"
-                 width="44"
-                 height="44"
-                 class="public-brand-logo" />
-
+            <img src="~/images/public/kzn-logo.png"
+                 alt="KZN Doghouse logo" />
             <span>@PublicSiteInfo.Name</span>
-
         </a>
 
         <button class="navbar-toggler"
@@ -32,110 +24,72 @@
                 aria-controls="publicNavbar"
                 aria-expanded="false"
                 aria-label="Toggle navigation">
-
             <span class="navbar-toggler-icon"></span>
-
         </button>
 
-        <div class="collapse navbar-collapse"
-             id="publicNavbar">
-
+        <div class="collapse navbar-collapse" id="publicNavbar">
             <ul class="navbar-nav ms-auto align-items-lg-center">
-
                 <li class="nav-item">
-                    <a class="nav-link@(Active("Home"))"
-                       asp-controller="Home"
-                       asp-action="Index">
-                        Home
+                    <a class="nav-link@(Active("Home"))" asp-controller="Home" asp-action="Index">
+                        <img class="public-nav-paw" src="~/images/public/paw-icon.png" alt="" aria-hidden="true" />
+                        <span>Home</span>
                     </a>
                 </li>
-
                 <li class="nav-item">
-                    <a class="nav-link@(Active("Foster"))"
-                       asp-controller="Foster"
-                       asp-action="Index">
-                        Foster
+                    <a class="nav-link@(Active("Foster"))" asp-controller="Foster" asp-action="Index">
+                        <img class="public-nav-paw" src="~/images/public/paw-icon.png" alt="" aria-hidden="true" />
+                        <span>Foster</span>
                     </a>
                 </li>
-
                 <li class="nav-item">
-                    <a class="nav-link@(Active("GetInvolved"))"
-                       asp-controller="GetInvolved"
-                       asp-action="Index">
-                        Get Involved
+                    <a class="nav-link@(Active("GetInvolved"))" asp-controller="GetInvolved" asp-action="Index">
+                        <img class="public-nav-paw" src="~/images/public/paw-icon.png" alt="" aria-hidden="true" />
+                        <span>Get Involved</span>
                     </a>
                 </li>
-
                 <li class="nav-item">
-                    <a class="nav-link@(Active("Events"))"
-                       asp-controller="Events"
-                       asp-action="Index">
-                        Events
+                    <a class="nav-link@(Active("Events"))" asp-controller="Events" asp-action="Index">
+                        <img class="public-nav-paw" src="~/images/public/paw-icon.png" alt="" aria-hidden="true" />
+                        <span>Events</span>
                     </a>
                 </li>
-
                 <li class="nav-item">
-                    <a class="nav-link@(Active("PublicDogs"))"
-                       asp-controller="PublicDogs"
-                       asp-action="Index">
-                        Dogs
+                    <a class="nav-link@(Active("PublicDogs"))" asp-controller="PublicDogs" asp-action="Index">
+                        <img class="public-nav-paw" src="~/images/public/paw-icon.png" alt="" aria-hidden="true" />
+                        <span>Dogs</span>
                     </a>
                 </li>
-
                 <li class="nav-item">
-                    <a class="nav-link@(Active("Contact"))"
-                       asp-controller="Contact"
-                       asp-action="Index">
-                        Contact
+                    <a class="nav-link@(Active("Contact"))" asp-controller="Contact" asp-action="Index">
+                        <img class="public-nav-paw" src="~/images/public/paw-icon.png" alt="" aria-hidden="true" />
+                        <span>Contact</span>
                     </a>
                 </li>
 
                 @if (User.Identity?.IsAuthenticated == true)
                 {
-                    @if (User.IsInRole(UserRoles.Staff)
-                        || User.IsInRole(UserRoles.Administrator))
+                    @if (User.IsInRole(UserRoles.Staff) || User.IsInRole(UserRoles.Administrator))
                     {
                         <li class="nav-item">
-                            <a class="nav-link"
-                               asp-controller="Portal"
-                               asp-action="Index">
-                                Portal
+                            <a class="nav-link" asp-controller="Portal" asp-action="Index">
+                                <img class="public-nav-paw" src="~/images/public/paw-icon.png" alt="" aria-hidden="true" />
+                                <span>Portal</span>
                             </a>
                         </li>
                     }
-
                     <li class="nav-item ms-lg-3">
-
-                        <form asp-controller="Auth"
-                              asp-action="Logout"
-                              method="post">
-
-                            <button type="submit"
-                                    class="public-sign-in">
-                                Log out
-                            </button>
-
+                        <form asp-controller="Auth" asp-action="Logout" method="post">
+                            <button type="submit" class="public-sign-in">Log out</button>
                         </form>
-
                     </li>
                 }
                 else
                 {
                     <li class="nav-item ms-lg-3">
-
-                        <a class="public-sign-in"
-                           asp-controller="Auth"
-                           asp-action="Login">
-                            Sign In
-                        </a>
-
+                        <a class="public-sign-in" asp-controller="Auth" asp-action="Login">Sign In</a>
                     </li>
                 }
-
             </ul>
-
         </div>
-
     </div>
-
 </nav>

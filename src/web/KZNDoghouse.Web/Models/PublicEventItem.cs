@@ -25,11 +25,14 @@ public class PublicEventItem
 
     public string TimeText => EventTimeHelper.FormatTimeRange(StartAt, EndAt);
 
-    public string MonthText => StartAt.ToString("MMM", CultureInfo.InvariantCulture);
+    public string MonthText =>
+        StartAt.ToString("MMM", CultureInfo.InvariantCulture);
 
-    public string DayText => StartAt.ToString("dd", CultureInfo.InvariantCulture);
+    public string DayText =>
+        StartAt.ToString("dd", CultureInfo.InvariantCulture);
 
-    public string FullDateText => StartAt.ToString("d MMM yyyy", CultureInfo.InvariantCulture);
+    public string FullDateText =>
+        StartAt.ToString("d MMM yyyy", CultureInfo.InvariantCulture);
 
     public static PublicEventItem FromEvent(CalendarEvent calendarEvent)
     {

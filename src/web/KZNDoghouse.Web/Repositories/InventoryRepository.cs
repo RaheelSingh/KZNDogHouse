@@ -6,23 +6,12 @@ namespace KZNDoghouse.Web.Repositories;
 public interface IInventoryRepository
 {
     Task<IReadOnlyList<InventoryItem>> GetAllItemsAsync();
-
     Task<InventoryItem?> GetItemByIdAsync(Guid id);
-
     Task<InventoryItem> CreateItemAsync(InventoryItem item);
-
-    Task UpdateItemQuantityAsync(
-        Guid itemId,
-        int newQuantity);
-
-    Task UpdateItemImageAsync(
-        Guid itemId,
-        string? imagePath,
-        string? imageUrl);
-
-    Task<InventoryTransaction> CreateTransactionAsync(
-        InventoryTransaction transaction);
-
+    Task UpdateItemQuantityAsync(Guid itemId, int newQuantity);
+    Task UpdateItemDetailsAsync(Guid itemId, string name, string? category, string? unit, int lowStockThreshold);
+    Task UpdateItemImageAsync(Guid itemId, string? imagePath, string? imageUrl);
+    Task<InventoryTransaction> CreateTransactionAsync(InventoryTransaction transaction);
     Task<IReadOnlyList<InventoryTransaction>> GetAllTransactionsAsync();
 }
 
@@ -30,83 +19,70 @@ public class InventoryRepository : IInventoryRepository
 {
     private readonly ISupabaseClientFactory _supabaseClientFactory;
 
-    public InventoryRepository(
-        ISupabaseClientFactory supabaseClientFactory)
+    public InventoryRepository(ISupabaseClientFactory supabaseClientFactory)
     {
         _supabaseClientFactory = supabaseClientFactory;
     }
 
     public async Task<IReadOnlyList<InventoryItem>> GetAllItemsAsync()
     {
-        var client =
-            await _supabaseClientFactory.CreateServiceClientAsync();
-
-        var response = await client
-            .From<InventoryItem>()
-            .Get();
+        var client = await _supabaseClientFactory.CreateServiceClientAsync();
+        var response = await client.From<InventoryItem>().Get();
 
         if (response.Models == null)
         {
             return Array.Empty<InventoryItem>();
         }
 
-        return response.Models
-            .OrderBy(x => x.Name)
-            .ToList();
+        return response.Models.OrderBy(x => x.Name).ToList();
     }
 
-    public async Task<InventoryItem?> GetItemByIdAsync(
-        Guid id)
+    public async Task<InventoryItem?> GetItemByIdAsync(Guid id)
     {
-        var client =
-            await _supabaseClientFactory.CreateServiceClientAsync();
-
-        var response = await client
-            .From<InventoryItem>()
-            .Where(x => x.Id == id)
-            .Get();
-
+        var client = await _supabaseClientFactory.CreateServiceClientAsync();
+        var response = await client.From<InventoryItem>().Where(x => x.Id == id).Get();
         return response.Models?.FirstOrDefault();
     }
 
-    public async Task<InventoryItem> CreateItemAsync(
-        InventoryItem item)
+    public async Task<InventoryItem> CreateItemAsync(InventoryItem item)
     {
-        var client =
-            await _supabaseClientFactory.CreateServiceClientAsync();
-
-        var response = await client
-            .From<InventoryItem>()
-            .Insert(item);
-
+        var client = await _supabaseClientFactory.CreateServiceClientAsync();
+        var response = await client.From<InventoryItem>().Insert(item);
         return response.Models.First();
     }
 
-    public async Task UpdateItemQuantityAsync(
-        Guid itemId,
-        int newQuantity)
+    public async Task UpdateItemQuantityAsync(Guid itemId, int newQuantity)
     {
-        var client =
-            await _supabaseClientFactory.CreateServiceClientAsync();
-
-        await client
-            .From<InventoryItem>()
+        var client = await _supabaseClientFactory.CreateServiceClientAsync();
+        await client.From<InventoryItem>()
             .Where(x => x.Id == itemId)
             .Set(x => x.Quantity, newQuantity)
             .Set(x => x.UpdatedAt!, DateTime.UtcNow)
             .Update();
     }
 
-    public async Task UpdateItemImageAsync(
+    public async Task UpdateItemDetailsAsync(
         Guid itemId,
-        string? imagePath,
-        string? imageUrl)
+        string name,
+        string? category,
+        string? unit,
+        int lowStockThreshold)
     {
-        var client =
-            await _supabaseClientFactory.CreateServiceClientAsync();
+        var client = await _supabaseClientFactory.CreateServiceClientAsync();
+        await client.From<InventoryItem>()
+            .Where(x => x.Id == itemId)
+            .Set(x => x.Name, name)
+            .Set(x => x.Category!, category)
+            .Set(x => x.Unit!, unit)
+            .Set(x => x.LowStockThreshold, lowStockThreshold)
+            .Set(x => x.UpdatedAt!, DateTime.UtcNow)
+            .Update();
+    }
 
-        await client
-            .From<InventoryItem>()
+    public async Task UpdateItemImageAsync(Guid itemId, string? imagePath, string? imageUrl)
+    {
+        var client = await _supabaseClientFactory.CreateServiceClientAsync();
+        await client.From<InventoryItem>()
             .Where(x => x.Id == itemId)
             .Set(x => x.ImagePath!, imagePath)
             .Set(x => x.ImageUrl!, imageUrl)
@@ -114,36 +90,23 @@ public class InventoryRepository : IInventoryRepository
             .Update();
     }
 
-    public async Task<InventoryTransaction> CreateTransactionAsync(
-        InventoryTransaction transaction)
+    public async Task<InventoryTransaction> CreateTransactionAsync(InventoryTransaction transaction)
     {
-        var client =
-            await _supabaseClientFactory.CreateServiceClientAsync();
-
-        var response = await client
-            .From<InventoryTransaction>()
-            .Insert(transaction);
-
+        var client = await _supabaseClientFactory.CreateServiceClientAsync();
+        var response = await client.From<InventoryTransaction>().Insert(transaction);
         return response.Models.First();
     }
 
-    public async Task<IReadOnlyList<InventoryTransaction>>
-        GetAllTransactionsAsync()
+    public async Task<IReadOnlyList<InventoryTransaction>> GetAllTransactionsAsync()
     {
-        var client =
-            await _supabaseClientFactory.CreateServiceClientAsync();
-
-        var response = await client
-            .From<InventoryTransaction>()
-            .Get();
+        var client = await _supabaseClientFactory.CreateServiceClientAsync();
+        var response = await client.From<InventoryTransaction>().Get();
 
         if (response.Models == null)
         {
             return Array.Empty<InventoryTransaction>();
         }
 
-        return response.Models
-            .OrderByDescending(x => x.TransactionDate)
-            .ToList();
+        return response.Models.OrderByDescending(x => x.TransactionDate).ToList();
     }
 }

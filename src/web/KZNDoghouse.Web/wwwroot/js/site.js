@@ -617,3 +617,166 @@ document.addEventListener("DOMContentLoaded", () => {
         sync();
     });
 });
+
+
+// Public site motion and interactive event history.
+document.addEventListener("DOMContentLoaded", () => {
+    initPublicReveal();
+    initPublicDogCycles();
+    initPublicEventExplorer();
+    initPublicEventHeroSlideshow();
+});
+
+function initPublicReveal() {
+    const targets = document.querySelectorAll([
+        ".public-section",
+        ".public-banner",
+        ".public-stat-card",
+        ".public-pillar-card",
+        ".public-dog-card",
+        ".public-way-card",
+        ".public-info-tile",
+        ".public-check-card",
+        ".public-cta-card",
+        ".public-event-feature",
+        ".public-event-card"
+    ].join(","));
+
+    if (!targets.length || !("IntersectionObserver" in window)) {
+        targets.forEach((target) => target.classList.add("is-visible"));
+        return;
+    }
+
+    targets.forEach((target) => target.classList.add("public-reveal"));
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+            if (!entry.isIntersecting) return;
+            entry.target.classList.add("is-visible");
+            observer.unobserve(entry.target);
+        });
+    }, {
+        threshold: 0.08,
+        rootMargin: "0px 0px -32px 0px"
+    });
+
+    targets.forEach((target) => observer.observe(target));
+}
+
+function initPublicDogCycles() {
+    document.querySelectorAll("[data-dog-cycle]").forEach((cycle) => {
+        const frames = Array.from(cycle.querySelectorAll("[data-dog-frame]"));
+        const captions = Array.from(cycle.querySelectorAll("[data-dog-caption]"));
+        if (frames.length <= 1) return;
+
+        let index = 0;
+        const configured = Number(cycle.dataset.dogCycleInterval ?? 7000);
+        const interval = Number.isFinite(configured) && configured >= 4000 ? configured : 7000;
+
+        const show = (next) => {
+            index = (next + frames.length) % frames.length;
+            frames.forEach((frame, i) => {
+                const active = i === index;
+                frame.classList.toggle("is-active", active);
+                frame.setAttribute("aria-hidden", active ? "false" : "true");
+            });
+            captions.forEach((caption, i) => {
+                const active = i === index;
+                caption.classList.toggle("is-active", active);
+                caption.setAttribute("aria-hidden", active ? "false" : "true");
+            });
+        };
+
+        show(0);
+        window.setInterval(() => show(index + 1), interval);
+    });
+}
+
+function initPublicEventHeroSlideshow() {
+    document.querySelectorAll("[data-event-hero-slideshow]").forEach((hero) => {
+        const slides = Array.from(hero.querySelectorAll("[data-event-hero-slide]"));
+        if (slides.length <= 1) return;
+
+        let index = 0;
+        window.setInterval(() => {
+            slides[index].classList.remove("is-active");
+            index = (index + 1) % slides.length;
+            slides[index].classList.add("is-active");
+        }, 6500);
+    });
+}
+
+function initPublicEventExplorer() {
+    const explorer = document.querySelector("[data-public-event-explorer]");
+    if (!explorer) return;
+
+    const sources = Array.from(explorer.querySelectorAll("[data-event-source]"));
+    if (!sources.length) return;
+
+    const featureImage = explorer.querySelector("[data-feature-image]");
+    const featureMonth = explorer.querySelector("[data-feature-month]");
+    const featureDay = explorer.querySelector("[data-feature-day]");
+    const featureCategory = explorer.querySelector("[data-feature-category]");
+    const featureTitle = explorer.querySelector("[data-feature-title]");
+    const featureDescription = explorer.querySelector("[data-feature-description]");
+    const featureDate = explorer.querySelector("[data-feature-date]");
+    const featureTime = explorer.querySelector("[data-feature-time]");
+    const featureLocation = explorer.querySelector("[data-feature-location]");
+    const featureRsvp = explorer.querySelector("[data-feature-rsvp]");
+    const featureEnded = explorer.querySelector("[data-feature-ended]");
+
+    const update = (source) => {
+        const isPast = source.dataset.isPast === "true";
+        const image = source.dataset.image ?? "";
+
+        featureMonth.textContent = source.dataset.month ?? "";
+        featureDay.textContent = source.dataset.day ?? "";
+        featureCategory.textContent = source.dataset.category ?? "";
+        featureTitle.textContent = source.dataset.title ?? "";
+        featureDescription.textContent = source.dataset.description ?? "";
+        featureDate.textContent = source.dataset.date ?? "";
+        featureTime.textContent = source.dataset.time ?? "";
+
+        const location = source.dataset.location ?? "";
+        featureLocation.textContent = location;
+        featureLocation.classList.toggle("d-none", !location);
+
+        if (featureImage) {
+            featureImage.src = image;
+            featureImage.classList.toggle("d-none", !image);
+            featureImage.closest(".public-event-feature-date")?.classList.toggle("has-image", Boolean(image));
+        }
+
+        featureRsvp.classList.toggle("d-none", isPast);
+        featureEnded.classList.toggle("d-none", !isPast);
+        if (!isPast) {
+            featureRsvp.href = source.dataset.rsvp || "/contact";
+        }
+
+        sources.forEach((item) => {
+            item.classList.remove("is-active");
+            const wrapper = item.closest("[data-event-source-wrapper]");
+            if (wrapper) wrapper.classList.remove("d-none");
+        });
+
+        source.classList.add("is-active");
+        if (!isPast) {
+            const activeWrapper = source.closest("[data-event-source-wrapper]");
+            if (activeWrapper) activeWrapper.classList.add("d-none");
+        }
+
+        explorer.querySelector("[data-event-feature]")?.scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+        });
+    };
+
+    sources.forEach((source) => {
+        source.addEventListener("click", () => update(source));
+    });
+
+    const defaultSource = sources.find((source) => source.dataset.defaultFeature === "true");
+    if (defaultSource) {
+        defaultSource.closest("[data-event-source-wrapper]")?.classList.add("d-none");
+    }
+}

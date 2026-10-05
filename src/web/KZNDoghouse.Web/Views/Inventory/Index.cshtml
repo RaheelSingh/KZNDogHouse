@@ -51,7 +51,7 @@
                 <div class="portal-filter-search">
                     <input type="search"
                            class="form-control"
-                           placeholder="Search item, category or unit"
+                           placeholder="Search item, category or unit / measure"
                            data-portal-search />
                 </div>
 
@@ -113,7 +113,8 @@
                 var item = summary.Item;
                 var stockState = item.IsLowStock() ? "Low" : "Healthy";
 
-                <article class="portal-card portal-inventory-row"
+                <article id="inventory-item-@item.Id"
+                         class="portal-card portal-inventory-row"
                          data-portal-row
                          data-search="@item.Name @item.Category @item.Unit"
                          data-category="@item.Category"
@@ -196,7 +197,9 @@
                         </div>
                     </div>
 
-                    <div class="collapse portal-inventory-row-expand" id="stock-@item.Id">
+                    <div class="collapse portal-inventory-row-expand"
+                         id="stock-@item.Id"
+                         data-bs-parent="#inventory-item-@item.Id">
                         <form asp-controller="Inventory"
                               asp-action="RecordTransaction"
                               method="post"
@@ -213,7 +216,13 @@
                             </div>
 
                             <div>
-                                <label class="form-label">Quantity</label>
+                                <label class="form-label">
+                                    Quantity
+                                    @if (!string.IsNullOrWhiteSpace(item.Unit))
+                                    {
+                                        <span class="portal-field-unit">(@item.Unit)</span>
+                                    }
+                                </label>
                                 <input type="number" name="quantityChange" class="form-control" required />
                             </div>
 
@@ -228,10 +237,31 @@
                             </div>
 
                             <div class="portal-inventory-stock-submit">
-                                <div class="form-text">Received/used quantities are entered as positive numbers. Manual adjustment may be positive or negative.</div>
+                                <div class="form-text">Enter the amount in the item’s chosen unit or measure. Received/used amounts are positive numbers; manual adjustments may be positive or negative.</div>
                                 <button type="submit" class="btn btn-kzn-primary btn-sm">Update stock</button>
                             </div>
                         </form>
+
+                        <div class="portal-inventory-finish-row">
+                            <div>
+                                <strong>Finished this stock?</strong>
+                                <span>Use <em>Stock used</em> above for partial use. If all remaining stock has been consumed, record it in one step.</span>
+                            </div>
+                            @if (item.Quantity > 0)
+                            {
+                                <form asp-controller="Inventory" asp-action="RecordTransaction" method="post" onsubmit="return confirm('Mark all remaining @item.Name stock as used?');">
+                                    <input type="hidden" name="itemId" value="@item.Id" />
+                                    <input type="hidden" name="transactionType" value="@InventoryTransactionTypes.Usage" />
+                                    <input type="hidden" name="quantityChange" value="@item.Quantity" />
+                                    <input type="hidden" name="notes" value="All remaining stock used" />
+                                    <button type="submit" class="btn btn-kzn-outline btn-sm">Mark all stock used</button>
+                                </form>
+                            }
+                            else
+                            {
+                                <span class="kzn-status-badge kzn-status-under-treatment">0 in stock</span>
+                            }
+                        </div>
 
                         <details class="portal-inline-editor mt-3">
                             <summary>@(string.IsNullOrWhiteSpace(item.ImageUrl) ? "Add item image" : "Replace item image")</summary>
@@ -251,7 +281,9 @@
                         </details>
                     </div>
 
-                    <div class="collapse portal-inventory-row-expand" id="history-@item.Id">
+                    <div class="collapse portal-inventory-row-expand"
+                         id="history-@item.Id"
+                         data-bs-parent="#inventory-item-@item.Id">
                         <div class="portal-inventory-history">
                             @if (!summary.RecentTransactions.Any())
                             {
@@ -311,8 +343,23 @@
                     <input name="category" class="form-control" maxlength="100" placeholder="Food, medication, cleaning..." />
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Unit</label>
-                    <input name="unit" class="form-control" maxlength="50" placeholder="bags, bottles, tablets..." />
+                    <label class="form-label">Unit / measure</label>
+                    <input name="unit"
+                           class="form-control"
+                           maxlength="50"
+                           list="inventoryUnitOptions"
+                           placeholder="kg, bags, bottles, units..." />
+                    <datalist id="inventoryUnitOptions">
+                        <option value="kg"></option>
+                        <option value="bags"></option>
+                        <option value="bottles"></option>
+                        <option value="units"></option>
+                        <option value="boxes"></option>
+                        <option value="packs"></option>
+                        <option value="tablets"></option>
+                        <option value="litres"></option>
+                    </datalist>
+                    <div class="form-text">Examples: kg for weight, or bags, bottles, boxes, tablets and individual units.</div>
                 </div>
                 <div class="row g-2 mb-3">
                     <div class="col-6">

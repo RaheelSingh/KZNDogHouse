@@ -7,7 +7,6 @@ namespace KZNDoghouse.Web.Services;
 public interface IInventoryService
 {
     Task<InventoryPageViewModel> GetPageAsync();
-
     Task<InventoryItem?> GetItemAsync(Guid itemId);
 
     Task<InventoryItem> CreateItemAsync(
@@ -27,16 +26,17 @@ public interface IInventoryService
         string? notes,
         Guid updatedByProfileId);
 
-    Task UpdateImageAsync(
+    Task<InventoryTransactionResult> UpdateItemDetailsAsync(
         Guid itemId,
-        string? imagePath,
-        string? imageUrl);
+        string name,
+        string? category,
+        string? unit,
+        int lowStockThreshold);
+
+    Task UpdateImageAsync(Guid itemId, string? imagePath, string? imageUrl);
 }
 
-public record InventoryTransactionResult(
-    bool Success,
-    string Message,
-    int? NewQuantity = null);
+public record InventoryTransactionResult(bool Success, string Message, int? NewQuantity = null);
 
 public class InventoryService : IInventoryService
 {
@@ -51,7 +51,6 @@ public class InventoryService : IInventoryService
     {
         var itemsTask = _repository.GetAllItemsAsync();
         var transactionsTask = _repository.GetAllTransactionsAsync();
-
         await Task.WhenAll(itemsTask, transactionsTask);
 
         var items = await itemsTask;
@@ -59,35 +58,22 @@ public class InventoryService : IInventoryService
 
         var transactionLookup = transactions
             .GroupBy(x => x.ItemId)
-            .ToDictionary(
-                x => x.Key,
-                x => x.OrderByDescending(t => t.TransactionDate).ToList());
+            .ToDictionary(x => x.Key, x => x.OrderBy(t => t.TransactionDate).ToList());
 
-        var summaries = items
-            .Select(item =>
+        var summaries = items.Select(item =>
+        {
+            var itemTransactions = transactionLookup.GetValueOrDefault(item.Id) ?? [];
+
+            return new InventoryItemSummary
             {
-                var itemTransactions = transactionLookup
-                    .GetValueOrDefault(item.Id)
-                    ?? [];
-
-                var nextExpiry = itemTransactions
-                    .Where(x =>
-                        x.ExpiryDate.HasValue
-                        && x.QuantityChange > 0)
-                    .Select(x => x.ExpiryDate!.Value.Date)
-                    .OrderBy(x => x)
-                    .FirstOrDefault();
-
-                return new InventoryItemSummary
-                {
-                    Item = item,
-                    RecentTransactions = itemTransactions.Take(8).ToList(),
-                    NextExpiryDate = nextExpiry == default
-                        ? null
-                        : nextExpiry
-                };
-            })
-            .ToList();
+                Item = item,
+                RecentTransactions = itemTransactions
+                    .OrderByDescending(x => x.TransactionDate)
+                    .Take(8)
+                    .ToList(),
+                NextExpiryDate = GetNextRemainingExpiry(itemTransactions)
+            };
+        }).ToList();
 
         return new InventoryPageViewModel
         {
@@ -109,14 +95,9 @@ public class InventoryService : IInventoryService
     {
         var item = new InventoryItem
         {
-            Id = Guid.NewGuid(),
             Name = name.Trim(),
-            Category = string.IsNullOrWhiteSpace(category)
-                ? null
-                : category.Trim(),
-            Unit = string.IsNullOrWhiteSpace(unit)
-                ? null
-                : unit.Trim(),
+            Category = CleanOptional(category),
+            Unit = CleanOptional(unit),
             Quantity = 0,
             LowStockThreshold = Math.Max(0, lowStockThreshold),
             CreatedAt = DateTime.UtcNow
@@ -150,25 +131,18 @@ public class InventoryService : IInventoryService
     {
         if (!InventoryTransactionTypes.All.Contains(transactionType))
         {
-            return new InventoryTransactionResult(
-                false,
-                "Choose a valid stock transaction type.");
+            return new InventoryTransactionResult(false, "Choose a valid stock transaction type.");
         }
 
         if (quantityChange == 0)
         {
-            return new InventoryTransactionResult(
-                false,
-                "Quantity cannot be zero.");
+            return new InventoryTransactionResult(false, "Quantity cannot be zero.");
         }
 
         var item = await _repository.GetItemByIdAsync(itemId);
-
         if (item == null)
         {
-            return new InventoryTransactionResult(
-                false,
-                "Item not found.");
+            return new InventoryTransactionResult(false, "Item not found.");
         }
 
         var appliedChange = transactionType switch
@@ -179,12 +153,9 @@ public class InventoryService : IInventoryService
         };
 
         var newQuantity = item.Quantity + appliedChange;
-
         if (newQuantity < 0)
         {
-            return new InventoryTransactionResult(
-                false,
-                $"This would take {item.Name} below zero stock.");
+            return new InventoryTransactionResult(false, $"This would take {item.Name} below zero stock.");
         }
 
         var transaction = new InventoryTransaction
@@ -195,9 +166,7 @@ public class InventoryService : IInventoryService
             QuantityChange = appliedChange,
             TransactionDate = DateTime.UtcNow,
             ExpiryDate = expiryDate,
-            Notes = string.IsNullOrWhiteSpace(notes)
-                ? null
-                : notes.Trim(),
+            Notes = CleanOptional(notes),
             UpdatedByUserId = updatedByProfileId,
             CreatedAt = DateTime.UtcNow
         };
@@ -209,10 +178,7 @@ public class InventoryService : IInventoryService
             ? $"Added {appliedChange}"
             : $"Removed {Math.Abs(appliedChange)}";
 
-        var unitText = string.IsNullOrWhiteSpace(item.Unit)
-            ? ""
-            : $" {item.Unit}";
-
+        var unitText = string.IsNullOrWhiteSpace(item.Unit) ? "" : $" {item.Unit}";
         var lowStockWarning = newQuantity <= item.LowStockThreshold
             ? " This item is now at or below its low-stock threshold."
             : string.Empty;
@@ -223,12 +189,94 @@ public class InventoryService : IInventoryService
             newQuantity);
     }
 
-    public Task UpdateImageAsync(
+    public async Task<InventoryTransactionResult> UpdateItemDetailsAsync(
         Guid itemId,
-        string? imagePath,
-        string? imageUrl) =>
-        _repository.UpdateItemImageAsync(
+        string name,
+        string? category,
+        string? unit,
+        int lowStockThreshold)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return new InventoryTransactionResult(false, "Item name is required.");
+        }
+
+        var existing = await _repository.GetItemByIdAsync(itemId);
+        if (existing == null)
+        {
+            return new InventoryTransactionResult(false, "Item not found.");
+        }
+
+        await _repository.UpdateItemDetailsAsync(
             itemId,
-            imagePath,
-            imageUrl);
+            name.Trim(),
+            CleanOptional(category),
+            CleanOptional(unit),
+            Math.Max(0, lowStockThreshold));
+
+        return new InventoryTransactionResult(true, $"{name.Trim()} updated.", existing.Quantity);
+    }
+
+    public Task UpdateImageAsync(Guid itemId, string? imagePath, string? imageUrl) =>
+        _repository.UpdateItemImageAsync(itemId, imagePath, imageUrl);
+
+    private static string? CleanOptional(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static DateTime? GetNextRemainingExpiry(IReadOnlyList<InventoryTransaction> transactions)
+    {
+        var batches = new List<InventoryBatch>();
+
+        foreach (var transaction in transactions.OrderBy(x => x.TransactionDate))
+        {
+            if (transaction.QuantityChange > 0)
+            {
+                batches.Add(new InventoryBatch(
+                    transaction.QuantityChange,
+                    transaction.ExpiryDate?.Date));
+                continue;
+            }
+
+            if (transaction.QuantityChange >= 0)
+            {
+                continue;
+            }
+
+            var remainingToConsume = Math.Abs(transaction.QuantityChange);
+
+            foreach (var batch in batches.Where(x => x.Remaining > 0))
+            {
+                if (remainingToConsume == 0)
+                {
+                    break;
+                }
+
+                var consumed = Math.Min(batch.Remaining, remainingToConsume);
+                batch.Remaining -= consumed;
+                remainingToConsume -= consumed;
+            }
+        }
+
+        var nextExpiry = batches
+            .Where(x => x.Remaining > 0 && x.ExpiryDate.HasValue)
+            .Select(x => x.ExpiryDate!.Value)
+            .OrderBy(x => x)
+            .FirstOrDefault();
+
+        return nextExpiry == default
+            ? null
+            : nextExpiry;
+    }
+
+    private sealed class InventoryBatch
+    {
+        public InventoryBatch(int remaining, DateTime? expiryDate)
+        {
+            Remaining = remaining;
+            ExpiryDate = expiryDate;
+        }
+
+        public int Remaining { get; set; }
+        public DateTime? ExpiryDate { get; }
+    }
 }

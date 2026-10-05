@@ -1675,6 +1675,29 @@ a:hover {
     height: 100dvh;
     overflow: hidden;
     background-color: var(--kzn-cream);
+    color: var(--kzn-text);
+    font-family: "Inter", Arial, Helvetica, sans-serif;
+}
+
+.portal-body h1,
+.portal-body h2,
+.portal-body h3,
+.portal-body h4,
+.portal-sidebar-brand,
+.portal-sidebar .nav-link,
+.portal-mobile-menu .nav-link,
+.portal-header-page,
+.portal-account-name,
+.portal-filter-heading h2,
+.portal-workspace-form-title {
+    font-family: "Archivo", "Inter", Arial, Helvetica, sans-serif;
+}
+
+.portal-body .form-control,
+.portal-body .form-select,
+.portal-body .btn,
+.portal-body .dropdown-menu {
+    font-family: "Inter", Arial, Helvetica, sans-serif;
 }
 
 .portal-wrapper {
@@ -1715,6 +1738,7 @@ a:hover {
     color: var(--kzn-white);
     font-size: 1rem;
     font-weight: 700;
+    letter-spacing: -0.015em;
     text-decoration: none;
 }
 
@@ -1744,10 +1768,12 @@ a:hover {
 
 .portal-sidebar .nav-link,
 .portal-mobile-menu .nav-link {
-    color: rgba(255, 255, 255, 0.78);
-    padding: 0.65rem 0.8rem;
+    color: rgba(255, 255, 255, 0.82);
+    padding: 0.68rem 0.8rem;
     border-radius: 7px;
-    font-size: 0.9rem;
+    font-size: 0.88rem;
+    font-weight: 500;
+    letter-spacing: -0.01em;
 }
 
 .portal-sidebar .nav-link:hover,
@@ -2011,7 +2037,9 @@ a:hover {
 
 .portal-page-title {
     color: var(--kzn-green-dark);
+    font-family: "Archivo", "Inter", Arial, Helvetica, sans-serif;
     font-weight: 700;
+    letter-spacing: -0.025em;
 }
 
 
@@ -2899,9 +2927,10 @@ a:hover {
 }
 
 .portal-sidebar-brand-logo {
-    width: 40px;
-    height: 40px;
+    width: 42px;
+    height: 42px;
     flex-shrink: 0;
+    padding: 2px;
     background-color: var(--kzn-white);
 }
 
@@ -3939,6 +3968,12 @@ a:hover {
     line-height: 1.1;
 }
 
+.portal-field-unit {
+    color: var(--kzn-text-muted);
+    font-size: 0.76rem;
+    font-weight: 600;
+}
+
 .portal-inventory-row-details {
     display: grid;
     gap: 0.15rem;
@@ -4607,3 +4642,453 @@ a:hover {
     }
 }
 
+
+
+/* ===== Commit 7 final prototype-alignment overrides ===== */
+
+.public-sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 1060;
+    background: #fff;
+}
+
+.public-navbar {
+    min-height: 76px;
+    background: #fff !important;
+    backdrop-filter: none !important;
+    box-shadow: 0 1px 0 rgba(14, 45, 31, 0.08);
+}
+
+.public-brand {
+    gap: 0.8rem;
+}
+
+.public-brand img {
+    width: 92px;
+    height: 50px;
+    object-fit: contain;
+    margin: -5px 0;
+}
+
+.public-navbar .nav-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    white-space: nowrap;
+}
+
+.public-nav-paw {
+    width: 0;
+    height: 15px;
+    margin-right: 0;
+    object-fit: contain;
+    opacity: 0;
+    transform: translateX(-4px) scale(0.75);
+    transition: width 0.18s ease, margin-right 0.18s ease, opacity 0.18s ease, transform 0.18s ease;
+}
+
+.public-navbar .nav-link:hover .public-nav-paw,
+.public-navbar .nav-link.active .public-nav-paw {
+    width: 15px;
+    margin-right: 0.34rem;
+    opacity: 1;
+    transform: translateX(0) scale(1);
+}
+
+.public-after-hero {
+    padding-top: 3.25rem !important;
+}
+
+.public-reveal {
+    opacity: 0;
+    transform: translateY(18px);
+    transition: opacity 0.46s ease, transform 0.46s ease;
+}
+
+.public-reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.public-card-zoom,
+.public-dog-card,
+.public-event-card,
+.public-way-card,
+.public-pillar-card,
+.public-info-tile,
+.public-check-card {
+    transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+.public-card-zoom:hover,
+.public-dog-card:hover,
+.public-event-card:hover,
+.public-way-card:hover,
+.public-pillar-card:hover,
+.public-info-tile:hover,
+.public-check-card:hover {
+    transform: translateY(-3px) scale(1.008);
+    box-shadow: 0 16px 28px rgba(10, 34, 26, 0.08);
+}
+
+.public-dog-card {
+    overflow: hidden;
+}
+
+.public-dog-photo {
+    transition: transform 0.3s ease;
+}
+
+.public-dog-card:hover .public-dog-photo {
+    transform: scale(1.035);
+}
+
+.public-grass-bg {
+    position: relative;
+    overflow: hidden;
+}
+
+.public-grass-bg::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(rgba(239, 246, 238, 0.76), rgba(239, 246, 238, 0.76)), url('/images/public/grass-texture.jpg');
+    background-size: cover;
+    background-position: center;
+    pointer-events: none;
+}
+
+.public-section-dark.public-grass-bg::before,
+.public-cta.public-grass-bg::before {
+    background-image: linear-gradient(rgba(6, 45, 31, 0.84), rgba(6, 45, 31, 0.84)), url('/images/public/grass-texture.jpg');
+}
+
+.public-grass-bg > .container {
+    position: relative;
+    z-index: 2;
+}
+
+.public-dog-cycle-frame-wrap {
+    position: relative;
+    min-height: 420px;
+}
+
+.public-dog-cycle-frame {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transform: scale(0.985);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+    pointer-events: none;
+}
+
+.public-dog-cycle-frame.is-active {
+    opacity: 1;
+    transform: scale(1);
+    pointer-events: auto;
+}
+
+.public-dog-cycle-photo,
+.public-dog-cycle-placeholder {
+    display: block;
+    width: 100%;
+    min-height: 420px;
+    max-height: 460px;
+    border-radius: 30px;
+    object-fit: cover;
+    box-shadow: 0 28px 60px rgba(10, 34, 26, 0.16);
+    background: #dfe7dd;
+}
+
+.public-dog-cycle-placeholder {
+    display: grid;
+    place-items: center;
+    color: #103322;
+    font-size: 5rem;
+    font-weight: 700;
+}
+
+.public-float-card[data-dog-caption] {
+    display: none;
+}
+
+.public-float-card[data-dog-caption].is-active {
+    display: block;
+}
+
+.public-float-card-tailored {
+    position: relative;
+    z-index: 3;
+    max-width: 310px;
+    margin: -78px 0 0 auto;
+}
+
+.public-banner-petition {
+    display: grid;
+    grid-template-columns: minmax(0, 1.12fr) minmax(280px, 0.88fr);
+    align-items: center;
+    gap: 2rem;
+    overflow: visible;
+    background: linear-gradient(135deg, #26704e 0%, #79a67d 100%);
+}
+
+.public-banner-copy {
+    display: grid;
+    gap: 1rem;
+}
+
+.public-banner-kicker {
+    margin: 0;
+    color: #f4cf61;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+}
+
+.public-banner-petition h2,
+.public-banner-petition p {
+    color: #fff;
+}
+
+.public-petition-visual {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.public-petition-visual img {
+    width: min(100%, 470px);
+    filter: drop-shadow(0 20px 24px rgba(7, 38, 25, 0.22));
+}
+
+/* Paw animation is placed only at deliberate prototype-like section edges. */
+.public-paw-stage {
+    position: relative;
+    overflow: hidden;
+}
+
+.public-paw-trail {
+    position: absolute;
+    z-index: 4;
+    width: 260px;
+    height: 146px;
+    pointer-events: none;
+    overflow: hidden;
+    opacity: 0.78;
+}
+
+.public-paw-trail video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: grayscale(1) contrast(1.25);
+}
+
+.public-paw-hero-left { left: -36px; bottom: -12px; }
+.public-paw-hero-right { right: -35px; bottom: 8px; transform: scaleX(-1); }
+.public-paw-mid-right { right: -55px; top: 35%; transform: rotate(88deg); }
+.public-paw-mid-left { left: -55px; top: 30%; transform: rotate(-88deg) scaleX(-1); }
+.public-paw-bottom-right { right: -35px; bottom: -18px; }
+.public-paw-top-right { right: -45px; top: -12px; transform: rotate(12deg); }
+.public-paw-events-left { left: -35px; bottom: -28px; }
+.public-paw-events-right { right: -35px; bottom: -28px; transform: scaleX(-1); }
+
+/* Events: original prototype layout, with interactive history. */
+.public-events-header {
+    position: relative;
+    min-height: 370px;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    background: #073322;
+}
+
+.public-events-header-slides,
+.public-events-header-slide,
+.public-events-header-overlay {
+    position: absolute;
+    inset: 0;
+}
+
+.public-events-header-slide {
+    background-size: cover;
+    background-position: center;
+    opacity: 0;
+    transition: opacity 1.1s ease;
+}
+
+.public-events-header-slide.is-active {
+    opacity: 1;
+}
+
+.public-events-header-overlay {
+    z-index: 1;
+    background: linear-gradient(90deg, rgba(5, 44, 29, 0.88), rgba(6, 54, 34, 0.72));
+}
+
+.public-events-header-content {
+    position: relative;
+    z-index: 3;
+    text-align: center;
+}
+
+.public-events-header .public-page-eyebrow,
+.public-events-header .public-page-title,
+.public-events-header .public-page-subtitle {
+    color: #fff;
+}
+
+.public-event-select-card {
+    padding: 0;
+    border: 1px solid var(--kzn-border);
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.public-event-select-card:hover {
+    border-color: rgba(18, 73, 47, 0.35);
+}
+
+.public-past-list li {
+    padding: 0;
+}
+
+.public-past-event-button {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 130px minmax(0, 1fr) minmax(180px, 320px);
+    gap: 1rem;
+    align-items: center;
+    padding: 1rem 0;
+    border: 0;
+    background: transparent;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: padding 0.18s ease, background-color 0.18s ease;
+}
+
+.public-past-event-button:hover,
+.public-past-event-button.is-active {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+    background: rgba(223, 234, 222, 0.52);
+}
+
+.public-event-ended-note {
+    display: inline-flex;
+    padding: 0.55rem 0.85rem;
+    border-radius: 999px;
+    background: rgba(16, 58, 40, 0.09);
+    color: var(--kzn-green-dark);
+    font-size: 0.82rem;
+    font-weight: 650;
+}
+
+/* Inventory edit / finished-stock controls. */
+.portal-inventory-row-actions {
+    flex-wrap: wrap;
+}
+
+.portal-inventory-edit-form {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(120px, 1fr));
+    gap: 0.75rem;
+}
+
+.portal-inventory-edit-submit {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.portal-inventory-finish-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 1rem;
+    padding: 0.8rem 0;
+    border-top: 1px solid var(--kzn-border);
+    border-bottom: 1px solid var(--kzn-border);
+}
+
+.portal-inventory-finish-row > div {
+    display: grid;
+    gap: 0.2rem;
+}
+
+.portal-inventory-finish-row span {
+    color: var(--kzn-text-muted);
+    font-size: 0.78rem;
+}
+
+@media (max-width: 991.98px) {
+    .public-banner-petition {
+        grid-template-columns: 1fr;
+    }
+
+    .public-dog-cycle-frame-wrap {
+        min-height: 340px;
+    }
+
+    .public-dog-cycle-photo,
+    .public-dog-cycle-placeholder {
+        min-height: 340px;
+        max-height: 390px;
+    }
+
+    .public-float-card-tailored {
+        margin-top: 1rem;
+        margin-left: 0;
+    }
+
+    .public-paw-trail {
+        width: 210px;
+        height: 118px;
+        opacity: 0.62;
+    }
+
+    .portal-inventory-edit-form {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 767.98px) {
+    .public-brand img {
+        width: 76px;
+        height: 44px;
+    }
+
+    .public-paw-trail {
+        display: none;
+    }
+
+    .public-past-event-button {
+        grid-template-columns: 1fr;
+        gap: 0.25rem;
+    }
+
+    .public-past-note {
+        max-width: none;
+        text-align: left;
+        white-space: normal;
+    }
+
+    .portal-inventory-edit-form {
+        grid-template-columns: 1fr;
+    }
+
+    .portal-inventory-edit-submit,
+    .portal-inventory-finish-row {
+        grid-column: auto;
+        align-items: stretch;
+        flex-direction: column;
+    }
+}
+
+.public-event-feature { scroll-margin-top: 100px; }

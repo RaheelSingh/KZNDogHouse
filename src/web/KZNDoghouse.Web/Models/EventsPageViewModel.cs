@@ -17,5 +17,8 @@ public class EventsPageViewModel
 
     public int OverallCount { get; set; }
 
-    public bool HasResults => Featured != null || Past.Count > 0;
+    public bool HasResults =>
+        Featured != null
+        || Upcoming.Count > 0
+        || Past.Count > 0;
 }
