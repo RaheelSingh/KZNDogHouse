@@ -20,6 +20,15 @@ builder.Services.Configure<SupabaseSettings>(
     builder.Configuration.GetSection(
         SupabaseSettings.SectionName));
 
+builder.Services.Configure<GoogleMapsSettings>(
+    builder.Configuration.GetSection(
+        GoogleMapsSettings.SectionName));
+
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+});
+
 builder.Services.AddScoped<
     ISupabaseClientFactory,
     SupabaseClientFactory>();
@@ -199,6 +208,8 @@ app.Use(async (context, next) =>
 });
 
 app.UseHttpsRedirection();
+
+app.UseResponseCompression();
 
 app.UseRouting();
 

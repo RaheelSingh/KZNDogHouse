@@ -1,29 +1,34 @@
 @model ContactFormViewModel
+@inject Microsoft.Extensions.Options.IOptions<KZNDoghouse.Web.Configuration.GoogleMapsSettings> GoogleMapsOptions
 
 @{
     ViewData["Title"] = "Contact";
     ViewData["Eyebrow"] = "Contact";
     ViewData["Heading"] = "We'd love to hear from you.";
     ViewData["Subtitle"] = "Questions about fostering, volunteering, adopting, or anything else — send us a message and we'll get back to you within 2 business days.";
+
+    var mapApiKey = GoogleMapsOptions.Value.EmbedApiKey?.Trim() ?? string.Empty;
+    var mapAddress = $"{PublicSiteInfo.Address}, Durban, KwaZulu-Natal, South Africa";
+    var encodedMapAddress = Uri.EscapeDataString(mapAddress);
+    var mapsSearchUrl = $"https://www.google.com/maps/search/?api=1&query={encodedMapAddress}";
+    var mapsEmbedUrl = string.IsNullOrWhiteSpace(mapApiKey)
+        ? null
+        : $"https://www.google.com/maps/embed/v1/place?key={Uri.EscapeDataString(mapApiKey)}&q={encodedMapAddress}&zoom=15";
 }
 
 <partial name="_PublicPageHeader" />
 
 <section class="public-section">
-
     <div class="container">
-
-        <div class="row g-4">
-
+        <div class="row g-4 align-items-start">
             <div class="col-lg-7">
-
                 <form asp-action="Index"
                       method="post"
                       class="public-form-card"
-                      novalidate>
+                      novalidate
+                      data-submit-once="true">
 
                     <h2 class="public-form-title">Send us a message</h2>
-
                     <p class="public-form-hint">Fill out the form and our team will follow up.</p>
 
                     <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
@@ -34,7 +39,6 @@
                     </div>
 
                     <div class="row g-3">
-
                         <div class="col-md-6">
                             <label asp-for="FirstName" class="form-label"></label>
                             <input asp-for="FirstName" class="form-control" autocomplete="given-name" />
@@ -58,7 +62,6 @@
                             <input asp-for="Phone" type="tel" class="form-control" autocomplete="tel" placeholder="+27 82 000 0000" />
                             <span asp-validation-for="Phone" class="text-danger"></span>
                         </div>
-
                     </div>
 
                     <div class="public-question mt-4" role="group" aria-labelledby="q-topic">
@@ -87,17 +90,12 @@
                     <button type="submit" class="btn btn-kzn-primary">
                         Send message
                     </button>
-
                 </form>
-
             </div>
 
             <div class="col-lg-5">
-
                 <div class="public-side-card">
-
                     <ul class="public-contact-list">
-
                         <li>
                             <span class="public-icon-box"><partial name="_PublicIcon" model="@("pin")" /></span>
                             <div>
@@ -121,36 +119,49 @@
                                 <p><a href="mailto:@PublicSiteInfo.Email">@PublicSiteInfo.Email</a></p>
                             </div>
                         </li>
-
                     </ul>
-
                 </div>
 
-                <div class="public-map-placeholder"
-                     role="img"
-                     aria-label="Map placeholder">
-                    <span>Map placeholder</span>
-                    <strong>Queensburgh Shelter</strong>
-                </div>
+                <div class="public-map-card">
+                    @if (!string.IsNullOrWhiteSpace(mapsEmbedUrl))
+                    {
+                        <iframe class="public-map-frame"
+                                title="Map showing The KZN Doghouse in Queensburgh"
+                                src="@mapsEmbedUrl"
+                                loading="lazy"
+                                allowfullscreen
+                                referrerpolicy="strict-origin-when-cross-origin">
+                        </iframe>
+                    }
+                    else
+                    {
+                        <div class="public-map-fallback">
+                            <span class="public-icon-box"><partial name="_PublicIcon" model="@("pin")" /></span>
+                            <div>
+                                <strong>Find us in Queensburgh</strong>
+                                <p>@mapAddress</p>
+                            </div>
+                        </div>
+                    }
 
+                    <div class="public-map-actions">
+                        <div>
+                            <strong>Plan your visit</strong>
+                            <span>@PublicSiteInfo.Address, Durban</span>
+                        </div>
+                        <a href="@mapsSearchUrl"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           class="btn btn-kzn-outline btn-sm">
+                            Open in Google Maps
+                        </a>
+                    </div>
+                </div>
             </div>
-
         </div>
-
     </div>
-
 </section>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
-
-    <script>
-        $("form.public-form-card").on("submit", function () {
-            var form = $(this);
-
-            if (form.valid()) {
-                form.find("button[type=submit]").prop("disabled", true);
-            }
-        });
-    </script>
 }

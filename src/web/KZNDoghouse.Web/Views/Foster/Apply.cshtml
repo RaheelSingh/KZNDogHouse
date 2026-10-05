@@ -7,6 +7,8 @@
     ViewData["Subtitle"] = "Fostering is a temporary home for a dog in need — no forever commitment, just a soft place to land while we find them one. Tell us a bit about your home and we'll take it from there.";
 
     var selectedDogName = ViewData["SelectedDogName"] as string;
+    var selectedDogPhotoUrl = ViewData["SelectedDogPhotoUrl"] as string;
+    var selectedDogPhotoName = ViewData["SelectedDogPhotoName"] as string;
 }
 
 <partial name="_PublicPageHeader" />
@@ -286,11 +288,31 @@
 
                 </div>
 
-                <div class="public-side-photo"
-                     role="img"
-                     aria-label="Photo placeholder">
-                    Photo placeholder
-                </div>
+                @if (!string.IsNullOrWhiteSpace(selectedDogPhotoUrl))
+                {
+                    <figure class="public-side-photo-card">
+                        <img src="@selectedDogPhotoUrl"
+                             alt="Photo of @(selectedDogPhotoName ?? "a KZN Doghouse rescue dog")"
+                             class="public-side-photo-image"
+                             loading="lazy" />
+                        <figcaption>
+                            @(selectedDogName != null
+                                ? $"{selectedDogName} could be your next foster."
+                                : "A temporary home can change a rescue dog's whole journey.")
+                        </figcaption>
+                    </figure>
+                }
+                else
+                {
+                    <div class="public-side-photo-fallback">
+                        <span class="public-icon-box"><partial name="_PublicIcon" model="@("home")" /></span>
+                        <strong>A safe home changes everything.</strong>
+                        <p>
+                            Foster carers give dogs time to settle, recover and get ready for
+                            their permanent families.
+                        </p>
+                    </div>
+                }
 
             </div>
 
@@ -322,3 +344,4 @@
         });
     </script>
 }
+

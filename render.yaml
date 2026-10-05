@@ -19,3 +19,5 @@ services:
         sync: false
       - key: Supabase__ServiceRoleKey
         sync: false
+      - key: GoogleMaps__EmbedApiKey
+        sync: false

@@ -392,11 +392,19 @@ document.addEventListener("DOMContentLoaded", () => {
         const nextButton =
             gallery.querySelector("[data-gallery-next]");
 
+        const reduceMotion =
+            window.matchMedia(
+                "(prefers-reduced-motion: reduce)");
+
         let index = 0;
         let timer = null;
+        let inViewport = false;
+        let pausedByInteraction = false;
 
         const show = (newIndex) => {
-            index = (newIndex + frames.length) % frames.length;
+            index =
+                (newIndex + frames.length)
+                % frames.length;
 
             frames.forEach((frame, frameIndex) => {
                 frame.classList.toggle(
@@ -405,7 +413,8 @@ document.addEventListener("DOMContentLoaded", () => {
             });
 
             indicators.forEach((indicator, indicatorIndex) => {
-                const isActive = indicatorIndex === index;
+                const isActive =
+                    indicatorIndex === index;
 
                 indicator.classList.toggle(
                     "is-active",
@@ -418,61 +427,138 @@ document.addEventListener("DOMContentLoaded", () => {
         };
 
         const stopTimer = () => {
-            if (timer) {
+            if (timer !== null) {
                 window.clearInterval(timer);
                 timer = null;
             }
         };
 
-        const startTimer = () => {
-            if (gallery.dataset.galleryAutoplay !== "true") {
+        const syncTimer = () => {
+            const autoplay =
+                gallery.dataset.galleryAutoplay === "true";
+
+            const shouldRun =
+                autoplay
+                && !reduceMotion.matches
+                && inViewport
+                && !pausedByInteraction
+                && document.visibilityState === "visible";
+
+            if (!shouldRun) {
+                stopTimer();
                 return;
             }
 
-            const interval = Number(
-                gallery.dataset.galleryInterval ?? 10000);
+            if (timer !== null) {
+                return;
+            }
 
-            stopTimer();
+            const configured = Number(
+                gallery.dataset.galleryInterval
+                ?? 10000);
+
+            const interval =
+                Number.isFinite(configured)
+                && configured >= 3000
+                    ? configured
+                    : 10000;
 
             timer = window.setInterval(
                 () => show(index + 1),
-                Number.isFinite(interval) && interval >= 3000
-                    ? interval
-                    : 10000);
+                interval);
         };
 
-        previousButton?.addEventListener("click", (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            show(index - 1);
-            startTimer();
-        });
+        const restartAfterManualChange = () => {
+            stopTimer();
+            syncTimer();
+        };
 
-        nextButton?.addEventListener("click", (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            show(index + 1);
-            startTimer();
-        });
-
-        indicators.forEach((indicator, indicatorIndex) => {
-            indicator.addEventListener("click", (event) => {
+        previousButton?.addEventListener(
+            "click",
+            (event) => {
                 event.preventDefault();
                 event.stopPropagation();
-                show(indicatorIndex);
-                startTimer();
+                show(index - 1);
+                restartAfterManualChange();
             });
-        });
 
-        gallery.addEventListener("mouseenter", stopTimer);
-        gallery.addEventListener("mouseleave", startTimer);
-        gallery.addEventListener("focusin", stopTimer);
-        gallery.addEventListener("focusout", startTimer);
+        nextButton?.addEventListener(
+            "click",
+            (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                show(index + 1);
+                restartAfterManualChange();
+            });
+
+        indicators.forEach(
+            (indicator, indicatorIndex) => {
+                indicator.addEventListener(
+                    "click",
+                    (event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        show(indicatorIndex);
+                        restartAfterManualChange();
+                    });
+            });
+
+        gallery.addEventListener(
+            "mouseenter",
+            () => {
+                pausedByInteraction = true;
+                syncTimer();
+            });
+
+        gallery.addEventListener(
+            "mouseleave",
+            () => {
+                pausedByInteraction = false;
+                syncTimer();
+            });
+
+        gallery.addEventListener(
+            "focusin",
+            () => {
+                pausedByInteraction = true;
+                syncTimer();
+            });
+
+        gallery.addEventListener(
+            "focusout",
+            () => {
+                pausedByInteraction = false;
+                syncTimer();
+            });
+
+        if ("IntersectionObserver" in window) {
+            const observer =
+                new IntersectionObserver((entries) => {
+                    inViewport =
+                        entries.some((entry) =>
+                            entry.isIntersecting);
+
+                    syncTimer();
+                }, {
+                    threshold: 0.08,
+                    rootMargin: "120px 0px"
+                });
+
+            observer.observe(gallery);
+        }
+        else {
+            inViewport = true;
+        }
+
+        document.addEventListener(
+            "visibilitychange",
+            syncTimer);
 
         show(0);
-        startTimer();
+        syncTimer();
     });
 });
+
 
 document.addEventListener("submit", (event) => {
     const form = event.target.closest("form[data-submit-once='true']");
@@ -507,55 +593,7 @@ document.addEventListener("submit", (event) => {
     }
 });
 
-document.addEventListener("DOMContentLoaded", () => {
-    document.querySelectorAll("[data-home-dog-hero]").forEach((hero) => {
-        const frames = Array.from(
-            hero.querySelectorAll("[data-home-hero-frame]"));
-
-        const captions = Array.from(
-            hero.querySelectorAll("[data-home-hero-caption]"));
-
-        if (frames.length <= 1) {
-            return;
-        }
-
-        let index = 0;
-
-        const show = (nextIndex) => {
-            index = (nextIndex + frames.length) % frames.length;
-
-            frames.forEach((frame, frameIndex) => {
-                const active = frameIndex === index;
-                frame.classList.toggle("is-active", active);
-                frame.setAttribute("aria-hidden", active ? "false" : "true");
-            });
-
-            captions.forEach((caption, captionIndex) => {
-                const active = captionIndex === index;
-                caption.classList.toggle("is-active", active);
-                caption.setAttribute("aria-hidden", active ? "false" : "true");
-            });
-        };
-
-        const configured = Number(
-            hero.dataset.homeHeroInterval ?? 9000);
-
-        const interval =
-            Number.isFinite(configured) && configured >= 4000
-                ? configured
-                : 9000;
-
-        show(0);
-
-        window.setInterval(
-            () => show(index + 1),
-            interval);
-    });
-});
-
-
-
-// Keep the Calendar/Inventory result pane aligned with the height of the form beside it.
+// Keep Calendar/Inventory result panes aligned without repeatedly forcing layout.
 document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll("[data-equal-workspace]").forEach((workspace) => {
         const formCard = workspace.querySelector("[data-equal-workspace-form]");
@@ -566,7 +604,11 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
+        let animationFrame = 0;
+
         const updateHeight = () => {
+            animationFrame = 0;
+
             if (window.matchMedia("(max-width: 1199.98px)").matches) {
                 scrollArea.style.height = "";
                 scrollArea.style.maxHeight = "";
@@ -574,21 +616,46 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             const workspaceStyles = window.getComputedStyle(workspace);
-            const gap = Number.parseFloat(workspaceStyles.rowGap || workspaceStyles.gap || "16") || 16;
-            const available = formCard.getBoundingClientRect().height
+            const gap =
+                Number.parseFloat(
+                    workspaceStyles.rowGap
+                    || workspaceStyles.gap
+                    || "16")
+                || 16;
+
+            const available =
+                formCard.getBoundingClientRect().height
                 - filterCard.getBoundingClientRect().height
                 - gap;
 
-            const target = Math.max(260, Math.round(available));
+            const target = Math.max(
+                260,
+                Math.round(available));
+
             scrollArea.style.height = `${target}px`;
             scrollArea.style.maxHeight = `${target}px`;
         };
 
-        updateHeight();
-        window.addEventListener("resize", updateHeight);
+        const queueHeightUpdate = () => {
+            if (animationFrame) {
+                window.cancelAnimationFrame(animationFrame);
+            }
+
+            animationFrame =
+                window.requestAnimationFrame(updateHeight);
+        };
+
+        queueHeightUpdate();
+
+        window.addEventListener(
+            "resize",
+            queueHeightUpdate,
+            { passive: true });
 
         if ("ResizeObserver" in window) {
-            const observer = new ResizeObserver(updateHeight);
+            const observer =
+                new ResizeObserver(queueHeightUpdate);
+
             observer.observe(formCard);
             observer.observe(filterCard);
         }
@@ -625,158 +692,441 @@ document.addEventListener("DOMContentLoaded", () => {
     initPublicDogCycles();
     initPublicEventExplorer();
     initPublicEventHeroSlideshow();
+    initPublicPawVideos();
 });
+
+const publicReducedMotion =
+    window.matchMedia("(prefers-reduced-motion: reduce)");
+
+function createVisibilityAwareTicker(
+    element,
+    interval,
+    callback)
+{
+    if (publicReducedMotion.matches
+        || !("IntersectionObserver" in window))
+    {
+        return;
+    }
+
+    let timer = null;
+    let inViewport = false;
+
+    const stop = () => {
+        if (timer !== null) {
+            window.clearInterval(timer);
+            timer = null;
+        }
+    };
+
+    const sync = () => {
+        const shouldRun =
+            inViewport
+            && document.visibilityState === "visible";
+
+        if (!shouldRun) {
+            stop();
+            return;
+        }
+
+        if (timer === null) {
+            timer = window.setInterval(
+                callback,
+                interval);
+        }
+    };
+
+    const observer =
+        new IntersectionObserver((entries) => {
+            inViewport =
+                entries.some((entry) =>
+                    entry.isIntersecting);
+
+            sync();
+        }, {
+            threshold: 0.08,
+            rootMargin: "120px 0px"
+        });
+
+    observer.observe(element);
+
+    document.addEventListener(
+        "visibilitychange",
+        sync);
+}
 
 function initPublicReveal() {
     const targets = document.querySelectorAll([
         ".public-section",
         ".public-banner",
-        ".public-stat-card",
-        ".public-pillar-card",
-        ".public-dog-card",
-        ".public-way-card",
-        ".public-info-tile",
-        ".public-check-card",
         ".public-cta-card",
-        ".public-event-feature",
-        ".public-event-card"
+        ".public-event-feature"
     ].join(","));
 
-    if (!targets.length || !("IntersectionObserver" in window)) {
-        targets.forEach((target) => target.classList.add("is-visible"));
+    if (!targets.length) {
         return;
     }
 
-    targets.forEach((target) => target.classList.add("public-reveal"));
+    if (publicReducedMotion.matches
+        || !("IntersectionObserver" in window))
+    {
+        targets.forEach((target) =>
+            target.classList.add("is-visible"));
 
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach((entry) => {
-            if (!entry.isIntersecting) return;
-            entry.target.classList.add("is-visible");
-            observer.unobserve(entry.target);
+        return;
+    }
+
+    targets.forEach((target) =>
+        target.classList.add("public-reveal"));
+
+    const observer =
+        new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (!entry.isIntersecting) {
+                    return;
+                }
+
+                entry.target.classList.add("is-visible");
+                observer.unobserve(entry.target);
+            });
+        }, {
+            threshold: 0.06,
+            rootMargin: "0px 0px -24px 0px"
         });
-    }, {
-        threshold: 0.08,
-        rootMargin: "0px 0px -32px 0px"
-    });
 
-    targets.forEach((target) => observer.observe(target));
+    targets.forEach((target) =>
+        observer.observe(target));
 }
 
 function initPublicDogCycles() {
-    document.querySelectorAll("[data-dog-cycle]").forEach((cycle) => {
-        const frames = Array.from(cycle.querySelectorAll("[data-dog-frame]"));
-        const captions = Array.from(cycle.querySelectorAll("[data-dog-caption]"));
-        if (frames.length <= 1) return;
+    document
+        .querySelectorAll("[data-dog-cycle]")
+        .forEach((cycle) => {
+            const frames = Array.from(
+                cycle.querySelectorAll("[data-dog-frame]"));
 
-        let index = 0;
-        const configured = Number(cycle.dataset.dogCycleInterval ?? 7000);
-        const interval = Number.isFinite(configured) && configured >= 4000 ? configured : 7000;
+            const captions = Array.from(
+                cycle.querySelectorAll("[data-dog-caption]"));
 
-        const show = (next) => {
-            index = (next + frames.length) % frames.length;
-            frames.forEach((frame, i) => {
-                const active = i === index;
-                frame.classList.toggle("is-active", active);
-                frame.setAttribute("aria-hidden", active ? "false" : "true");
-            });
-            captions.forEach((caption, i) => {
-                const active = i === index;
-                caption.classList.toggle("is-active", active);
-                caption.setAttribute("aria-hidden", active ? "false" : "true");
-            });
-        };
+            if (!frames.length) {
+                return;
+            }
 
-        show(0);
-        window.setInterval(() => show(index + 1), interval);
-    });
+            let index = 0;
+
+            const configured = Number(
+                cycle.dataset.dogCycleInterval ?? 7000);
+
+            const interval =
+                Number.isFinite(configured)
+                && configured >= 4000
+                    ? configured
+                    : 7000;
+
+            const show = (next) => {
+                index =
+                    (next + frames.length)
+                    % frames.length;
+
+                frames.forEach((frame, frameIndex) => {
+                    const active =
+                        frameIndex === index;
+
+                    frame.classList.toggle(
+                        "is-active",
+                        active);
+
+                    frame.setAttribute(
+                        "aria-hidden",
+                        active ? "false" : "true");
+                });
+
+                captions.forEach((caption, captionIndex) => {
+                    const active =
+                        captionIndex === index;
+
+                    caption.classList.toggle(
+                        "is-active",
+                        active);
+
+                    caption.setAttribute(
+                        "aria-hidden",
+                        active ? "false" : "true");
+                });
+            };
+
+            show(0);
+
+            if (frames.length > 1) {
+                createVisibilityAwareTicker(
+                    cycle,
+                    interval,
+                    () => show(index + 1));
+            }
+        });
 }
 
 function initPublicEventHeroSlideshow() {
-    document.querySelectorAll("[data-event-hero-slideshow]").forEach((hero) => {
-        const slides = Array.from(hero.querySelectorAll("[data-event-hero-slide]"));
-        if (slides.length <= 1) return;
+    document
+        .querySelectorAll("[data-event-hero-slideshow]")
+        .forEach((hero) => {
+            const slides = Array.from(
+                hero.querySelectorAll("[data-event-hero-slide]"));
 
-        let index = 0;
-        window.setInterval(() => {
-            slides[index].classList.remove("is-active");
-            index = (index + 1) % slides.length;
-            slides[index].classList.add("is-active");
-        }, 6500);
-    });
+            if (!slides.length) {
+                return;
+            }
+
+            let index = 0;
+
+            slides.forEach((slide, slideIndex) =>
+                slide.classList.toggle(
+                    "is-active",
+                    slideIndex === 0));
+
+            if (slides.length <= 1) {
+                return;
+            }
+
+            createVisibilityAwareTicker(
+                hero,
+                6500,
+                () => {
+                    slides[index]
+                        .classList.remove("is-active");
+
+                    index =
+                        (index + 1)
+                        % slides.length;
+
+                    slides[index]
+                        .classList.add("is-active");
+                });
+        });
+}
+
+function initPublicPawVideos() {
+    const videos = Array.from(
+        document.querySelectorAll(
+            "video[data-paw-video]"));
+
+    if (!videos.length) {
+        return;
+    }
+
+    const pauseAll = () => {
+        videos.forEach((video) =>
+            video.pause());
+    };
+
+    if (publicReducedMotion.matches
+        || !("IntersectionObserver" in window))
+    {
+        pauseAll();
+        return;
+    }
+
+    const visibleVideos = new Set();
+
+    const syncVideo = (video) => {
+        const shouldPlay =
+            visibleVideos.has(video)
+            && document.visibilityState === "visible";
+
+        if (shouldPlay) {
+            video.play().catch(() => {});
+        }
+        else {
+            video.pause();
+        }
+    };
+
+    const observer =
+        new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                const video = entry.target;
+
+                if (entry.isIntersecting) {
+                    visibleVideos.add(video);
+                }
+                else {
+                    visibleVideos.delete(video);
+                }
+
+                syncVideo(video);
+            });
+        }, {
+            threshold: 0.12,
+            rootMargin: "80px 0px"
+        });
+
+    videos.forEach((video) =>
+        observer.observe(video));
+
+    document.addEventListener(
+        "visibilitychange",
+        () => {
+            videos.forEach(syncVideo);
+        });
 }
 
 function initPublicEventExplorer() {
-    const explorer = document.querySelector("[data-public-event-explorer]");
-    if (!explorer) return;
+    const explorer =
+        document.querySelector(
+            "[data-public-event-explorer]");
 
-    const sources = Array.from(explorer.querySelectorAll("[data-event-source]"));
-    if (!sources.length) return;
+    if (!explorer) {
+        return;
+    }
 
-    const featureImage = explorer.querySelector("[data-feature-image]");
-    const featureMonth = explorer.querySelector("[data-feature-month]");
-    const featureDay = explorer.querySelector("[data-feature-day]");
-    const featureCategory = explorer.querySelector("[data-feature-category]");
-    const featureTitle = explorer.querySelector("[data-feature-title]");
-    const featureDescription = explorer.querySelector("[data-feature-description]");
-    const featureDate = explorer.querySelector("[data-feature-date]");
-    const featureTime = explorer.querySelector("[data-feature-time]");
-    const featureLocation = explorer.querySelector("[data-feature-location]");
-    const featureRsvp = explorer.querySelector("[data-feature-rsvp]");
-    const featureEnded = explorer.querySelector("[data-feature-ended]");
+    const sources = Array.from(
+        explorer.querySelectorAll(
+            "[data-event-source]"));
+
+    if (!sources.length) {
+        return;
+    }
+
+    const featureImage =
+        explorer.querySelector("[data-feature-image]");
+
+    const featureMonth =
+        explorer.querySelector("[data-feature-month]");
+
+    const featureDay =
+        explorer.querySelector("[data-feature-day]");
+
+    const featureCategory =
+        explorer.querySelector("[data-feature-category]");
+
+    const featureTitle =
+        explorer.querySelector("[data-feature-title]");
+
+    const featureDescription =
+        explorer.querySelector("[data-feature-description]");
+
+    const featureDate =
+        explorer.querySelector("[data-feature-date]");
+
+    const featureTime =
+        explorer.querySelector("[data-feature-time]");
+
+    const featureLocation =
+        explorer.querySelector("[data-feature-location]");
+
+    const featureRsvp =
+        explorer.querySelector("[data-feature-rsvp]");
+
+    const featureEnded =
+        explorer.querySelector("[data-feature-ended]");
+
+    const feature =
+        explorer.querySelector("[data-event-feature]");
 
     const update = (source) => {
-        const isPast = source.dataset.isPast === "true";
-        const image = source.dataset.image ?? "";
+        const isPast =
+            source.dataset.isPast === "true";
 
-        featureMonth.textContent = source.dataset.month ?? "";
-        featureDay.textContent = source.dataset.day ?? "";
-        featureCategory.textContent = source.dataset.category ?? "";
-        featureTitle.textContent = source.dataset.title ?? "";
-        featureDescription.textContent = source.dataset.description ?? "";
-        featureDate.textContent = source.dataset.date ?? "";
-        featureTime.textContent = source.dataset.time ?? "";
+        const image =
+            source.dataset.image ?? "";
 
-        const location = source.dataset.location ?? "";
-        featureLocation.textContent = location;
-        featureLocation.classList.toggle("d-none", !location);
+        featureMonth.textContent =
+            source.dataset.month ?? "";
+
+        featureDay.textContent =
+            source.dataset.day ?? "";
+
+        featureCategory.textContent =
+            source.dataset.category ?? "";
+
+        featureTitle.textContent =
+            source.dataset.title ?? "";
+
+        featureDescription.textContent =
+            source.dataset.description ?? "";
+
+        featureDate.textContent =
+            source.dataset.date ?? "";
+
+        featureTime.textContent =
+            source.dataset.time ?? "";
+
+        const location =
+            source.dataset.location ?? "";
+
+        featureLocation.textContent =
+            location;
+
+        featureLocation.classList.toggle(
+            "d-none",
+            !location);
 
         if (featureImage) {
             featureImage.src = image;
-            featureImage.classList.toggle("d-none", !image);
-            featureImage.closest(".public-event-feature-date")?.classList.toggle("has-image", Boolean(image));
+            featureImage.classList.toggle(
+                "d-none",
+                !image);
+
+            featureImage
+                .closest(".public-event-feature-date")
+                ?.classList.toggle(
+                    "has-image",
+                    Boolean(image));
         }
 
-        featureRsvp.classList.toggle("d-none", isPast);
-        featureEnded.classList.toggle("d-none", !isPast);
+        featureRsvp.classList.toggle(
+            "d-none",
+            isPast);
+
+        featureEnded.classList.toggle(
+            "d-none",
+            !isPast);
+
         if (!isPast) {
-            featureRsvp.href = source.dataset.rsvp || "/contact";
+            featureRsvp.href =
+                source.dataset.rsvp
+                || "/contact";
         }
 
         sources.forEach((item) => {
             item.classList.remove("is-active");
-            const wrapper = item.closest("[data-event-source-wrapper]");
-            if (wrapper) wrapper.classList.remove("d-none");
+
+            const wrapper =
+                item.closest(
+                    "[data-event-source-wrapper]");
+
+            wrapper?.classList.remove("d-none");
         });
 
         source.classList.add("is-active");
+
         if (!isPast) {
-            const activeWrapper = source.closest("[data-event-source-wrapper]");
-            if (activeWrapper) activeWrapper.classList.add("d-none");
+            source
+                .closest("[data-event-source-wrapper]")
+                ?.classList.add("d-none");
         }
 
-        explorer.querySelector("[data-event-feature]")?.scrollIntoView({
-            behavior: "smooth",
+        feature?.scrollIntoView({
+            behavior:
+                publicReducedMotion.matches
+                    ? "auto"
+                    : "smooth",
             block: "start"
         });
     };
 
     sources.forEach((source) => {
-        source.addEventListener("click", () => update(source));
+        source.addEventListener(
+            "click",
+            () => update(source));
     });
 
-    const defaultSource = sources.find((source) => source.dataset.defaultFeature === "true");
-    if (defaultSource) {
-        defaultSource.closest("[data-event-source-wrapper]")?.classList.add("d-none");
-    }
+    const defaultSource =
+        sources.find((source) =>
+            source.dataset.defaultFeature === "true");
+
+    defaultSource
+        ?.closest("[data-event-source-wrapper]")
+        ?.classList.add("d-none");
 }
+

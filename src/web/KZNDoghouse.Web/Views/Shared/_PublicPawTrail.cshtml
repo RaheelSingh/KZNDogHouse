@@ -1,7 +1,12 @@
 @model string
 
 <div class="public-paw-trail @Model" aria-hidden="true">
-    <video autoplay muted loop playsinline preload="metadata" tabindex="-1">
+    <video muted
+           loop
+           playsinline
+           preload="none"
+           tabindex="-1"
+           data-paw-video>
         <source src="~/images/public/paw-trail-transparent.webm" type="video/webm" />
     </video>
 </div>

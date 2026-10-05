@@ -5128,3 +5128,447 @@ a:hover {
     max-width: 420px;
     font-size: 0.8rem;
 }
+
+
+/* ===== Commit 9 web completion, accessibility and responsive hardening ===== */
+
+html {
+    scroll-behavior: smooth;
+}
+
+.public-body,
+.portal-body {
+    overflow-x: hidden;
+}
+
+img,
+svg,
+video,
+iframe {
+    max-width: 100%;
+}
+
+.skip-link {
+    position: fixed;
+    top: 0.75rem;
+    left: 0.75rem;
+    z-index: 3000;
+    padding: 0.65rem 0.9rem;
+    border-radius: 8px;
+    background: #ffffff;
+    color: var(--kzn-green-dark);
+    font-weight: 700;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    transform: translateY(-150%);
+    transition: transform 0.18s ease;
+}
+
+.skip-link:focus {
+    transform: translateY(0);
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+    outline: 3px solid rgba(198, 157, 52, 0.72);
+    outline-offset: 3px;
+}
+
+.public-hero-title {
+    font-size: clamp(2.75rem, 6vw, 5.6rem);
+}
+
+.public-page-title,
+.portal-page-title {
+    font-size: clamp(2rem, 3.6vw, 3.35rem);
+}
+
+.public-section-title {
+    font-size: clamp(1.75rem, 3vw, 2.65rem);
+}
+
+.public-map-card {
+    margin-top: 1rem;
+    overflow: hidden;
+    border: 1px solid var(--kzn-border);
+    border-radius: 22px;
+    background: var(--kzn-white);
+    box-shadow: 0 14px 32px rgba(9, 39, 27, 0.06);
+}
+
+.public-map-frame {
+    display: block;
+    width: 100%;
+    min-height: 340px;
+    border: 0;
+    background: var(--kzn-green-light);
+}
+
+.public-map-fallback {
+    min-height: 250px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 2rem;
+    background:
+        linear-gradient(
+            rgba(239, 244, 235, 0.9),
+            rgba(239, 244, 235, 0.9)),
+        url("/images/public/grass-texture.jpg")
+        center / cover;
+    color: var(--kzn-green-dark);
+}
+
+.public-map-fallback p {
+    margin: 0.35rem 0 0;
+    color: var(--kzn-text-muted);
+}
+
+.public-map-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.1rem;
+}
+
+.public-map-actions > div {
+    min-width: 0;
+    display: grid;
+    gap: 0.15rem;
+}
+
+.public-map-actions span {
+    color: var(--kzn-text-muted);
+    font-size: 0.85rem;
+}
+
+.public-side-photo-card {
+    margin: 1rem 0 0;
+    overflow: hidden;
+    border-radius: 24px;
+    background: var(--kzn-white);
+    box-shadow: 0 16px 38px rgba(9, 39, 27, 0.08);
+}
+
+.public-side-photo-image {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+}
+
+.public-side-photo-card figcaption {
+    padding: 0.95rem 1rem;
+    color: var(--kzn-green-dark);
+    font-weight: 650;
+}
+
+.public-side-photo-fallback {
+    margin-top: 1rem;
+    min-height: 250px;
+    display: grid;
+    align-content: center;
+    gap: 0.8rem;
+    padding: 2rem;
+    border-radius: 24px;
+    background:
+        linear-gradient(
+            rgba(236, 244, 233, 0.88),
+            rgba(236, 244, 233, 0.88)),
+        url("/images/public/grass-texture.jpg")
+        center / cover;
+    color: var(--kzn-green-dark);
+}
+
+.public-side-photo-fallback p {
+    margin: 0;
+    color: var(--kzn-text-muted);
+}
+
+.public-hero-empty-card {
+    min-height: 390px;
+    display: grid;
+    align-content: center;
+    gap: 0.9rem;
+    padding: clamp(1.5rem, 5vw, 3.25rem);
+    border-radius: 30px;
+    background:
+        linear-gradient(
+            135deg,
+            rgba(231, 239, 226, 0.97),
+            rgba(245, 247, 241, 0.92)),
+        url("/images/public/grass-texture.jpg")
+        center / cover;
+    color: var(--kzn-green-dark);
+    box-shadow: 0 24px 55px rgba(9, 39, 27, 0.1);
+}
+
+.public-hero-empty-card strong {
+    font-family: "Archivo", sans-serif;
+    font-size: clamp(1.5rem, 3vw, 2.35rem);
+    line-height: 1.12;
+}
+
+.public-hero-empty-card > span:not(.public-icon-box) {
+    color: var(--kzn-text-muted);
+    line-height: 1.6;
+}
+
+.public-policy-card,
+.public-error-card {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: clamp(1.4rem, 4vw, 2.5rem);
+    border: 1px solid var(--kzn-border);
+    border-radius: 24px;
+    background: var(--kzn-white);
+    box-shadow: 0 18px 42px rgba(9, 39, 27, 0.06);
+}
+
+.public-policy-card {
+    display: grid;
+    gap: 1.6rem;
+}
+
+.public-policy-card section {
+    padding-bottom: 1.35rem;
+    border-bottom: 1px solid var(--kzn-border);
+}
+
+.public-policy-card section:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
+}
+
+.public-policy-card h2 {
+    color: var(--kzn-green-dark);
+    font-family: "Archivo", sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+.public-policy-card p {
+    margin: 0.5rem 0 0;
+    color: var(--kzn-text-muted);
+    line-height: 1.7;
+}
+
+.public-error-card {
+    text-align: center;
+}
+
+.public-error-card h1 {
+    margin: 0.8rem 0;
+    color: var(--kzn-green-dark);
+    font-family: "Archivo", sans-serif;
+    font-size: clamp(1.8rem, 4vw, 2.8rem);
+}
+
+.public-error-card > p {
+    max-width: 650px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.public-error-reference {
+    color: var(--kzn-text-muted);
+    font-size: 0.8rem;
+}
+
+.public-scroll-anchor {
+    scroll-margin-top: 100px;
+}
+
+/*
+   Paw videos were previously decoding continuously even while off-screen.
+   JS now starts them only when visible; paint containment keeps them cheap.
+*/
+.public-paw-trail {
+    contain: layout paint;
+    pointer-events: none;
+}
+
+.public-paw-trail video {
+    filter: none !important;
+    transform: translateZ(0);
+}
+
+/*
+   Reveal only major page sections. Animating every child card created
+   unnecessary observers and compositing work on long pages.
+*/
+.public-reveal {
+    will-change: opacity, transform;
+}
+
+/* Tables/forms remain usable on narrow windows and at browser zoom levels. */
+.table-responsive,
+.portal-table-wrap,
+.portal-filter-results {
+    max-width: 100%;
+}
+
+.portal-table-wrap,
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.public-form-card .form-control,
+.public-form-card .form-select,
+.portal-main .form-control,
+.portal-main .form-select,
+.portal-main .btn,
+.public-main .btn {
+    min-height: 40px;
+}
+
+@media (max-width: 1199.98px) {
+    .portal-workspace-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .portal-workspace-form-card {
+        position: static !important;
+    }
+
+    [data-equal-workspace-scroll] {
+        height: auto !important;
+        max-height: none !important;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .public-map-frame {
+        min-height: 300px;
+    }
+
+    .public-map-actions {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .public-map-actions .btn {
+        width: 100%;
+    }
+
+    .portal-page-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .portal-page-summary {
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 767.98px) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    .public-section {
+        padding-top: 3.25rem;
+        padding-bottom: 3.25rem;
+    }
+
+    .public-map-frame {
+        min-height: 260px;
+    }
+
+    .public-map-fallback,
+    .public-side-photo-fallback {
+        min-height: 220px;
+        padding: 1.35rem;
+    }
+
+    .public-hero-empty-card {
+        min-height: 300px;
+    }
+
+    .public-pill-group {
+        gap: 0.45rem;
+    }
+
+    .public-pill,
+    .public-pill-round {
+        flex: 1 1 auto;
+    }
+
+    .portal-main {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .portal-card {
+        border-radius: 12px;
+    }
+
+    .portal-filter-bar {
+        gap: 0.55rem !important;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .public-page-header,
+    .public-hero {
+        padding-left: 0.25rem;
+        padding-right: 0.25rem;
+    }
+
+    .public-form-card,
+    .public-side-card,
+    .public-policy-card,
+    .public-error-card {
+        padding: 1.15rem;
+        border-radius: 16px;
+    }
+
+    .d-flex.gap-2,
+    .d-flex.gap-3 {
+        row-gap: 0.65rem !important;
+    }
+}
+
+@media (hover: none) {
+    .public-dog-card:hover,
+    .public-event-card:hover,
+    .public-way-card:hover,
+    .public-pillar-card:hover,
+    .public-info-tile:hover,
+    .public-check-card:hover {
+        transform: none !important;
+        box-shadow: inherit;
+    }
+
+    .public-dog-card:hover .public-dog-photo {
+        transform: none !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+
+    .public-reveal,
+    .public-reveal.is-visible {
+        opacity: 1 !important;
+        transform: none !important;
+        will-change: auto;
+    }
+
+    .public-paw-trail video {
+        display: none;
+    }
+}

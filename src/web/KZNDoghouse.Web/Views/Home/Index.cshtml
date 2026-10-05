@@ -73,7 +73,16 @@
                     }
                     else
                     {
-                        <div class="public-hero-photo" role="img" aria-label="Dog photos coming soon">Dog photos coming soon</div>
+                        <div class="public-hero-empty-card">
+                            <span class="public-icon-box"><partial name="_PublicIcon" model="@("heart")" /></span>
+                            <strong>Every dog deserves a safe place to land.</strong>
+                            <span>Browse the dogs currently in our care and find the right match for your home.</span>
+                            <a asp-controller="PublicDogs"
+                               asp-action="Index"
+                               class="public-text-link">
+                                Meet the dogs &rarr;
+                            </a>
+                        </div>
                     }
                 </div>
             </div>
@@ -176,3 +185,4 @@
         </div>
     </div>
 </section>
+

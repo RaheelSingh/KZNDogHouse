@@ -65,6 +65,15 @@
                         <span>Contact</span>
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link"
+                       asp-controller="GetInvolved"
+                       asp-action="Index"
+                       asp-fragment="donate">
+                        <img class="public-nav-paw" src="~/images/public/paw-icon.png" alt="" aria-hidden="true" />
+                        <span>Donate</span>
+                    </a>
+                </li>
 
                 @if (User.Identity?.IsAuthenticated == true)
                 {
@@ -93,3 +102,4 @@
         </div>
     </div>
 </nav>
+

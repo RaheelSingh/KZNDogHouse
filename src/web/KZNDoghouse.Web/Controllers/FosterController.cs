@@ -154,20 +154,33 @@ public class FosterController : Controller
 
     private async Task LoadSelectedDogAsync(Guid? dogId)
     {
-        if (!dogId.HasValue)
-        {
-            return;
-        }
-
         try
         {
-            var dog = await _dogService.GetPublicDogAsync(dogId.Value);
+            if (dogId.HasValue)
+            {
+                var dog = await _dogService.GetPublicDogAsync(dogId.Value);
 
-            ViewData["SelectedDogName"] = dog?.Name;
+                ViewData["SelectedDogName"] = dog?.Name;
+                ViewData["SelectedDogPhotoUrl"] = dog?.PhotoUrl;
+                ViewData["SelectedDogPhotoName"] = dog?.Name;
+
+                return;
+            }
+
+            var dogs = await _dogService.GetPublicDogsAsync();
+
+            var featuredDog = dogs
+                .FirstOrDefault(x =>
+                    !string.IsNullOrWhiteSpace(x.PhotoUrl));
+
+            ViewData["SelectedDogPhotoUrl"] = featuredDog?.PhotoUrl;
+            ViewData["SelectedDogPhotoName"] = featuredDog?.Name;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Dog {DogId} could not be loaded for the foster form.", dogId);
+            _logger.LogError(
+                ex,
+                "A dog image could not be loaded for the foster application form.");
         }
     }
 
@@ -187,3 +200,4 @@ public class FosterController : Controller
         }
     }
 }
+

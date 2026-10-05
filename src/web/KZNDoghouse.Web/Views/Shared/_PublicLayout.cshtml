@@ -12,11 +12,13 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body class="public-body">
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+
     <header class="public-sticky-header">
         <partial name="_PublicNavigation" />
     </header>
 
-    <main role="main" class="public-main">
+    <main id="main-content" role="main" class="public-main" tabindex="-1">
         @RenderBody()
     </main>
 
@@ -28,3 +30,4 @@
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
+
