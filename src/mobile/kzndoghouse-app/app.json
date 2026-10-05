@@ -2,6 +2,7 @@
   "expo": {
     "name": "kzndoghouse-app",
     "slug": "kzndoghouse-app",
+    "owner": "smart-centa",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -18,14 +19,11 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.shaheerj.kzndoghouseapp",
+      "package": "com.smartcenta.kzndoghouse",
       "googleServicesFile": "./google-services.json"
     },
     "web": {
-      "favicon": "./assets/favicon.png",
-      "plugins": [
-        "expo-router"
-      ]
+      "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-router",
