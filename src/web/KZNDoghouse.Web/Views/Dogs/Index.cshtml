@@ -5,99 +5,63 @@
 @{
     ViewData["Title"] = "Dogs";
     Layout = "_PortalLayout";
-
 }
 
-<div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-3">
-
+<div class="portal-page-heading">
     <div>
-
-        <h1 class="portal-page-title mb-2">
-            Dogs
-        </h1>
-
-        <p class="text-muted mb-0">
-            @Model.Count dogs currently in the system.
-        </p>
-
+        <h1 class="portal-page-title mb-2">Dogs</h1>
+        <p class="text-muted mb-0">@Model.Count dogs currently in the system.</p>
     </div>
 
-    <a asp-controller="Dogs"
-       asp-action="Create"
-       class="btn btn-kzn-primary">
-        + Add dog
-    </a>
-
+    <a asp-controller="Dogs" asp-action="Create" class="btn btn-kzn-primary">+ Add dog</a>
 </div>
 
 @if (TempData["SuccessMessage"] is string successMessage)
 {
-    <div class="alert alert-success" role="alert">
-        @successMessage
-    </div>
+    <div class="alert alert-success" role="alert">@successMessage</div>
+}
+@if (TempData["ErrorMessage"] is string errorMessage)
+{
+    <div class="alert alert-danger" role="alert">@errorMessage</div>
 }
 
-<div class="portal-card">
+<div class="portal-card portal-workspace-filter-card">
+    <div class="portal-filter-heading">
+        <h2>Search &amp; Filter</h2>
+    </div>
 
-    <div class="portal-filter-bar"
+    <div class="portal-filter-bar portal-filter-bar-dogs"
          data-portal-filter="dogRows"
          data-portal-empty="dogsEmpty"
          data-portal-result-count="dogsResultCount">
 
         <div class="portal-filter-search">
-
-            <label for="dogSearch" class="visually-hidden">
-                Search dogs
-            </label>
-
+            <label for="dogSearch" class="visually-hidden">Search dogs</label>
             <input id="dogSearch"
                    type="search"
                    class="form-control"
                    placeholder="Search name, breed or kennel"
                    data-portal-search />
-
         </div>
 
         <div>
-
-            <select class="form-select"
-                    aria-label="Filter dogs by status"
-                    data-portal-filter-field="status">
-
-                <option value="">
-                    All statuses
-                </option>
-
+            <select class="form-select" aria-label="Filter dogs by status" data-portal-filter-field="status">
+                <option value="">All statuses</option>
                 @foreach (var status in DogStatuses.All)
                 {
-                    <option value="@status">
-                        @status
-                    </option>
+                    <option value="@status">@status</option>
                 }
-
             </select>
-
         </div>
 
         <div>
-
-            <select class="form-select"
-                    aria-label="Filter dogs by size"
-                    data-portal-filter-field="size">
-
-                <option value="">
-                    All sizes
-                </option>
-
+            <select class="form-select" aria-label="Filter dogs by size" data-portal-filter-field="size">
+                <option value="">All sizes</option>
                 @foreach (var size in DogSizes.All)
                 {
-                    <option value="@size">
-                        @size
-                    </option>
+                    <option value="@size">@size</option>
                 }
-
             </select>
-
         </div>
 
         <button type="button"
@@ -110,41 +74,23 @@
                 data-sort-desc-label="Z–A"
                 title="Sort dog names A to Z"
                 aria-label="Sort dog names A to Z">
-
-            <svg class="portal-sort-icon portal-sort-icon-up" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M4 6h9"></path><path d="M4 11h6"></path><path d="M4 16h3"></path>
-                <path d="M18 19V5"></path><path d="m15 8 3-3 3 3"></path>
-            </svg>
-
-            <svg class="portal-sort-icon portal-sort-icon-down" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M4 6h9"></path><path d="M4 11h6"></path><path d="M4 16h3"></path>
-                <path d="M18 5v14"></path><path d="m15 16 3 3 3-3"></path>
-            </svg>
-
+            <svg class="portal-sort-icon portal-sort-icon-up" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h9"></path><path d="M4 11h6"></path><path d="M4 16h3"></path><path d="M18 19V5"></path><path d="m15 8 3-3 3 3"></path></svg>
+            <svg class="portal-sort-icon portal-sort-icon-down" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h9"></path><path d="M4 11h6"></path><path d="M4 16h3"></path><path d="M18 5v14"></path><path d="m15 16 3 3 3-3"></path></svg>
             <span data-portal-sort-label>A–Z</span>
-
         </button>
 
-        <button type="button"
-                class="btn btn-kzn-outline portal-filter-reset"
-                data-portal-filter-reset>
-            Reset
-        </button>
-
+        <button type="button" class="btn btn-kzn-outline portal-filter-reset" data-portal-filter-reset>Reset</button>
     </div>
 
     <div class="portal-filter-summary">
-        <span id="dogsResultCount">
-            @Model.Count results
-        </span>
+        <span id="dogsResultCount">@Model.Count results</span>
     </div>
+</div>
 
-    <div class="table-responsive portal-filter-results">
-
-        <table class="table align-middle mb-0">
-
+<div class="portal-card portal-list-card">
+    <div class="table-responsive portal-record-scroll portal-table-scroll">
+        <table class="table align-middle mb-0 portal-data-table">
             <thead>
-
                 <tr>
                     <th>Dog</th>
                     <th>Status</th>
@@ -152,11 +98,8 @@
                     <th>Intake date</th>
                     <th></th>
                 </tr>
-
             </thead>
-
             <tbody id="dogRows">
-
                 @foreach (var dog in Model)
                 {
                     <tr data-portal-row
@@ -164,30 +107,19 @@
                         data-status="@dog.Status"
                         data-size="@dog.Size"
                         data-sort-name="@dog.Name">
-
                         <td>
-
                             <div class="d-flex align-items-center gap-2">
-
                                 @if (!string.IsNullOrWhiteSpace(dog.PhotoUrl))
                                 {
-                                    <img src="@dog.PhotoUrl"
-                                         alt="Photo of @dog.Name"
-                                         class="kzn-dog-avatar kzn-dog-avatar-photo" />
+                                    <img src="@dog.PhotoUrl" alt="Photo of @dog.Name" class="kzn-dog-avatar kzn-dog-avatar-photo" />
                                 }
                                 else
                                 {
-                                    <div class="kzn-dog-avatar">
-                                        @(string.IsNullOrWhiteSpace(dog.Name) ? "?" : dog.Name.Substring(0, 1).ToUpper())
-                                    </div>
+                                    <div class="kzn-dog-avatar">@(string.IsNullOrWhiteSpace(dog.Name) ? "?" : dog.Name[..1].ToUpperInvariant())</div>
                                 }
 
                                 <div>
-
-                                    <div class="fw-semibold">
-                                        @dog.Name
-                                    </div>
-
+                                    <div class="fw-semibold">@dog.Name</div>
                                     <div class="text-muted small">
                                         @(dog.Breed ?? "Mixed breed")
                                         @if (dog.EstimatedAgeYears.HasValue)
@@ -195,49 +127,22 @@
                                             <text> · @dog.EstimatedAgeYears yrs</text>
                                         }
                                     </div>
-
                                 </div>
-
                             </div>
-
                         </td>
-
-                        <td>
-                            <partial name="_DogStatusBadge" model="@dog.Status" />
-                        </td>
-
-                        <td>
-                            @(dog.KennelLocation ?? "—")
-                        </td>
-
-                        <td>
-                            @dog.IntakeDate.ToString("dd MMM yyyy")
-                        </td>
-
+                        <td><partial name="_DogStatusBadge" model="@dog.Status" /></td>
+                        <td>@(dog.KennelLocation ?? "—")</td>
+                        <td>@dog.IntakeDate.ToString("dd MMM yyyy")</td>
                         <td class="text-end">
-
-                            <a asp-controller="Dogs"
-                               asp-action="Details"
-                               asp-route-id="@dog.Id"
-                               class="btn btn-kzn-outline btn-sm">
-                                View
-                            </a>
-
+                            <a asp-controller="Dogs" asp-action="Details" asp-route-id="@dog.Id" class="btn btn-kzn-outline btn-sm">View</a>
                         </td>
-
                     </tr>
                 }
-
             </tbody>
-
         </table>
 
+        <div id="dogsEmpty" class="portal-filter-empty" hidden>
+            No dogs match the current search and filters.
+        </div>
     </div>
-
-    <div id="dogsEmpty"
-         class="portal-filter-empty"
-         hidden>
-        No dogs match the current search and filters.
-    </div>
-
 </div>

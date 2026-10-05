@@ -3803,3 +3803,645 @@ a:hover {
     }
 }
 
+/* Commit 7 final portal polish */
+
+.portal-filter-bar .form-control,
+.portal-filter-bar .form-select,
+.portal-filter-reset,
+.portal-sort-button {
+    min-height: 38px;
+    height: 38px;
+    font-size: 0.78rem;
+    line-height: 1.2;
+}
+
+.portal-filter-bar .form-control,
+.portal-filter-bar .form-select {
+    padding-top: 0.4rem;
+    padding-bottom: 0.4rem;
+}
+
+.portal-filter-bar > div:not(.portal-filter-search) {
+    flex-basis: 160px;
+}
+
+.portal-filter-date {
+    min-width: 126px;
+}
+
+.portal-filter-reset,
+.portal-sort-button {
+    padding: 0.35rem 0.7rem;
+    border-radius: 8px;
+}
+
+.portal-record-scroll {
+    max-height: min(620px, calc(100vh - 250px));
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    overflow-anchor: none;
+    scrollbar-gutter: stable;
+}
+
+.portal-record-scroll-workspace {
+    padding-right: 0.35rem;
+}
+
+.portal-table-scroll {
+    max-height: min(590px, calc(100vh - 260px));
+}
+
+.portal-list-card {
+    height: auto;
+    padding: 0;
+    overflow: hidden;
+}
+
+.portal-data-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    background-color: var(--kzn-white);
+    box-shadow: 0 1px 0 var(--kzn-border);
+}
+
+.portal-data-table td,
+.portal-data-table th {
+    vertical-align: middle;
+}
+
+.portal-rejection-input {
+    max-width: 260px;
+}
+
+/* Calendar refinements */
+
+.portal-calendar-day-heading {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+.portal-calendar-day:last-child {
+    margin-bottom: 0;
+}
+
+/* Horizontal inventory list */
+
+.portal-inventory-list {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.portal-inventory-row {
+    height: auto;
+    padding: 0;
+    overflow: hidden;
+}
+
+.portal-inventory-row-main {
+    display: grid;
+    grid-template-columns: 72px minmax(150px, 1.3fr) minmax(100px, 0.6fr) minmax(180px, 1fr) auto auto;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.9rem 1rem;
+}
+
+.portal-inventory-row-image {
+    display: block;
+    width: 72px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 9px;
+    background-color: var(--kzn-cream-dark);
+}
+
+.portal-inventory-row-name h2 {
+    margin: 0;
+    color: var(--kzn-text);
+    font-size: 0.92rem;
+    font-weight: 700;
+}
+
+.portal-inventory-row-name span,
+.portal-inventory-row-details span,
+.portal-inventory-row-metric span {
+    display: block;
+    color: var(--kzn-text-muted);
+    font-size: 0.72rem;
+}
+
+.portal-inventory-row-metric strong {
+    display: block;
+    color: var(--kzn-green-dark);
+    font-size: 1.2rem;
+    line-height: 1.1;
+}
+
+.portal-inventory-row-details {
+    display: grid;
+    gap: 0.15rem;
+}
+
+.portal-inventory-row-status {
+    justify-self: end;
+}
+
+.portal-inventory-row-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.45rem;
+}
+
+.portal-inventory-row-expand {
+    padding: 0 1rem 1rem;
+    border-top: 1px solid var(--kzn-border);
+    background-color: var(--kzn-cream);
+}
+
+.portal-inventory-row-expand.show,
+.portal-inventory-row-expand.collapsing {
+    padding-top: 1rem;
+}
+
+/* Dashboard polish */
+
+.portal-dashboard-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+.portal-dashboard-stat-grid .portal-stat-card {
+    min-height: 118px;
+}
+
+.portal-dashboard-primary-grid,
+.portal-dashboard-secondary-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(300px, 0.8fr);
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.portal-dashboard-secondary-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.portal-dashboard-primary-grid .portal-card,
+.portal-dashboard-secondary-grid .portal-card {
+    height: auto;
+}
+
+.portal-dashboard-scroll-list {
+    max-height: 250px;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+}
+
+.portal-attention-avatar-photo {
+    object-fit: cover;
+    padding: 0;
+}
+
+.portal-pending-list-emphasis a {
+    padding: 0.95rem 0;
+}
+
+.portal-pending-list-emphasis strong {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 28px;
+    padding: 0 0.45rem;
+    border-radius: 999px;
+    background-color: var(--kzn-cream-dark);
+    color: var(--kzn-green-dark);
+    font-size: 0.76rem;
+}
+
+/* Dynamic public home hero */
+
+.public-hero-dog-stage {
+    position: relative;
+    min-height: 440px;
+    overflow: hidden;
+    border-radius: 30px;
+    background: linear-gradient(135deg, #dbe7d5 0%, #c3d4bd 100%);
+}
+
+.public-hero-dog-frame {
+    position: absolute;
+    inset: 0;
+    display: block;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.8s ease-in-out;
+}
+
+.public-hero-dog-frame.is-active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.public-hero-dog-image {
+    width: 100%;
+    height: 100%;
+    min-height: 440px;
+    object-fit: cover;
+}
+
+.public-hero-dog-placeholder {
+    min-height: 440px;
+    border-radius: 0;
+    font-family: "Fraunces", Georgia, serif;
+    font-size: 5rem;
+}
+
+.public-float-card-dog {
+    color: inherit;
+    text-decoration: none;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(5px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.public-float-card-dog.is-active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
+.public-float-card-dog:hover {
+    color: inherit;
+}
+
+.public-float-card-dog span {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+}
+
+.public-hero-dog-indicators {
+    position: absolute;
+    z-index: 4;
+    right: 1rem;
+    bottom: 1rem;
+    display: flex;
+    gap: 0.35rem;
+    padding: 0.35rem 0.45rem;
+    border-radius: 999px;
+    background-color: rgba(18, 53, 36, 0.52);
+}
+
+.public-hero-dog-indicator {
+    width: 7px;
+    height: 7px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background-color: rgba(255, 255, 255, 0.58);
+    transition: width 0.2s ease, background-color 0.2s ease;
+}
+
+.public-hero-dog-indicator.is-active {
+    width: 18px;
+    background-color: var(--kzn-white);
+}
+
+@media (max-width: 1399.98px) {
+    .portal-inventory-row-main {
+        grid-template-columns: 64px minmax(140px, 1fr) minmax(90px, 0.55fr) minmax(150px, 0.9fr) auto;
+    }
+
+    .portal-inventory-row-status {
+        display: none;
+    }
+
+    .portal-inventory-row-image {
+        width: 64px;
+        height: 56px;
+    }
+}
+
+@media (max-width: 1199.98px) {
+    .portal-dashboard-stat-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .portal-dashboard-primary-grid,
+    .portal-dashboard-secondary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .portal-inventory-row-main {
+        grid-template-columns: 64px minmax(150px, 1fr) minmax(90px, 0.6fr) auto;
+    }
+
+    .portal-inventory-row-details {
+        display: none;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .portal-record-scroll,
+    .portal-table-scroll {
+        max-height: none;
+        overflow-y: visible;
+    }
+
+    .portal-dashboard-stat-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .portal-inventory-row-main {
+        grid-template-columns: 52px minmax(0, 1fr);
+        gap: 0.75rem;
+    }
+
+    .portal-inventory-row-image {
+        width: 52px;
+        height: 48px;
+    }
+
+    .portal-inventory-row-metric,
+    .portal-inventory-row-actions {
+        grid-column: 2;
+    }
+
+    .portal-inventory-row-actions {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .public-hero-dog-stage,
+    .public-hero-dog-image,
+    .public-hero-dog-placeholder {
+        min-height: 340px;
+    }
+}
+
+
+
+/* Commit 7 final alignment pass */
+
+.portal-filter-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.8rem;
+}
+
+.portal-filter-heading h2 {
+    margin: 0;
+    color: var(--kzn-green-dark);
+    font-size: 0.96rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.portal-filter-heading-inline {
+    margin-top: 0.15rem;
+}
+
+.portal-filter-bar {
+    align-items: end;
+}
+
+.portal-filter-bar .form-control,
+.portal-filter-bar .form-select,
+.portal-filter-reset,
+.portal-sort-button {
+    height: 40px;
+    min-height: 40px;
+    border-radius: 9px;
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    line-height: 1.15;
+}
+
+.portal-filter-bar .form-control,
+.portal-filter-bar .form-select {
+    color: var(--kzn-text);
+}
+
+.portal-filter-bar .form-control::placeholder {
+    color: var(--kzn-text-muted);
+    font-weight: 600;
+    opacity: 0.88;
+}
+
+.portal-filter-date label {
+    color: var(--kzn-text);
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.portal-filter-reset,
+.portal-sort-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.4rem 0.8rem;
+    white-space: nowrap;
+}
+
+.portal-filter-summary {
+    margin-top: 0.15rem;
+    margin-bottom: 0;
+}
+
+.portal-filter-bar-calendar,
+.portal-filter-bar-inventory,
+.portal-filter-bar-foster,
+.portal-filter-bar-availability,
+.portal-filter-bar-users,
+.portal-filter-bar-notifications {
+    width: 100%;
+}
+
+@media (min-width: 1400px) {
+    .portal-filter-bar-calendar {
+        display: grid;
+        grid-template-columns: minmax(210px, 1.5fr) minmax(130px, 0.82fr) minmax(125px, 0.78fr) minmax(125px, 0.72fr) minmax(125px, 0.72fr) auto;
+    }
+
+    .portal-filter-bar-inventory {
+        display: grid;
+        grid-template-columns: minmax(210px, 1.4fr) minmax(135px, 0.85fr) minmax(135px, 0.85fr) minmax(145px, 0.9fr) auto auto;
+    }
+
+    .portal-filter-bar-dogs {
+        display: grid;
+        grid-template-columns: minmax(240px, 1.7fr) minmax(140px, 0.8fr) minmax(130px, 0.75fr) auto auto;
+    }
+
+    .portal-filter-bar-foster,
+    .portal-filter-bar-availability {
+        display: grid;
+        grid-template-columns: minmax(220px, 1.5fr) minmax(145px, 0.85fr) minmax(125px, 0.75fr) minmax(125px, 0.75fr) auto auto;
+    }
+
+    .portal-filter-bar-users {
+        display: grid;
+        grid-template-columns: minmax(230px, 1.55fr) minmax(135px, 0.8fr) minmax(135px, 0.8fr) auto auto;
+    }
+}
+
+.portal-equal-workspace {
+    align-items: start;
+}
+
+.portal-equal-workspace .portal-workspace-main {
+    display: flex;
+    min-height: 0;
+    flex-direction: column;
+}
+
+.portal-equal-workspace [data-equal-workspace-scroll] {
+    min-height: 260px;
+}
+
+.portal-equal-workspace .portal-workspace-form-card {
+    position: static;
+}
+
+/* Calendar visibility selector: public means both internal and public calendars. */
+
+.portal-calendar-visibility {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.45rem;
+}
+
+.portal-calendar-visibility-option {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    padding: 0.45rem 0.65rem;
+    border: 1px solid var(--kzn-green-dark);
+    border-radius: 9px;
+    background-color: var(--kzn-white);
+    color: var(--kzn-green-dark);
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 700;
+    line-height: 1.15;
+    text-align: center;
+    transition: background-color 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+}
+
+.portal-calendar-visibility-option:hover {
+    background-color: var(--kzn-green-light);
+}
+
+.portal-calendar-visibility-option.is-selected {
+    border-color: var(--kzn-green-dark);
+    background-color: var(--kzn-green-dark);
+    color: var(--kzn-white);
+}
+
+/* Inventory horizontal row sizing. */
+
+.portal-inventory-row-main {
+    grid-template-columns: 64px minmax(135px, 1.2fr) minmax(78px, 0.55fr) minmax(165px, 1fr) minmax(95px, 0.62fr) minmax(170px, auto);
+    gap: 0.75rem;
+}
+
+.portal-inventory-row-image {
+    width: 64px;
+    height: 56px;
+}
+
+.portal-inventory-row-actions {
+    min-width: 0;
+}
+
+.portal-inventory-row-actions .btn {
+    min-height: 38px;
+    padding: 0.35rem 0.65rem;
+    font-size: 0.76rem;
+}
+
+/* All scrollable record areas keep their own scroll instead of growing the entire page. */
+
+.portal-table-scroll,
+.portal-record-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(16, 62, 42, 0.42) transparent;
+}
+
+/* Automatic home hero cross-fade, with no swipe/arrow controls. */
+
+.public-hero-dog-frame {
+    visibility: visible;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 1.05s ease-in-out;
+}
+
+.public-hero-dog-frame.is-active {
+    visibility: visible;
+    pointer-events: auto;
+    opacity: 1;
+}
+
+.public-float-card-dog {
+    visibility: visible;
+    pointer-events: none;
+    opacity: 0;
+    transform: none;
+    transition: opacity 0.9s ease-in-out;
+}
+
+.public-float-card-dog.is-active {
+    visibility: visible;
+    pointer-events: auto;
+    opacity: 1;
+    transform: none;
+}
+
+.public-hero-dog-indicators {
+    display: none;
+}
+
+@media (max-width: 1399.98px) {
+    .portal-inventory-row-main {
+        grid-template-columns: 60px minmax(130px, 1.15fr) minmax(75px, 0.5fr) minmax(150px, 0.9fr) minmax(165px, auto);
+    }
+
+    .portal-inventory-row-status {
+        display: none;
+    }
+}
+
+@media (max-width: 1199.98px) {
+    .portal-equal-workspace [data-equal-workspace-scroll] {
+        height: auto !important;
+        max-height: min(620px, calc(100vh - 260px)) !important;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .portal-filter-bar .form-control,
+    .portal-filter-bar .form-select,
+    .portal-filter-reset,
+    .portal-sort-button {
+        font-size: 0.8rem;
+    }
+
+    .portal-calendar-visibility {
+        grid-template-columns: 1fr;
+    }
+}

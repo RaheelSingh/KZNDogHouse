@@ -37,9 +37,13 @@
     <div class="alert alert-success" role="alert">@successMessage</div>
 }
 
-<div class="portal-card mb-3">
+<div class="portal-card mb-3 portal-workspace-filter-card">
 
-    <div class="portal-filter-bar"
+    <div class="portal-filter-heading">
+        <h2>Search &amp; Filter</h2>
+    </div>
+
+    <div class="portal-filter-bar portal-filter-bar-notifications"
          data-portal-filter="notificationRows"
          data-portal-empty="notificationsEmpty"
          data-portal-result-count="notificationsResultCount">
@@ -104,7 +108,7 @@
 </div>
 
 <div id="notificationRows"
-     class="portal-filter-results portal-filter-results-cards">
+     class="portal-filter-results portal-filter-results-cards portal-record-scroll">
 
     @foreach (var day in grouped)
     {

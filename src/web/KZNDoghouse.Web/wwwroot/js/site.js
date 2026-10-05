@@ -507,3 +507,113 @@ document.addEventListener("submit", (event) => {
     }
 });
 
+document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll("[data-home-dog-hero]").forEach((hero) => {
+        const frames = Array.from(
+            hero.querySelectorAll("[data-home-hero-frame]"));
+
+        const captions = Array.from(
+            hero.querySelectorAll("[data-home-hero-caption]"));
+
+        if (frames.length <= 1) {
+            return;
+        }
+
+        let index = 0;
+
+        const show = (nextIndex) => {
+            index = (nextIndex + frames.length) % frames.length;
+
+            frames.forEach((frame, frameIndex) => {
+                const active = frameIndex === index;
+                frame.classList.toggle("is-active", active);
+                frame.setAttribute("aria-hidden", active ? "false" : "true");
+            });
+
+            captions.forEach((caption, captionIndex) => {
+                const active = captionIndex === index;
+                caption.classList.toggle("is-active", active);
+                caption.setAttribute("aria-hidden", active ? "false" : "true");
+            });
+        };
+
+        const configured = Number(
+            hero.dataset.homeHeroInterval ?? 9000);
+
+        const interval =
+            Number.isFinite(configured) && configured >= 4000
+                ? configured
+                : 9000;
+
+        show(0);
+
+        window.setInterval(
+            () => show(index + 1),
+            interval);
+    });
+});
+
+
+
+// Keep the Calendar/Inventory result pane aligned with the height of the form beside it.
+document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll("[data-equal-workspace]").forEach((workspace) => {
+        const formCard = workspace.querySelector("[data-equal-workspace-form]");
+        const filterCard = workspace.querySelector(".portal-workspace-filter-card");
+        const scrollArea = workspace.querySelector("[data-equal-workspace-scroll]");
+
+        if (!formCard || !filterCard || !scrollArea) {
+            return;
+        }
+
+        const updateHeight = () => {
+            if (window.matchMedia("(max-width: 1199.98px)").matches) {
+                scrollArea.style.height = "";
+                scrollArea.style.maxHeight = "";
+                return;
+            }
+
+            const workspaceStyles = window.getComputedStyle(workspace);
+            const gap = Number.parseFloat(workspaceStyles.rowGap || workspaceStyles.gap || "16") || 16;
+            const available = formCard.getBoundingClientRect().height
+                - filterCard.getBoundingClientRect().height
+                - gap;
+
+            const target = Math.max(260, Math.round(available));
+            scrollArea.style.height = `${target}px`;
+            scrollArea.style.maxHeight = `${target}px`;
+        };
+
+        updateHeight();
+        window.addEventListener("resize", updateHeight);
+
+        if ("ResizeObserver" in window) {
+            const observer = new ResizeObserver(updateHeight);
+            observer.observe(formCard);
+            observer.observe(filterCard);
+        }
+    });
+});
+
+// Calendar visibility is visually cumulative: public events appear internally as well.
+document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll("[data-calendar-visibility]").forEach((control) => {
+        const internalInput = control.querySelector("#visInternal");
+        const publicInput = control.querySelector("#visPublic");
+        const internalLabel = control.querySelector("[data-calendar-visibility-internal]");
+        const publicLabel = control.querySelector("[data-calendar-visibility-public]");
+
+        if (!internalInput || !publicInput || !internalLabel || !publicLabel) {
+            return;
+        }
+
+        const sync = () => {
+            internalLabel.classList.add("is-selected");
+            publicLabel.classList.toggle("is-selected", publicInput.checked);
+        };
+
+        internalInput.addEventListener("change", sync);
+        publicInput.addEventListener("change", sync);
+        sync();
+    });
+});

@@ -15,6 +15,8 @@ public class PublicDogListItem
 
     public string ShortAgeText { get; set; } = string.Empty;
 
+    public string? About { get; set; }
+
     public IReadOnlyList<string> ImageUrls { get; set; } =
         Array.Empty<string>();
 
@@ -78,6 +80,7 @@ public class PublicDogListItem
                 dog.DateOfBirth,
                 dog.EstimatedAgeYears,
                 shortForm: true),
+            About = dog.About,
             ImageUrls = urls,
             Status = dog.Status,
             IntakeDate = dog.IntakeDate

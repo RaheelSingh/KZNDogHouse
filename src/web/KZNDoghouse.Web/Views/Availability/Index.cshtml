@@ -21,9 +21,13 @@
     <div class="alert alert-danger" role="alert">@errorMessage</div>
 }
 
-<div class="portal-card">
+<div class="portal-card portal-workspace-filter-card">
 
-    <div class="portal-filter-bar"
+    <div class="portal-filter-heading">
+        <h2>Search &amp; Filter</h2>
+    </div>
+
+    <div class="portal-filter-bar portal-filter-bar-availability"
          data-portal-filter="availabilityRows"
          data-portal-empty="availabilityEmpty"
          data-portal-result-count="availabilityResultCount">
@@ -118,7 +122,10 @@
         <span id="availabilityResultCount">@Model.Count results</span>
     </div>
 
-    <div class="table-responsive portal-filter-results">
+</div>
+
+<div class="portal-card portal-list-card">
+    <div class="table-responsive portal-filter-results portal-record-scroll portal-table-scroll">
 
         <table class="table align-middle mb-0">
             <thead>
