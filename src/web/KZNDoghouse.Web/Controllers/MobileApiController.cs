@@ -62,10 +62,18 @@ public class MobileApiController : ControllerBase
         }
 
         var events = await _calendarEventService.GetAllAsync();
+        var assignments = await _eventRegistrationService.GetAllAsync();
+        var activeCounts = assignments
+            .Where(x => x.Status != EventAssignmentStatuses.Cancelled)
+            .GroupBy(x => x.EventId)
+            .ToDictionary(x => x.Key, x => x.Count());
+
         var result = events
             .Where(x => x.StartAt >= DateTime.UtcNow)
             .OrderBy(x => x.StartAt)
-            .Select(MobileEventDto.FromEvent)
+            .Select(x => MobileEventDto.FromEvent(
+                x,
+                activeCounts.GetValueOrDefault(x.Id)))
             .ToList();
 
         return Ok(ApiResponse<IReadOnlyList<MobileEventDto>>.Ok(result));

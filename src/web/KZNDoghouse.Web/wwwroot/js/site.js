@@ -689,6 +689,7 @@ document.addEventListener("DOMContentLoaded", () => {
 // Public site motion and interactive event history.
 document.addEventListener("DOMContentLoaded", () => {
     initPublicReveal();
+    initPublicPawTrails();
     initPublicDogCycles();
     initPublicEventExplorer();
     initPublicEventHeroSlideshow();
@@ -752,6 +753,39 @@ function createVisibilityAwareTicker(
     document.addEventListener(
         "visibilitychange",
         sync);
+}
+
+function initPublicPawTrails() {
+    const trails = Array.from(
+        document.querySelectorAll(".public-paw-trail"));
+
+    if (!trails.length) {
+        return;
+    }
+
+    if (publicReducedMotion.matches
+        || !("IntersectionObserver" in window))
+    {
+        trails.forEach((trail) =>
+            trail.classList.add("is-active"));
+
+        return;
+    }
+
+    const observer =
+        new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                entry.target.classList.toggle(
+                    "is-active",
+                    entry.isIntersecting);
+            });
+        }, {
+            threshold: 0.08,
+            rootMargin: "80px 0px"
+        });
+
+    trails.forEach((trail) =>
+        observer.observe(trail));
 }
 
 function initPublicReveal() {
@@ -1071,6 +1105,34 @@ function initPublicEventExplorer() {
         ?.closest("[data-event-source-wrapper]")
         ?.classList.add("d-none");
 }
+
+
+document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll("[data-volunteer-config]").forEach((container) => {
+        const toggle = container.querySelector("[data-volunteer-toggle]");
+        const fields = container.querySelector("[data-volunteer-fields]");
+        const requiredFields = Array.from(
+            container.querySelectorAll("[data-volunteer-required]"));
+
+        if (!toggle || !fields) {
+            return;
+        }
+
+        const update = () => {
+            const enabled = toggle.checked;
+            fields.hidden = !enabled;
+            requiredFields.forEach((field) => {
+                field.required = enabled;
+                if (!enabled) {
+                    field.setCustomValidity("");
+                }
+            });
+        };
+
+        toggle.addEventListener("change", update);
+        update();
+    });
+});
 
 
 // Apply consistent required-field affordances and reject obviously invalid

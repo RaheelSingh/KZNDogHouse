@@ -5,6 +5,8 @@ namespace KZNDoghouse.Web.Repositories;
 
 public interface IEventAssignmentRepository
 {
+    Task<IReadOnlyList<EventAssignment>> GetAllAsync();
+
     Task<IReadOnlyList<EventAssignment>> GetByProfileAsync(Guid profileId);
 
     Task<EventAssignment?> GetByEventAndProfileAsync(
@@ -24,6 +26,19 @@ public class EventAssignmentRepository : IEventAssignmentRepository
         ISupabaseClientFactory supabaseClientFactory)
     {
         _supabaseClientFactory = supabaseClientFactory;
+    }
+
+    public async Task<IReadOnlyList<EventAssignment>> GetAllAsync()
+    {
+        var client =
+            await _supabaseClientFactory.CreateServiceClientAsync();
+
+        var response = await client
+            .From<EventAssignment>()
+            .Get();
+
+        return response.Models?.ToList()
+            ?? new List<EventAssignment>();
     }
 
     public async Task<IReadOnlyList<EventAssignment>> GetByProfileAsync(

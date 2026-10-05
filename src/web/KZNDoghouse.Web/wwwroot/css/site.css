@@ -317,22 +317,16 @@ a:hover {
     left: 1.5rem;
     bottom: 0;
     max-width: 310px;
-    padding: 1rem 1.25rem 1rem 4.25rem;
+    padding: 1rem 1.25rem;
     background-color: rgba(255, 255, 255, 0.97);
+    color: inherit;
+    text-decoration: none;
     border-radius: 16px;
     box-shadow: 0 20px 40px -18px rgba(18, 36, 26, 0.35);
 }
 
 .public-float-card::before {
-    content: "";
-    position: absolute;
-    left: 1.1rem;
-    top: 50%;
-    width: 40px;
-    height: 40px;
-    margin-top: -20px;
-    background-color: var(--pub-ink);
-    border-radius: 50%;
+    content: none;
 }
 
 .public-float-card strong,
@@ -343,6 +337,8 @@ a:hover {
 .public-float-card strong {
     color: var(--pub-ink);
     font-size: 0.9rem;
+    text-decoration: underline;
+    text-underline-offset: 2px;
 }
 
 .public-float-card span {
@@ -4864,40 +4860,75 @@ a:hover {
     filter: drop-shadow(0 20px 24px rgba(7, 38, 25, 0.22));
 }
 
-/* Paw animation is placed only at deliberate prototype-like section edges. */
+/* Lightweight paw trails: individual paws reveal in sequence when the trail enters view. */
 .public-paw-stage {
     position: relative;
     overflow: hidden;
 }
 
+/* Keep hero paw trails decorative: they sit behind buttons/text instead of covering them. */
+.public-hero.public-paw-stage > .container {
+    position: relative;
+    z-index: 5;
+}
+
+.public-hero.public-paw-stage > .public-paw-trail {
+    z-index: 1;
+}
+
 .public-paw-trail {
     position: absolute;
     z-index: 4;
-    width: 260px;
-    height: 146px;
+    width: 340px;
+    height: 168px;
     pointer-events: none;
     overflow: hidden;
-    opacity: 0.55;
-    background-image:
-        url('/images/public/paw-icon.png'),
-        url('/images/public/paw-icon.png'),
-        url('/images/public/paw-icon.png'),
-        url('/images/public/paw-icon.png'),
-        url('/images/public/paw-icon.png');
-    background-repeat: no-repeat;
-    background-size: 28px 28px, 34px 34px, 26px 26px, 32px 32px, 24px 24px;
-    background-position: 8% 72%, 28% 48%, 49% 63%, 70% 33%, 89% 47%;
     contain: layout paint;
 }
 
-.public-paw-hero-left { left: -36px; bottom: -12px; }
-.public-paw-hero-right { right: -35px; bottom: 8px; transform: scaleX(-1); }
-.public-paw-mid-right { right: -55px; top: 35%; transform: rotate(88deg); }
-.public-paw-mid-left { left: -55px; top: 30%; transform: rotate(-88deg) scaleX(-1); }
-.public-paw-bottom-right { right: -35px; bottom: -18px; }
-.public-paw-top-right { right: -45px; top: -12px; transform: rotate(12deg); }
-.public-paw-events-left { left: -35px; bottom: -28px; }
-.public-paw-events-right { right: -35px; bottom: -28px; transform: scaleX(-1); }
+.public-paw-step {
+    position: absolute;
+    width: var(--paw-size, 28px);
+    height: var(--paw-size, 28px);
+    opacity: 0;
+    background: url('/images/public/paw-icon.png') center / contain no-repeat;
+    transform: rotate(var(--paw-angle, 0deg));
+}
+
+.public-paw-trail.is-active .public-paw-step {
+    animation: public-paw-step-in 320ms ease-out forwards;
+    animation-delay: calc(var(--paw-index, 0) * 190ms);
+}
+
+.public-paw-step:nth-child(1)  { --paw-index: 0; --paw-size: 24px; --paw-angle: -18deg; left: 2%;  top: 72%; }
+.public-paw-step:nth-child(2)  { --paw-index: 1; --paw-size: 30px; --paw-angle:  14deg; left: 12%; top: 55%; }
+.public-paw-step:nth-child(3)  { --paw-index: 2; --paw-size: 25px; --paw-angle: -16deg; left: 23%; top: 65%; }
+.public-paw-step:nth-child(4)  { --paw-index: 3; --paw-size: 32px; --paw-angle:  16deg; left: 34%; top: 45%; }
+.public-paw-step:nth-child(5)  { --paw-index: 4; --paw-size: 26px; --paw-angle: -14deg; left: 45%; top: 55%; }
+.public-paw-step:nth-child(6)  { --paw-index: 5; --paw-size: 31px; --paw-angle:  18deg; left: 56%; top: 35%; }
+.public-paw-step:nth-child(7)  { --paw-index: 6; --paw-size: 25px; --paw-angle: -13deg; left: 67%; top: 45%; }
+.public-paw-step:nth-child(8)  { --paw-index: 7; --paw-size: 30px; --paw-angle:  15deg; left: 77%; top: 26%; }
+.public-paw-step:nth-child(9)  { --paw-index: 8; --paw-size: 24px; --paw-angle: -15deg; left: 86%; top: 36%; }
+.public-paw-step:nth-child(10) { --paw-index: 9; --paw-size: 29px; --paw-angle:  14deg; left: 92%; top: 17%; }
+
+@keyframes public-paw-step-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 0.58;
+    }
+}
+
+.public-paw-hero-left { left: -54px; bottom: -12px; }
+.public-paw-hero-right { right: -54px; bottom: 8px; transform: scaleX(-1); }
+.public-paw-mid-right { right: -72px; top: 35%; transform: rotate(88deg); }
+.public-paw-mid-left { left: -72px; top: 30%; transform: rotate(-88deg) scaleX(-1); }
+.public-paw-bottom-right { right: -54px; bottom: -18px; }
+.public-paw-top-right { right: -62px; top: -12px; transform: rotate(12deg); }
+.public-paw-events-left { left: -54px; bottom: -28px; }
+.public-paw-events-right { right: -54px; bottom: -28px; transform: scaleX(-1); }
 
 /* Events: original prototype layout, with interactive history. */
 .public-events-header {
@@ -5073,9 +5104,8 @@ a:hover {
     }
 
     .public-paw-trail {
-        width: 210px;
-        height: 118px;
-        opacity: 0.62;
+        width: 285px;
+        height: 142px;
     }
 
     .portal-inventory-edit-form {
@@ -5421,10 +5451,12 @@ textarea:focus-visible,
     scroll-margin-top: 100px;
 }
 
-/* Static paw trails use the tiny paw icon instead of continuously decoded video. */
-.public-paw-trail {
-    contain: layout paint;
-    pointer-events: none;
+/* Paw trails stay cheap: no video decoding and no continuous animation loop. */
+@media (prefers-reduced-motion: reduce) {
+    .public-paw-step {
+        opacity: 0.58;
+        animation: none !important;
+    }
 }
 
 /*
@@ -5611,4 +5643,46 @@ label.is-required::after {
     margin-top: 0.35rem;
     color: var(--bs-danger, #b02a37);
     font-size: 0.875rem;
+}
+
+
+.portal-event-volunteer-summary {
+    margin-top: 0.75rem;
+    padding: 0.7rem 0.85rem;
+    border: 1px solid rgba(25, 75, 52, 0.14);
+    border-radius: 10px;
+    background: rgba(232, 241, 232, 0.55);
+    font-size: 0.9rem;
+}
+
+.portal-event-volunteer-config {
+    padding: 0.85rem;
+    border: 1px solid rgba(25, 75, 52, 0.14);
+    border-radius: 12px;
+    background: rgba(244, 248, 242, 0.72);
+}
+
+
+.portal-volunteer-list summary {
+    cursor: pointer;
+    color: #194b34;
+    font-weight: 600;
+}
+
+.portal-volunteer-list ul {
+    margin: 0.55rem 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.portal-volunteer-list li {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.3rem 0;
+    border-top: 1px solid rgba(25, 75, 52, 0.1);
+}
+
+.portal-volunteer-list small {
+    color: var(--bs-secondary-color, #6c757d);
 }

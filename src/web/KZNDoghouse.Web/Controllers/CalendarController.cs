@@ -12,17 +12,20 @@ public class CalendarController : Controller
 {
     private readonly ICalendarEventService _calendarEventService;
     private readonly IUserProfileRepository _userProfileRepository;
+    private readonly IEventAssignmentRepository _eventAssignmentRepository;
     private readonly IMediaStorageService _mediaStorageService;
     private readonly ILogger<CalendarController> _logger;
 
     public CalendarController(
         ICalendarEventService calendarEventService,
         IUserProfileRepository userProfileRepository,
+        IEventAssignmentRepository eventAssignmentRepository,
         IMediaStorageService mediaStorageService,
         ILogger<CalendarController> logger)
     {
         _calendarEventService = calendarEventService;
         _userProfileRepository = userProfileRepository;
+        _eventAssignmentRepository = eventAssignmentRepository;
         _mediaStorageService = mediaStorageService;
         _logger = logger;
     }
@@ -33,6 +36,12 @@ public class CalendarController : Controller
         try
         {
             var events = await _calendarEventService.GetAllAsync();
+            var assignments = await _eventAssignmentRepository.GetAllAsync();
+            var profiles = await _userProfileRepository.GetAllAsync();
+
+            ViewData["EventAssignments"] = assignments;
+            ViewData["ProfilesById"] = profiles.ToDictionary(x => x.Id);
+
             return View(events);
         }
         catch (Exception ex)
@@ -60,6 +69,11 @@ public class CalendarController : Controller
         DateTime? endAt,
         string visibility,
         Guid? dogId,
+        bool volunteerSignupEnabled,
+        int? maxVolunteers,
+        DateTime? volunteerStartAt,
+        DateTime? volunteerEndAt,
+        string? volunteerNotes,
         IFormFile? imageFile)
     {
         if (string.IsNullOrWhiteSpace(title))
@@ -86,6 +100,50 @@ public class CalendarController : Controller
             return RedirectToAction(nameof(Index));
         }
 
+        if (!EventCategories.All.Contains(category)
+            || !EventVisibilities.All.Contains(visibility))
+        {
+            TempData["ErrorMessage"] =
+                "Choose a valid event category and visibility.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        if (title.Trim().Length > 150
+            || (description?.Trim().Length ?? 0) > 1500
+            || (location?.Trim().Length ?? 0) > 200
+            || (volunteerNotes?.Trim().Length ?? 0) > 1000)
+        {
+            TempData["ErrorMessage"] =
+                "One or more event fields are longer than the allowed limit.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        if (volunteerSignupEnabled)
+        {
+            if (!maxVolunteers.HasValue
+                || maxVolunteers.Value < 1
+                || maxVolunteers.Value > 200)
+            {
+                TempData["ErrorMessage"] =
+                    "Enter a volunteer capacity between 1 and 200.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (!volunteerStartAt.HasValue || !volunteerEndAt.HasValue)
+            {
+                TempData["ErrorMessage"] =
+                    "Volunteer start and end times are required when signup is enabled.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (volunteerEndAt.Value <= volunteerStartAt.Value)
+            {
+                TempData["ErrorMessage"] =
+                    "Volunteer end time must be after the volunteer start time.";
+                return RedirectToAction(nameof(Index));
+            }
+        }
+
         var profile = await GetCurrentProfileAsync();
 
         if (profile == null)
@@ -109,6 +167,11 @@ public class CalendarController : Controller
                     endAt,
                     visibility,
                     dogId,
+                    volunteerSignupEnabled,
+                    maxVolunteers,
+                    volunteerStartAt,
+                    volunteerEndAt,
+                    volunteerNotes,
                     profile.Id);
 
             if (imageFile != null && imageFile.Length > 0)

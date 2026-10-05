@@ -23,6 +23,11 @@ public interface ICalendarEventService
         DateTime? endAt,
         string visibility,
         Guid? dogId,
+        bool volunteerSignupEnabled,
+        int? maxVolunteers,
+        DateTime? volunteerStartAt,
+        DateTime? volunteerEndAt,
+        string? volunteerNotes,
         Guid createdByProfileId);
 
     Task UpdateImageAsync(
@@ -85,6 +90,11 @@ public class CalendarEventService : ICalendarEventService
         DateTime? endAt,
         string visibility,
         Guid? dogId,
+        bool volunteerSignupEnabled,
+        int? maxVolunteers,
+        DateTime? volunteerStartAt,
+        DateTime? volunteerEndAt,
+        string? volunteerNotes,
         Guid createdByProfileId)
     {
         if (!EventCategories.All.Contains(category))
@@ -95,6 +105,31 @@ public class CalendarEventService : ICalendarEventService
         if (!EventVisibilities.All.Contains(visibility))
         {
             visibility = EventVisibilities.Internal;
+        }
+
+        if (volunteerSignupEnabled)
+        {
+            if (!maxVolunteers.HasValue || maxVolunteers.Value < 1 || maxVolunteers.Value > 200)
+            {
+                throw new ArgumentException("Volunteer capacity must be between 1 and 200.");
+            }
+
+            if (!volunteerStartAt.HasValue || !volunteerEndAt.HasValue)
+            {
+                throw new ArgumentException("Volunteer start and end times are required when volunteer signup is enabled.");
+            }
+
+            if (volunteerEndAt.Value <= volunteerStartAt.Value)
+            {
+                throw new ArgumentException("Volunteer end time must be after the volunteer start time.");
+            }
+        }
+        else
+        {
+            maxVolunteers = null;
+            volunteerStartAt = null;
+            volunteerEndAt = null;
+            volunteerNotes = null;
         }
 
         var calendarEvent = new CalendarEvent
@@ -108,16 +143,27 @@ public class CalendarEventService : ICalendarEventService
             EndAt = endAt,
             Visibility = visibility,
             DogId = dogId,
+            VolunteerSignupEnabled = volunteerSignupEnabled,
+            MaxVolunteers = maxVolunteers,
+            VolunteerStartAt = volunteerStartAt,
+            VolunteerEndAt = volunteerEndAt,
+            VolunteerNotes = string.IsNullOrWhiteSpace(volunteerNotes)
+                ? null
+                : volunteerNotes.Trim(),
             CreatedBy = createdByProfileId,
             CreatedAt = DateTime.UtcNow
         };
 
         var created = await _repository.CreateAsync(calendarEvent);
 
+        var notificationBody = volunteerSignupEnabled
+            ? $"Volunteer help needed on {volunteerStartAt:dd MMM} from {volunteerStartAt:HH:mm} to {volunteerEndAt:HH:mm}."
+            : $"New {category.ToLowerInvariant()} on {startAt:dd MMM} at {startAt:HH:mm}.";
+
         await _notificationService.NotifyActiveVolunteersAsync(
             NotificationCategories.Calendar,
             title,
-            $"New {category.ToLowerInvariant()} on {startAt:dd MMM} at {startAt:HH:mm}.");
+            notificationBody);
 
         return created;
     }

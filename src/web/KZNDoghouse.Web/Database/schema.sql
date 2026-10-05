@@ -351,13 +351,31 @@ create table if not exists public.calendar_events (
     dog_id uuid null references public.dogs(id) on delete set null,
     image_path text null,
     image_url text null,
+    volunteer_signup_enabled boolean not null default false,
+    max_volunteers int null
+        check (max_volunteers is null or max_volunteers between 1 and 200),
+    volunteer_start_at timestamptz null,
+    volunteer_end_at timestamptz null,
+    volunteer_notes text null,
     created_by uuid null references public.user_profiles(id) on delete set null,
     created_at timestamptz not null default now()
 );
 
 alter table public.calendar_events
     add column if not exists image_path text null,
-    add column if not exists image_url text null;
+    add column if not exists image_url text null,
+    add column if not exists volunteer_signup_enabled boolean not null default false,
+    add column if not exists max_volunteers int null,
+    add column if not exists volunteer_start_at timestamptz null,
+    add column if not exists volunteer_end_at timestamptz null,
+    add column if not exists volunteer_notes text null;
+
+alter table public.calendar_events
+    drop constraint if exists calendar_events_max_volunteers_check;
+
+alter table public.calendar_events
+    add constraint calendar_events_max_volunteers_check
+    check (max_volunteers is null or max_volunteers between 1 and 200);
 
 create index if not exists idx_calendar_events_start
     on public.calendar_events(start_at);

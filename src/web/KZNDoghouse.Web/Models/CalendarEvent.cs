@@ -40,6 +40,21 @@ public class CalendarEvent : BaseModel
     [Column("image_url")]
     public string? ImageUrl { get; set; }
 
+    [Column("volunteer_signup_enabled")]
+    public bool VolunteerSignupEnabled { get; set; }
+
+    [Column("max_volunteers")]
+    public int? MaxVolunteers { get; set; }
+
+    [Column("volunteer_start_at")]
+    public DateTime? VolunteerStartAt { get; set; }
+
+    [Column("volunteer_end_at")]
+    public DateTime? VolunteerEndAt { get; set; }
+
+    [Column("volunteer_notes")]
+    public string? VolunteerNotes { get; set; }
+
     [Column("created_by")]
     public Guid? CreatedBy { get; set; }
 

@@ -6,6 +6,8 @@ namespace KZNDoghouse.Web.Services;
 
 public interface IEventRegistrationService
 {
+    Task<IReadOnlyList<EventAssignment>> GetAllAsync();
+
     Task<IReadOnlyList<EventAssignment>> GetForProfileAsync(Guid profileId);
 
     Task<EventRegistrationResult> RegisterAsync(
@@ -41,6 +43,9 @@ public class EventRegistrationService : IEventRegistrationService
         _notificationService = notificationService;
     }
 
+    public Task<IReadOnlyList<EventAssignment>> GetAllAsync() =>
+        _eventAssignmentRepository.GetAllAsync();
+
     public Task<IReadOnlyList<EventAssignment>> GetForProfileAsync(
         Guid profileId) =>
         _eventAssignmentRepository.GetByProfileAsync(profileId);
@@ -66,30 +71,44 @@ public class EventRegistrationService : IEventRegistrationService
                 "Registration is only available for upcoming events.");
         }
 
-        if (calendarEvent.Category != EventCategories.Shift
-            && calendarEvent.Category != EventCategories.PublicEvent)
+        if (!calendarEvent.VolunteerSignupEnabled)
         {
             return new EventRegistrationResult(
                 false,
-                "This event is not open for volunteer self-registration.");
+                "Volunteer signup is not enabled for this event.");
         }
 
-        var requiredSlot = SlotFor(calendarEvent.StartAt);
+        if (!calendarEvent.MaxVolunteers.HasValue
+            || !calendarEvent.VolunteerStartAt.HasValue
+            || !calendarEvent.VolunteerEndAt.HasValue
+            || calendarEvent.VolunteerEndAt.Value <= calendarEvent.VolunteerStartAt.Value)
+        {
+            return new EventRegistrationResult(
+                false,
+                "Volunteer signup has not been configured correctly for this event.");
+        }
 
         var availability =
             await _availabilitySlotRepository
                 .GetForVolunteerAsync(profileId);
 
-        var hasApprovedAvailability = availability.Any(x =>
-            x.Status == AvailabilitySlotStatuses.Approved
-            && x.DayDate.Date == calendarEvent.StartAt.Date
-            && x.Slot == requiredSlot);
+        var requiredSlots = RequiredAvailabilitySlots(
+            calendarEvent.VolunteerStartAt.Value,
+            calendarEvent.VolunteerEndAt.Value);
 
-        if (!hasApprovedAvailability)
+        var approvedKeys = availability
+            .Where(x => x.Status == AvailabilitySlotStatuses.Approved)
+            .Select(x => (x.DayDate.Date, x.Slot))
+            .ToHashSet();
+
+        var missingSlot = requiredSlots
+            .FirstOrDefault(x => !approvedKeys.Contains((x.DayDate, x.Slot)));
+
+        if (missingSlot != default)
         {
             return new EventRegistrationResult(
                 false,
-                $"You need approved {requiredSlot.ToLowerInvariant()} availability for {calendarEvent.StartAt:dd MMM yyyy} before registering for this event.");
+                $"You need approved {missingSlot.Slot.ToLowerInvariant()} availability for {missingSlot.DayDate:dd MMM yyyy} before registering for this event.");
         }
 
         var existing =
@@ -98,16 +117,31 @@ public class EventRegistrationService : IEventRegistrationService
                     eventId,
                     profileId);
 
+        if (existing != null && existing.Status != EventAssignmentStatuses.Cancelled)
+        {
+            return new EventRegistrationResult(
+                false,
+                "You are already registered or assigned to this event.",
+                existing);
+        }
+
+        var allAssignments =
+            await _eventAssignmentRepository.GetAllAsync()
+            ?? Array.Empty<EventAssignment>();
+
+        var activeCount = allAssignments.Count(x =>
+            x.EventId == eventId
+            && x.Status != EventAssignmentStatuses.Cancelled);
+
+        if (activeCount >= calendarEvent.MaxVolunteers.Value)
+        {
+            return new EventRegistrationResult(
+                false,
+                "This event has reached its volunteer capacity.");
+        }
+
         if (existing != null)
         {
-            if (existing.Status != EventAssignmentStatuses.Cancelled)
-            {
-                return new EventRegistrationResult(
-                    false,
-                    "You are already registered or assigned to this event.",
-                    existing);
-            }
-
             await _eventAssignmentRepository.UpdateStatusAsync(
                 existing.Id,
                 EventAssignmentStatuses.Registered);
@@ -187,25 +221,80 @@ public class EventRegistrationService : IEventRegistrationService
         Guid profileId,
         CalendarEvent calendarEvent)
     {
+        var volunteerStart =
+            calendarEvent.VolunteerStartAt
+            ?? calendarEvent.StartAt;
+
+        var volunteerEnd =
+            calendarEvent.VolunteerEndAt
+            ?? calendarEvent.EndAt;
+
+        var timeText = volunteerEnd.HasValue
+            ? $"{volunteerStart:dd MMM} from {volunteerStart:HH:mm} to {volunteerEnd:HH:mm}"
+            : $"{volunteerStart:dd MMM} at {volunteerStart:HH:mm}";
+
         await _notificationService.NotifyUserAsync(
             profileId,
             NotificationCategories.Calendar,
             "Event registration confirmed",
-            $"You are registered for {calendarEvent.Title} on {calendarEvent.StartAt:dd MMM} at {calendarEvent.StartAt:HH:mm}.");
+            $"You are registered to volunteer for {calendarEvent.Title} on {timeText}.");
     }
 
-    private static string SlotFor(DateTime startAt)
+    private static IReadOnlyList<(DateTime DayDate, string Slot)> RequiredAvailabilitySlots(
+        DateTime startAt,
+        DateTime endAt)
     {
-        if (startAt.Hour < 12)
+        var required = new List<(DateTime DayDate, string Slot)>();
+        var day = startAt.Date;
+        var finalDay = endAt.AddTicks(-1).Date;
+
+        while (day <= finalDay)
         {
-            return AvailabilitySlotNames.Morning;
+            AddIfOverlapping(
+                required,
+                day,
+                AvailabilitySlotNames.Morning,
+                day,
+                day.AddHours(12),
+                startAt,
+                endAt);
+
+            AddIfOverlapping(
+                required,
+                day,
+                AvailabilitySlotNames.Afternoon,
+                day.AddHours(12),
+                day.AddHours(17),
+                startAt,
+                endAt);
+
+            AddIfOverlapping(
+                required,
+                day,
+                AvailabilitySlotNames.Evening,
+                day.AddHours(17),
+                day.AddDays(1),
+                startAt,
+                endAt);
+
+            day = day.AddDays(1);
         }
 
-        if (startAt.Hour < 17)
-        {
-            return AvailabilitySlotNames.Afternoon;
-        }
+        return required;
+    }
 
-        return AvailabilitySlotNames.Evening;
+    private static void AddIfOverlapping(
+        ICollection<(DateTime DayDate, string Slot)> required,
+        DateTime dayDate,
+        string slot,
+        DateTime slotStart,
+        DateTime slotEnd,
+        DateTime eventStart,
+        DateTime eventEnd)
+    {
+        if (eventStart < slotEnd && eventEnd > slotStart)
+        {
+            required.Add((dayDate.Date, slot));
+        }
     }
 }

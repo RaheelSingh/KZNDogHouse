@@ -8,6 +8,14 @@
     var grouped = Model
         .GroupBy(x => x.StartAt.Date)
         .OrderByDescending(g => g.Key);
+
+    var eventAssignments =
+        ViewData["EventAssignments"] as IReadOnlyList<EventAssignment>
+        ?? Array.Empty<EventAssignment>();
+
+    var profilesById =
+        ViewData["ProfilesById"] as IReadOnlyDictionary<Guid, UserProfile>
+        ?? new Dictionary<Guid, UserProfile>();
 }
 
 <div class="portal-page-heading">
@@ -117,6 +125,12 @@
                     <div class="portal-calendar-event-list">
                         @foreach (var evt in day.OrderByDescending(x => x.StartAt))
                         {
+                            var activeAssignments = eventAssignments
+                                .Where(x => x.EventId == evt.Id
+                                    && x.Status != EventAssignmentStatuses.Cancelled)
+                                .OrderBy(x => x.CreatedAt)
+                                .ToList();
+
                             <article class="portal-calendar-event"
                                      data-portal-row
                                      data-search="@evt.Title @evt.Location @evt.Description @evt.Category"
@@ -170,6 +184,44 @@
                                         <p class="portal-calendar-event-description">@evt.Description</p>
                                     }
 
+                                    @if (evt.VolunteerSignupEnabled)
+                                    {
+                                        <div class="portal-event-volunteer-summary">
+                                            <div>
+                                                <strong>Volunteer signup:</strong>
+                                                <span>@activeAssignments.Count / @evt.MaxVolunteers filled</span>
+                                                @if (evt.VolunteerStartAt.HasValue && evt.VolunteerEndAt.HasValue)
+                                                {
+                                                    <span> · @evt.VolunteerStartAt.Value.ToString("dd MMM, HH:mm")–@evt.VolunteerEndAt.Value.ToString("HH:mm")</span>
+                                                }
+                                            </div>
+
+                                            @if (!string.IsNullOrWhiteSpace(evt.VolunteerNotes))
+                                            {
+                                                <div class="text-muted small mt-1">@evt.VolunteerNotes</div>
+                                            }
+
+                                            @if (activeAssignments.Count > 0)
+                                            {
+                                                <details class="portal-volunteer-list mt-2">
+                                                    <summary>View registered volunteers</summary>
+                                                    <ul>
+                                                        @foreach (var assignment in activeAssignments)
+                                                        {
+                                                            var volunteerName = profilesById.TryGetValue(assignment.ProfileId, out var profile)
+                                                                ? profile.FullName
+                                                                : "Volunteer";
+                                                            <li>
+                                                                <span>@volunteerName</span>
+                                                                <small>@assignment.Status</small>
+                                                            </li>
+                                                        }
+                                                    </ul>
+                                                </details>
+                                            }
+                                        </div>
+                                    }
+
                                     <div class="portal-calendar-event-actions">
                                         <details class="portal-inline-editor">
                                             <summary>@(string.IsNullOrWhiteSpace(evt.ImageUrl) ? "Add image" : "Replace image")</summary>
@@ -183,6 +235,7 @@
                                                        name="imageFile"
                                                        class="form-control form-control-sm"
                                                        accept="image/jpeg,image/png,image/webp"
+                                                       data-max-file-bytes="5242880"
                                                        required />
                                                 <button type="submit" class="btn btn-kzn-outline btn-sm">Upload</button>
                                             </form>
@@ -202,16 +255,13 @@
                     </div>
                 </section>
             }
-        </div>
 
-        <div id="calendarEmpty" class="portal-card portal-filter-empty" hidden>
-            No events match the current search and filters.
+            <div id="calendarEmpty" class="portal-card portal-filter-empty" hidden>
+                @(Model.Any()
+                    ? "No events match the current search and filters."
+                    : "No events scheduled yet. Create the first event using the form beside this list.")
+            </div>
         </div>
-
-        @if (!Model.Any())
-        {
-            <div class="portal-card text-center text-muted py-4">No events scheduled yet.</div>
-        }
     </section>
 
     <aside class="portal-workspace-aside">
@@ -294,6 +344,67 @@
                     </div>
                 </div>
 
+                <div class="portal-event-volunteer-config mb-3" data-volunteer-config>
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input"
+                               type="checkbox"
+                               role="switch"
+                               id="volunteerSignupEnabled"
+                               name="volunteerSignupEnabled"
+                               value="true"
+                               data-volunteer-toggle />
+                        <label class="form-check-label fw-semibold" for="volunteerSignupEnabled">
+                            Accept volunteer signups
+                        </label>
+                    </div>
+                    <div class="form-text mb-3">
+                        Enable this when volunteers can register for the event from the mobile app.
+                    </div>
+
+                    <div data-volunteer-fields hidden>
+                        <div class="mb-3">
+                            <label class="form-label" for="maxVolunteers">Maximum volunteers</label>
+                            <input type="number"
+                                   id="maxVolunteers"
+                                   name="maxVolunteers"
+                                   class="form-control"
+                                   min="1"
+                                   max="200"
+                                   inputmode="numeric"
+                                   data-volunteer-required />
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-sm-6 col-xl-12 col-xxl-6">
+                                <label class="form-label" for="volunteerStartAt">Volunteer start</label>
+                                <input type="datetime-local"
+                                       id="volunteerStartAt"
+                                       name="volunteerStartAt"
+                                       class="form-control"
+                                       data-volunteer-required />
+                            </div>
+                            <div class="col-sm-6 col-xl-12 col-xxl-6">
+                                <label class="form-label" for="volunteerEndAt">Volunteer end</label>
+                                <input type="datetime-local"
+                                       id="volunteerEndAt"
+                                       name="volunteerEndAt"
+                                       class="form-control"
+                                       data-volunteer-required />
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="volunteerNotes">Volunteer instructions</label>
+                            <textarea id="volunteerNotes"
+                                      name="volunteerNotes"
+                                      class="form-control"
+                                      rows="2"
+                                      maxlength="1000"
+                                      placeholder="Meeting point, setup tasks, what to bring, packing/clean-up notes"></textarea>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="mb-3">
                     <label class="form-label">Description</label>
                     <textarea name="description" class="form-control" rows="3" maxlength="1500"></textarea>
@@ -304,7 +415,8 @@
                     <input type="file"
                            name="imageFile"
                            class="form-control"
-                           accept="image/jpeg,image/png,image/webp" />
+                           accept="image/jpeg,image/png,image/webp"
+                           data-max-file-bytes="5242880" />
                     <div class="form-text">Optional. Public events use this image on the website.</div>
                 </div>
 

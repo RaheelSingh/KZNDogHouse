@@ -1,788 +1,337 @@
 # KZN Doghouse Digital Platform
 
-## INSY7315 Work Integrated Learning Project
+INSY7315 Work Integrated Learning project by Hextech Solutions.
 
-This repository contains the development work for the KZN Doghouse Digital Platform created by **Hextech Solutions** as part of the INSY7315 Work Integrated Learning module.
+Team: Raheel Singh, Kaeden Samsunder, Akeev Sivai, Avikar Maharaj and Mohamed Shaheer Joosab.
 
-The project is being developed for KZN Doghouse to help replace a number of their current manual processes with a central digital system.
+## Contents
 
-The development team consists of:
-
-- Raheel Singh
-- Kaeden Samsunder
-- Akeev Sivai
-- Avikar Maharaj
-- Mohamed Shaheer Joosab
-
----
-
-## Project Overview
-
-KZN Doghouse currently makes use of a combination of paper records, Google Docs, spreadsheets and manual communication to manage many of their daily operations.
-
-This includes areas such as:
-
-- Dog records
-- Medical information
-- Fostering
-- Volunteer management
-- Inventory
-- Events
-- Calendars
-- User access
-
-The aim of this project is to create a connected digital platform that allows this information to be managed more efficiently while also controlling which users are able to access different information.
-
-The overall platform consists of three main parts:
-
-1. A public website
-2. An internal management system
-3. A mobile application
-
-The public website and internal system will be developed using ASP.NET Core MVC.
-
-The mobile application will be developed using React Native with Expo.
-
-Both applications will use the same backend services and database so that information stays consistent across the platform.
+- About the Project
+- What the System Does
+- Technology
+- Project Structure
+- How to Run the Project
+- Features
+- Security
+- Testing and Deployment
+- Team and Workflow
+- Known Issues
 
 ---
 
-## Main Parts of the System
+## About the Project
 
-### Public Website
+KZN Doghouse is a dog shelter that used paper records, Google Docs, spreadsheets and messages to run its daily work. We built a digital platform to replace that. It keeps dog records, medical information, fostering, volunteers, events, inventory and user access in one place.
 
-The public website will allow visitors to view information that KZN Doghouse has approved for public access.
+The platform has three parts that all use the same Supabase database:
 
-This may include:
-
-- Available dogs
-- Basic dog profiles
-- Public events
-- Foster information
-- Foster applications
-- Ways to get involved
-- Contact information
-
-Some functions, such as managing a foster application, may require the user to create an account and sign in.
-
-Sensitive information such as medical records and internal shelter information will not be shown through the public website.
+- Public website: what visitors see (dogs, fostering, events, contact)
+- Staff portal: for staff, administrators and vets (it is part of the same ASP.NET application as the website)
+- Mobile app: for volunteers and staff
 
 ---
 
-### Internal Management System
+## What the System Does
 
-The internal management system will be used by authorised users such as staff, administrators and approved vets.
+There are five user roles:
 
-The system will provide functions for areas such as:
+- Public: browses the public website, and can apply to foster after creating an account
+- Volunteer: uses the mobile app for availability, events and schedules
+- Staff: runs the shelter's day to day work in the portal
+- Administrator: can do everything staff can, and also manages users and roles
+- Vet: can only see the medical information of dogs they have been authorised for
 
-- Dog management
-- Medical records
-- Foster applications
-- Foster placements
-- Volunteer availability
-- Events
-- Calendar management
-- Inventory
+The main areas of the system are:
+
+- Dogs: records, photos and status (Available, In Care, Under Treatment, Fostered, Reserved, Adopted)
+- Medical records and notes (protected, not shown publicly)
+- Fostering: applications, placements and returns
+- Volunteers: availability slots and approvals
+- Events and calendar: events are either Public or Internal
+- Inventory: items, deliveries, usage, expiry dates and low stock
 - Notifications
-- User and role management
 
-The information and actions available to a user will depend on their role.
-
----
-
-### Mobile Application
-
-The mobile application is mainly intended for staff and volunteers.
-
-Planned mobile features include:
-
-- Signing in
-- Viewing dog information
-- Viewing schedules
-- Viewing events
-- Volunteer availability
-- Event registration
-- Notifications
-- User profiles
-
-The mobile application will communicate with the same ASP.NET Core backend through REST API endpoints.
+The shelter has some rules for foster homes: the property should be fully fenced, the dog needs grass or daily walks on grass, someone should be home day and night, and the dog needs an indoor place to sleep. The foster application form asks about all of these.
 
 ---
 
-## User Roles
+## Technology
 
-The system currently has five main user roles.
+Website and API:
 
-### Public
+- ASP.NET Core MVC on .NET 10 (C#)
+- Razor views, Bootstrap, CSS and JavaScript
+- xUnit and Moq for tests
 
-Public users can browse information intended for the public.
+Mobile app:
 
-A registered Public account may also be used where authentication is required, such as for foster applications.
+- React Native with Expo (SDK 57) and TypeScript
+- Expo Router for the screens
+- Supabase JavaScript client
 
-### Volunteer
+Backend services:
 
-Volunteers will mainly use the mobile application.
-
-They will be able to perform functions such as:
-
-- Submit availability
-- View approved availability
-- Register for events
-- View schedules
-- Receive notifications
-- Access permitted dog information
-
-### Staff
-
-Staff are responsible for normal shelter operations.
-
-Their functions may include:
-
-- Managing dog records
-- Updating medical information
-- Managing events
-- Reviewing volunteer availability
-- Managing foster applications
-- Managing inventory
-- Managing calendar entries
-
-### Administrator
-
-Administrators have the same general access as Staff but also have additional system-management permissions.
-
-This includes areas such as:
-
-- Managing user accounts
-- Assigning roles
-- Managing system access
-
-### Vet
-
-Approved vets will only be given access to the medical information required for dogs they have been authorised to treat.
-
-They should not have access to unrelated shelter information.
+- Supabase: PostgreSQL database, authentication and file storage
+- Firebase Cloud Messaging: push notifications (Android)
+- Render: hosting, using Docker
+- GitHub Actions: builds and tests every pull request
 
 ---
 
-## Foster Program Context
-
-The foster programme provides temporary care for dogs and puppies.
-
-Fostering may take place for different periods depending on how long a foster parent is available.
-
-Important requirements for foster applicants include:
-
-- The property should be fully fenced.
-- There should preferably be grass on the property.
-- If grass is not available, the dog must be taken for daily walks on grass.
-- Someone should be available during the day and night to monitor the dog or puppy.
-- The dog or puppy must have an indoor sleeping arrangement.
-
-Foster periods are flexible and are intended to work around the foster parent's availability.
-
-KZN Doghouse may provide foster parents with the essentials required to care for the dog.
-
-Examples include:
-
-- Food
-- Blankets
-- Chicken
-- Flea medication
-- Dewormer
-- Other required dog-care items
-
-The system should therefore be able to record the suitability of a foster home as well as the expected foster period.
-
----
-
-## Dog Records
-
-Dog records form one of the main parts of the system.
-
-Dogs currently in foster care are still considered part of the dogs under the care of KZN Doghouse.
-
-Dog records may include:
-
-- Name
-- Breed
-- Age
-- Gender
-- Size
-- Weight
-- Date received
-- Intake information
-- Backstory
-- Current status
-- Vaccination information
-- Sterilisation information
-- Health conditions
-- Medical notes
-- General notes
-- Current care arrangement
-
-The system should calculate information such as the number of dogs currently in care using the database instead of relying on fixed values.
-
-### Dogs Temporarily Housed for Owners
-
-KZN Doghouse may also house dogs temporarily for another owner.
-
-When this applies, the system may need to store:
-
-- Original owner information
-- Date the dog was received
-- Expected housing period
-- Expected return date
-- Actual return date
-- Additional notes
-
-This should remain separate from normal rescue or foster information where necessary.
-
----
-
-## Medical Records
-
-KZN Doghouse currently keeps physical vet cards and also records medical information within dog profiles.
-
-The digital platform will store medical information against the relevant dog.
-
-Medical records may include:
-
-- Vaccinations
-- Vaccination dates
-- Sterilisation
-- Health conditions
-- Medication
-- Treatment
-- Vet visits
-- Medical notes
-
-Medical information is considered protected information.
-
-Access will therefore depend on the role of the signed-in user.
-
-Approved vets should only be able to access medical information for dogs they have specifically been authorised to treat.
-
----
-
-## Volunteer Program
-
-KZN Doghouse allows volunteers from different age groups to assist at the shelter.
-
-The type of work given to volunteers may depend on their age and what activities are suitable for them.
-
-Volunteer activities may include:
-
-- Bathing dogs and puppies
-- Socialising with dogs
-- Yard cleanup
-- Kennel or cage cleanup
-- Fundraising assistance
-- Selling fundraising items
-- Event setup
-- Event cleanup
-- Saturday activities
-- General shelter assistance
-
-Volunteers may help during the week, on weekends and during school holidays.
-
-KZN Doghouse may also provide certificates of participation to volunteers.
-
-Because of this, the system should eventually be able to keep a record of volunteer participation and activities.
-
----
-
-## Inventory
-
-KZN Doghouse currently records inventory manually and updates it periodically.
-
-The new system will allow inventory to be managed digitally.
-
-There are two main types of inventory.
-
-### Shelter Inventory
-
-Examples include:
-
-- Dog bowls
-- Blankets
-- Medication
-- Dog food
-- Dog shampoo
-- Cleaning supplies
-- Other dog-care items
-
-### Fundraising Inventory
-
-Examples include:
-
-- Clothing merchandise
-- Dog toys
-- Dog accessories
-- Food
-- Drinks
-- Food stall items
-
-The inventory system is expected to support information such as:
-
-- Item name
-- Category
-- Quantity
-- Deliveries
-- Usage
-- Adjustments
-- Expiry dates where relevant
-- Low-stock thresholds
-- Staff member responsible for a stock change
-
-Inventory categories should be flexible so that new types of items can be added later.
-
----
-
-## Events and Calendar
-
-Staff will be able to create and manage events and calendar entries.
-
-Calendar entries may be either:
-
-- Public
-- Private
-
-Public events can be shown through the public website.
-
-Private events should only be visible to authorised internal users.
-
-Volunteers will also be able to register for appropriate events through the mobile application.
-
----
-
-## Technology Stack
-
-### Web Application
-
-The web application will use:
-
-- ASP.NET Core MVC
-- C#
-- HTML
-- CSS
-- JavaScript
-
-The same ASP.NET Core application will contain the public-facing website, internal management interface and REST API.
-
-### Mobile Application
-
-The mobile application will use:
-
-- React Native
-- Expo
-- JavaScript or TypeScript
-
-The application is intended to support both Android and iOS.
-
-### Database and Authentication
-
-Supabase will be used for:
-
-- PostgreSQL database
-- Authentication
-- File and image storage
-
-PostgreSQL was selected because the system contains many related records such as dogs, users, medical records, events, volunteers, fostering and inventory.
-
-### Notifications
-
-Firebase Cloud Messaging will be used for mobile push notifications.
-
-### Hosting
-
-The ASP.NET Core application and API are planned to be hosted using Render.
-
-### Version Control and CI/CD
-
-GitHub will be used for source control.
-
-GitHub Actions will later be used for automated build and testing workflows.
-
-Deployment automation will also be added during development.
-
----
-
-## Repository Structure
-
-The repository is being kept as a single repository so that the web application, mobile application and supporting development work remain together.
-
-The initial structure is:
+## Project Structure
 
 ```text
-src/
-  web/
-  mobile/
+KZNDoghouse.sln
+render.yaml
+.github/workflows
+  -> ci.yml (builds the website and runs the tests)
+  -> autograde.yaml (course autograder)
 
-README.md
-.gitignore
-.env.example
+src/web/KZNDoghouse.Web
+  -> Controllers (pages and the REST API)
+  -> Services (business rules)
+  -> Repositories (database queries)
+  -> Models, DTOs, Constants, Helpers
+  -> Views (public site, staff portal, login)
+  -> Database/schema.sql (all tables, the sign-up trigger, storage buckets)
+  -> wwwroot (css, js, images)
+  -> Dockerfile
+
+src/mobile/kzndoghouse-app
+  -> src/app (one file per screen)
+  -> src/components, src/context, src/lib, src/types
+  -> app.json, eas.json, package.json
+
+tests/web/KZNDoghouse.Web.Tests
 ```
 
-### `src/web`
-
-This folder will contain:
-
-- Public website
-- Internal management system
-- ASP.NET Core backend
-- REST API
-
-### `src/mobile`
-
-This folder will contain the React Native Expo mobile application.
-
-Additional folders such as automated tests and GitHub workflows will be added when those parts of development begin.
+The website follows one pattern everywhere: a controller receives the request, a service applies the rules, and a repository talks to the database. Pages never query the database directly.
 
 ---
 
-## Team Development Split
+## How to Run the Project
 
-The development work has been divided between the web and mobile applications.
+### What you need
 
-### Web Team
+- Git
+- .NET 10 SDK (check with `dotnet --version`)
+- Node.js and npm (mobile app only)
+- An Android phone or emulator (mobile app only)
+- A Supabase project (ours, or your own free one)
+- Docker Desktop (optional)
 
-The web team consists of:
+### 1. Get the code
 
-- Raheel Singh
-- Akeev Sivai
-- Avikar Maharaj
-
-Raheel will mainly focus on the initial system foundation, backend work, authentication, role-based access control and shared frontend structure.
-
-Akeev will mainly focus on the public-facing website and the backend functionality required by those features.
-
-Avikar will mainly focus on the internal operations portal and its supporting backend functionality.
-
-All web members are expected to contribute to both frontend and backend development.
-
-### Mobile Team
-
-The mobile team consists of:
-
-- Kaeden Samsunder
-- Mohamed Shaheer Joosab
-
-The two members will divide the mobile application work between them.
-
-Both members should contribute to mobile frontend functionality as well as relevant backend or API integration.
-
----
-
-## Branching Strategy
-
-The repository will contain three main shared branches.
-
-### `main`
-
-Contains the stable version of the application.
-
-Code should only reach `main` after it has been integrated and tested.
-
-### `develop`
-
-This is the main development integration branch.
-
-Completed work from member branches will first be merged into `develop`.
-
-### `test`
-
-The `test` branch will be used to test the combined system before changes are moved to `main`.
-
-The main flow is:
-
-```text
-member branch -> develop -> test -> main -> deployment
+```bash
+git clone https://github.com/EMKNDW/insy7315-g1-2026-wil-g1-project-st10321249.git
+cd insy7315-g1-2026-wil-g1-project-st10321249
+git checkout develop
 ```
 
-Each member will also have a branch based on the area they are working on.
+The website is on the `develop` branch. The newest mobile app code is on the `mobile-core` branch and has not been merged into `develop` yet (see Known Issues).
 
-### Web Branches
+### 2. Set up Supabase
 
-- `web-foundation`
-- `web-public`
-- `web-operations`
+If you do not have access to our Supabase project, create a free project at supabase.com.
 
-### Mobile Branches
+1. In the Supabase dashboard open SQL Editor and click New query.
+2. Paste in all of `src/web/KZNDoghouse.Web/Database/schema.sql` and press Run. It is safe to run more than once. It creates the tables, the sign-up trigger and two storage buckets (`public-media` for dog and event photos, and `private-files`).
+3. Open Project Settings, then API Keys, and copy the Project URL, the anon (publishable) key and the service role (secret) key.
+4. Make your first administrator. New accounts are always created as Public, and only an Administrator can change roles, so the first one is set by hand: open the Table Editor, open `user_profiles`, and change the `role` of your account to Administrator.
 
-- `mobile-core`
-- `mobile-features`
+Keep the service role key private. It skips all database security, so only the website's server uses it. It must never go into the mobile app or into Git. The mobile app only gets the Project URL and the anon key.
 
-Branch names describe the work being completed rather than the name of the team member.
+### 3. Run the website
 
----
-
-## Branch Responsibilities
-
-### `web-foundation`
-
-Mainly maintained by Raheel.
-
-This branch will initially contain work such as:
-
-- ASP.NET Core project setup
-- Shared application structure
-- Supabase configuration
-- Authentication
-- Login
-- Registration where required
-- Role-based access control
-- Shared layouts
-- Shared styling
-- Common backend services
-- Common DTO and repository structure
-- General validation and error handling
-
-### `web-public`
-
-Mainly maintained by Akeev.
-
-Planned areas include:
-
-- Home page
-- Dogs page
-- Public dog profiles
-- Foster information
-- Foster applications
-- Events
-- Get involved page
-- Contact page
-- Supporting controllers
-- Supporting services
-- Supporting database access
-
-### `web-operations`
-
-Mainly maintained by Avikar.
-
-Planned areas include:
-
-- Internal dashboard
-- Calendar
-- Event management
-- Volunteer availability review
-- Inventory
-- Low-stock alerts
-- Notifications
-- Supporting backend services
-- Supporting database functionality
-
-### `mobile-core` and `mobile-features`
-
-Maintained by Kaeden and Mohamed.
-
-These branches will contain the mobile screens, application logic and required API integration.
-
-The exact mobile feature split may be adjusted as development continues.
-
----
-
-## Development Workflow
-
-Before beginning work, members should make sure their local branch is up to date with `develop`.
-
-Development should normally follow this process:
-
-```text
-develop
--> member branch
--> development work
--> commit changes
--> push branch
--> pull request
--> review
--> develop
+```bash
+cd src/web/KZNDoghouse.Web
+dotnet user-secrets set "Supabase:Url" "https://your-project.supabase.co"
+dotnet user-secrets set "Supabase:AnonKey" "your anon key"
+dotnet user-secrets set "Supabase:ServiceRoleKey" "your service role key"
+dotnet run
 ```
 
-Changes should not normally be committed directly to `main`.
+Open http://localhost:5210. User secrets are stored outside the repository, so the keys cannot be committed by accident.
 
-Members should also avoid working directly on another person's assigned branch unless the team agrees that it is required.
+To check that the app started without needing Supabase, open http://localhost:5210/api/health. It should return a small JSON message saying the API is healthy.
 
-When another member completes a shared feature that is needed elsewhere, that work should first be merged so that other branches can update from the shared development branch.
+The Contact page can show a Google map if you also set `GoogleMaps:EmbedApiKey` the same way. This is optional.
+
+### 4. Run the tests
+
+From the root of the repository:
+
+```bash
+dotnet test tests/web/KZNDoghouse.Web.Tests
+```
+
+At the time of writing this runs 185 tests. They use fake data instead of Supabase, so no keys are needed.
+
+### 5. Run with Docker (optional)
+
+```bash
+docker build -f src/web/KZNDoghouse.Web/Dockerfile -t kzn-doghouse-web .
+docker run -p 10000:10000 -e Supabase__Url="https://your-project.supabase.co" -e Supabase__AnonKey="your anon key" -e Supabase__ServiceRoleKey="your service role key" kzn-doghouse-web
+```
+
+Open http://localhost:10000. This is the same Dockerfile that Render uses.
+
+### 6. Run the mobile app
+
+```bash
+git checkout mobile-core
+cd src/mobile/kzndoghouse-app
+npm install
+```
+
+Copy `.env.example` to `.env` (`copy` on Windows, `cp` on Mac or Linux) and fill in:
+
+- `EXPO_PUBLIC_SUPABASE_URL`: the Supabase Project URL
+- `EXPO_PUBLIC_SUPABASE_ANON_KEY`: the anon key only
+- `EXPO_PUBLIC_API_BASE_URL`: the address of the website. If you run the website on your own computer and test on a real phone, use your computer's IP address instead of localhost, and start the website with `dotnet run --urls http://0.0.0.0:5210`.
+
+Then start the app and scan the QR code with Expo Go, or press `a` for an Android emulator:
+
+```bash
+npx expo start
+```
+
+Notes:
+
+- `npm install` uses the `.npmrc` file in the app folder, which sets `legacy-peer-deps=true` so npm does not fail on peer dependency errors.
+- Expo Go does not support push notifications. To test them you need a development build: run `npx eas-cli build --profile development --platform android`, install the APK on the phone, then run `npx expo start --dev-client`. The Expo project belongs to the team's Expo account (see `owner` in `app.json`), so your Expo account must be added to it first.
+- Push notifications only work on Android at the moment.
 
 ---
 
-## Commit Messages
+## Features
 
-Commit messages should briefly explain the work completed.
+### Public website
 
-Examples include:
+Anyone can open these pages. Only the foster application needs a signed-in account.
 
-```text
-feat: add foster application form
+- Home: the shelter's story, the petition link, the newest dogs and ways to help
+- Meet the Dogs: dogs that are Available or Fostered, with size and status filters, sorting and a Load more button. Each dog has its own page with photos and details
+- Foster: how fostering works, what you need, dogs that need a foster, a FAQ and the application form
+- Get Involved: ways to help, the next events and partnership information
+- Events: upcoming and past public events, with category filters
+- Contact: a contact form, the shelter's details and a map
+- Login, Register and Privacy pages
 
-feat: implement inventory transaction service
+How the public pages protect data:
 
-fix: correct event visibility logic
+- Only Available and Fostered dogs are shown. The pages use small view models, so internal fields like kennel location and intake details are never sent to the browser.
+- Only events marked Public are shown.
+- Foster applications are saved to the database and linked to the signed-in person. A person can only have one open application at a time, and cannot apply for a dog that is already in foster care.
+- Contact messages are saved to the database. A hidden spam trap field on the form means bots that fill it in are ignored.
+- All forms are checked on the server as well as in the browser, and use anti-forgery tokens.
 
-test: add authentication tests
+### Staff portal
 
-style: add shared public site layout
+For Staff and Administrators. It opens on a dashboard, with a menu to everything else.
 
-docs: update project setup instructions
+- Dogs: add and edit dogs, change status, search and filter. Up to 10 photos per dog (5 MB each, jpg, png or webp) with a main photo. Medical records, notes and returning a dog from fostering.
+- Calendar: create Public or Internal events with a picture. Creating an event notifies the active volunteers.
+- Availability: approve or reject the slots volunteers submit.
+- Inventory: items with quantity, unit, low stock level and a picture. Deliveries, usage and adjustments are recorded together with who made them.
+- Foster applications: approving one starts a fostering record and notifies the applicant. Rejecting needs a reason, which is sent to the applicant.
+- Notifications: unread count, mark as read.
+- Users and Access (Administrators only): change roles, switch accounts on or off, approve or reject volunteer requests. You cannot change your own role.
+- Vet access (Administrators only): choose which dogs each vet can see.
 
-chore: configure project structure
-```
+### Vet area
 
-Commits should represent meaningful pieces of work.
+Vets cannot open the general portal. They get their own pages showing only the dogs they are authorised for, where they can read details and add medical records.
 
-The aim is for each team member to have a clear Git history showing their contribution to the project.
+### Mobile app
+
+The app is for volunteers and staff. Anyone who is not Staff or an Administrator is treated as a volunteer.
+
+- Sign in and register (volunteers register in two steps: details, then availability and interests)
+- Home: who is on duty today, dogs that need attention and today's schedule
+- Dogs: searchable list and a dog page with details, photos, medical flags, notes and fostering history. Staff can add dogs with a photo from the camera or gallery, manage photos, and add notes and medical records.
+- Calendar: a week strip with filters. Volunteers can sign up for an event and cancel. Staff can create and edit events, which notifies the volunteers.
+- Availability: volunteers tap the slots they can work each week, and staff approve them.
+- Alerts: notifications list with mark as read. Tapping a push notification opens the right screen.
+- Profile: shift numbers, contact details and sign out.
+
+Most of the app reads and writes Supabase directly with the user's login. It only calls the website for `/api/me`, which returns the user's role.
+
+### REST API
+
+The API is part of the same ASP.NET application. Every response has `success`, `message` and `data`.
+
+- `GET /api/health` is the health check (no login)
+- `GET /api/me` returns the name, email and role for the signed-in user
+- `/api/mobile/...` endpoints for dogs, events, availability, notifications and event registration. The caller sends the user's Supabase access token as a Bearer token.
 
 ---
 
 ## Security
 
-Security is important because the application will contain both public and private information.
-
-The project will use authentication and role-based access control to limit access to protected functions.
-
-Some examples include:
-
-- Public users must not have access to internal dog information.
-- Volunteers must not have access to protected medical information.
-- Staff should only have access to functions required for shelter operations.
-- Administrators will have additional user-management permissions.
-- Vets will only access authorised medical records.
-
-The project should also make use of:
-
-- Input validation
-- HTTPS
-- Secure authentication
-- Protected API endpoints
-- Role-based authorisation
-- Safe database access
-- Error handling
-- Secure storage of configuration values
-
-Passwords will not be stored directly by the application.
-
-Supabase Authentication will be responsible for account authentication.
+- Passwords are never stored by the website. Supabase Auth handles them. After login the website keeps an HttpOnly cookie session that lasts 8 hours.
+- Roles are checked on the server for every portal page. Hiding a link is not the only protection.
+- A public user cannot choose their own role when registering. The database trigger always creates a Public account.
+- Login, register and the API are rate limited (login 10 tries per 5 minutes, register 5 per 10 minutes, API 120 requests per minute).
+- Responses include the security headers `X-Content-Type-Options`, `X-Frame-Options` and `Referrer-Policy`. The site redirects to HTTPS, and Production also uses HSTS.
+- Every database table has row level security switched on, and normal logged-in users get no direct table access. The website's server code does the database work with the service role key.
+- Secrets are kept out of Git. The repository only has `.env.example` files showing the names of the values.
 
 ---
 
-## Environment Variables and Secrets
+## Testing and Deployment
 
-Passwords, API keys and private credentials must not be committed to GitHub.
+Tests:
 
-The repository contains an `.env.example` file showing the types of environment values that may be required.
+- 185 automated tests in `tests/web/KZNDoghouse.Web.Tests`. They cover the business rules (public dog visibility, filters, foster applications, events, contact messages, inventory, availability and more) and a check of the health endpoint.
 
-Actual values must be stored locally or through the environment settings of the hosting platform.
+GitHub Actions:
 
-Examples include:
+- `ci.yml` runs on every push and pull request to `develop`, `test` and `main`. It builds the solution in Release mode, runs the tests and uploads the results.
+- `autograde.yaml` is the course autograder and runs when `main` is pushed.
 
-- Supabase URL
-- Supabase public key
-- Supabase server credentials
-- API base URL
-- Firebase configuration
+Render:
 
-Private server credentials must never be exposed through the public website or mobile application.
-
----
-
-## Public Website (`web-public`)
-
-This section describes the public-facing website built on the `web-public` branch and how to run it.
-
-### Pages
-
-| Route | Page | Notes |
-|---|---|---|
-| `/` | Home | Mission, statistics, newest dogs, ways to help |
-| `/our-dogs` | Meet the Dogs | Size and status filters, sorting, "Load more dogs" |
-| `/our-dogs/{id}` | Dog Details | Public profile, adoption and foster links |
-| `/foster` | Foster | Programme information, process, requirements, FAQ |
-| `/foster/apply` | Foster application | Requires a signed-in account |
-| `/get-involved` | Get Involved | Ways to help, upcoming events, partnerships |
-| `/events` | Events | Upcoming and past public events, category filter |
-| `/contact` | Contact | Contact form and shelter details |
-
-### What the public can see
-
-- Dogs: only dogs with the status Available or Fostered are shown. Pages receive small public view models, so internal fields such as kennel location, intake details and who created a record never reach the browser.
-- Events: only events with Public visibility are shown. Times are displayed exactly as staff entered them in the calendar.
-
-### How the public features save data
-
-- Foster applications are saved into the existing `foster_applications` table and are linked to the signed-in applicant. The home and preference answers are stored as text in `application_details`. An applicant can have only one open application (Submitted or Under Review) at a time.
-- Contact messages are saved into the `contact_messages` table. A hidden field acts as a spam trap, and messages are never saved when it is filled in.
-- All forms are validated on the server as well as in the browser, and every form uses an anti-forgery token.
-
-### Running the website locally
-
-Add the Supabase values to .NET User Secrets (never commit them):
-
-```text
-dotnet user-secrets set "Supabase:Url" "<project url>" --project src/web/KZNDoghouse.Web
-dotnet user-secrets set "Supabase:AnonKey" "<anon or publishable key>" --project src/web/KZNDoghouse.Web
-dotnet user-secrets set "Supabase:ServiceRoleKey" "<service role or secret key>" --project src/web/KZNDoghouse.Web
-```
-
-Then start the site:
-
-```text
-dotnet run --project src/web/KZNDoghouse.Web
-```
-
-### Database setup for the public features
-
-Run the `contact_messages` section at the end of `src/web/KZNDoghouse.Web/Database/schema.sql` once in the Supabase SQL Editor. Until it exists, the contact form shows a message asking visitors to email the shelter instead.
-
-### Running the tests
-
-```text
-dotnet test tests/web/KZNDoghouse.Web.Tests
-```
-
-### Styling
-
-The public theme is applied through the `public-body` class on the public layout, so the staff portal keeps its own appearance. Fonts (Archivo, Inter, Fraunces and IBM Plex Mono) are loaded from Google Fonts.
-
-### Still to complete before release
-
-- Replace the placeholder logo (`wwwroot/images/logo-placeholder.svg`) and the labelled photo and map placeholders with the final images.
-- Add the petition link; the "Sign the Petition" button is disabled until a link is available.
-- Confirm the figures and stories shown on the Home, Foster and Get Involved pages.
-- Confirm the shelter opening hours, which are not currently shown.
-- Terms and Privacy Policy appear as plain text because those pages do not exist yet.
-- Contact messages can currently be read in the Supabase table editor; a staff screen for them has not been built.
-- The staff foster-application screen does not yet display the saved `application_details` text.
-
-## Current Project Stage
-
-Part 1 of the project focused on planning and design.
-
-This included areas such as:
-
-- Requirements
-- User roles
-- User stories
-- System design
-- Database planning
-- Architecture
-- Security
-- DevOps planning
-- Prototypes
-
-The project is now moving into implementation.
-
-The first stage of implementation is setting up the shared repository and project structure so that all team members can begin development from the same base.
-
-The web foundation will then be created before the larger web features are divided between the web development team.
-
-The mobile team will work within the same repository using the mobile application folder.
+- `render.yaml` describes one Docker web service called `kzn-doghouse`. It deploys from `develop` after the GitHub checks pass, and Render checks `/api/health` to see that it is running.
+- The keys are not in the file. They are set in the Render dashboard as `Supabase__Url`, `Supabase__AnonKey`, `Supabase__ServiceRoleKey` and `GoogleMaps__EmbedApiKey`.
+- It is on the free plan, so the first request after a quiet period can be slow.
 
 ---
 
-## Project Goal
+## Team and Workflow
 
-The final goal is to provide KZN Doghouse with a working digital platform that centralises information currently managed through a number of manual systems.
+The work was split like this:
 
-The platform should make day-to-day shelter operations easier while also improving the consistency, accessibility and security of important information.
+- Raheel: the foundation, login, roles and access control, shared layouts, and the deployment setup
+- Akeev: the public website and the code behind it
+- Avikar: the staff portal operations (dogs, medical, calendar, availability, fostering, inventory)
+- Kaeden and Mohamed: the mobile app
 
-The system is intended to support both the organisation's current needs and possible future growth.
+Branches:
+
+- `main`: the stable version
+- `develop`: where finished work is joined together
+- `test`: for testing the joined system before `main`
+- `web-foundation`, `web-public`, `web-operations`, `mobile-core`, `mobile-features`: one branch per area of work
+
+Everyone works on their own branch, opens a pull request into `develop`, and a teammate reviews it:
+
+```text
+member branch -> pull request -> review -> develop -> test -> main
+```
+
+Commit messages say what was done, for example `feat: add foster application form`, `fix: correct event visibility logic`, `test: add authentication tests` or `docs: update setup instructions`.
+
+---
+
+## Known Issues
+
+We want to be upfront about what is not finished or does not fully match yet.
+
+- The mobile app and the database setup do not fully match. The app calls five database functions (`current_profile_id`, `current_profile_info`, `register_device`, `get_profile_names` and `notify_event_created`) that are not in `schema.sql`, and the schema has no table for phone push tokens. The schema also gives logged-in users no direct table access, while the app reads tables directly. So a new Supabase project built only from `schema.sql` will not work with the app until those functions and access rules are added to the file.
+- Mobile registration does not reach the volunteer approval list. The app sends `role: volunteer`, but the sign-up trigger now only looks at `volunteer_interest`, so app registrations become Public accounts with no pending request for an administrator.
+- The mobile app is on `mobile-core` and `mobile-features`, not in `develop`. The two branches have drifted apart (for example they use different Android package names) and need to be merged.
+- The app has no Forgot password feature, and push notifications are Android only.
+- Contact messages can only be read in the Supabase Table Editor. There is no staff screen for them yet.
+- The staff foster applications screen does not show the saved home and preference answers, only the applicant, dog, date and status.
+- Some figures on the public pages came from the design and still need to be confirmed by the shelter (for example "800+ dogs" and "120 active volunteers"). The shelter's opening hours are not shown.

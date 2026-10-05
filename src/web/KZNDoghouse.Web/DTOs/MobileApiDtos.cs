@@ -43,8 +43,17 @@ public class MobileEventDto
     public string Visibility { get; set; } = string.Empty;
     public Guid? DogId { get; set; }
     public string? ImageUrl { get; set; }
+    public bool VolunteerSignupEnabled { get; set; }
+    public int? MaxVolunteers { get; set; }
+    public int RegisteredVolunteerCount { get; set; }
+    public int? VolunteerSpotsRemaining { get; set; }
+    public DateTime? VolunteerStartAt { get; set; }
+    public DateTime? VolunteerEndAt { get; set; }
+    public string? VolunteerNotes { get; set; }
 
-    public static MobileEventDto FromEvent(CalendarEvent calendarEvent) => new()
+    public static MobileEventDto FromEvent(
+        CalendarEvent calendarEvent,
+        int registeredVolunteerCount = 0) => new()
     {
         Id = calendarEvent.Id,
         Title = calendarEvent.Title,
@@ -55,7 +64,16 @@ public class MobileEventDto
         EndAt = calendarEvent.EndAt,
         Visibility = calendarEvent.Visibility,
         DogId = calendarEvent.DogId,
-        ImageUrl = calendarEvent.ImageUrl
+        ImageUrl = calendarEvent.ImageUrl,
+        VolunteerSignupEnabled = calendarEvent.VolunteerSignupEnabled,
+        MaxVolunteers = calendarEvent.MaxVolunteers,
+        RegisteredVolunteerCount = registeredVolunteerCount,
+        VolunteerSpotsRemaining = calendarEvent.MaxVolunteers.HasValue
+            ? Math.Max(0, calendarEvent.MaxVolunteers.Value - registeredVolunteerCount)
+            : null,
+        VolunteerStartAt = calendarEvent.VolunteerStartAt,
+        VolunteerEndAt = calendarEvent.VolunteerEndAt,
+        VolunteerNotes = calendarEvent.VolunteerNotes
     };
 }
 
