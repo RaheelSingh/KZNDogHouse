@@ -131,8 +131,9 @@
                 <div class="public-event-feature-date @(string.IsNullOrWhiteSpace(defaultFeature.ImageUrl) ? string.Empty : "has-image")">
                     <img data-feature-image
                          class="public-event-feature-image @(string.IsNullOrWhiteSpace(defaultFeature.ImageUrl) ? "d-none" : string.Empty)"
-                         src="@(defaultFeature.ImageUrl ?? string.Empty)"
-                         alt="" />
+                         src="@(defaultFeature.ImageUrl ?? Url.Content("~/images/public/event-fallback-1.jpg"))"
+                         alt="Image for @defaultFeature.Title"
+                         decoding="async" />
                     <div class="public-event-date-overlay">
                         <span data-feature-month>@defaultFeature.MonthText</span>
                         <strong data-feature-day>@defaultFeature.DayText</strong>
@@ -208,7 +209,7 @@
                                 <div class="public-event-top @(string.IsNullOrWhiteSpace(item.ImageUrl) ? string.Empty : "has-image")">
                                     @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
                                     {
-                                        <img class="public-event-card-image" src="@item.ImageUrl" alt="" loading="lazy" />
+                                        <img class="public-event-card-image" src="@item.ImageUrl" alt="Image for @item.Title" loading="lazy" decoding="async" />
                                     }
                                     <span class="public-date-badge">
                                         <span>@item.MonthText</span>
@@ -264,6 +265,16 @@
                                     data-image="@item.ImageUrl"
                                     data-rsvp=""
                                     data-is-past="true">
+                                <span class="public-past-thumb" aria-hidden="true">
+                                    @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
+                                    {
+                                        <img src="@item.ImageUrl" alt="" loading="lazy" decoding="async" />
+                                    }
+                                    else
+                                    {
+                                        <span>@item.DayText</span>
+                                    }
+                                </span>
                                 <span class="public-past-date">@item.FullDateText</span>
                                 <span class="public-past-title">@item.Title</span>
                                 <span class="public-past-note">

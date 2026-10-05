@@ -4753,15 +4753,16 @@ a:hover {
     content: '';
     position: absolute;
     inset: 0;
-    background-image: linear-gradient(rgba(239, 246, 238, 0.76), rgba(239, 246, 238, 0.76)), url('/images/public/grass-texture.jpg');
+    background-image: linear-gradient(rgba(239, 246, 238, 0.76), rgba(239, 246, 238, 0.76)), url('/images/public/grass-texture.webp');
     background-size: cover;
     background-position: center;
     pointer-events: none;
 }
 
 .public-section-dark.public-grass-bg::before,
-.public-cta.public-grass-bg::before {
-    background-image: linear-gradient(rgba(6, 45, 31, 0.84), rgba(6, 45, 31, 0.84)), url('/images/public/grass-texture.jpg');
+.public-cta.public-grass-bg::before,
+.public-page-header.public-grass-bg::before {
+    background-image: linear-gradient(rgba(6, 45, 31, 0.84), rgba(6, 45, 31, 0.84)), url('/images/public/grass-texture.webp');
 }
 
 .public-grass-bg > .container {
@@ -4876,14 +4877,17 @@ a:hover {
     height: 146px;
     pointer-events: none;
     overflow: hidden;
-    opacity: 0.78;
-}
-
-.public-paw-trail video {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    filter: grayscale(1) contrast(1.25);
+    opacity: 0.55;
+    background-image:
+        url('/images/public/paw-icon.png'),
+        url('/images/public/paw-icon.png'),
+        url('/images/public/paw-icon.png'),
+        url('/images/public/paw-icon.png'),
+        url('/images/public/paw-icon.png');
+    background-repeat: no-repeat;
+    background-size: 28px 28px, 34px 34px, 26px 26px, 32px 32px, 24px 24px;
+    background-position: 8% 72%, 28% 48%, 49% 63%, 70% 33%, 89% 47%;
+    contain: layout paint;
 }
 
 .public-paw-hero-left { left: -36px; bottom: -12px; }
@@ -4952,13 +4956,14 @@ a:hover {
 }
 
 .public-past-list li {
+    display: block;
     padding: 0;
 }
 
 .public-past-event-button {
     width: 100%;
     display: grid;
-    grid-template-columns: 130px minmax(0, 1fr) minmax(180px, 320px);
+    grid-template-columns: 64px 130px minmax(0, 1fr) minmax(180px, 320px);
     gap: 1rem;
     align-items: center;
     padding: 1rem 0;
@@ -4968,6 +4973,26 @@ a:hover {
     text-align: left;
     cursor: pointer;
     transition: padding 0.18s ease, background-color 0.18s ease;
+}
+
+
+.public-past-thumb {
+    width: 52px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    border-radius: 9px;
+    background: linear-gradient(135deg, #dbe7d5 0%, #c3d4bd 100%);
+    color: var(--kzn-green-dark);
+    font-size: 0.76rem;
+    font-weight: 750;
+}
+
+.public-past-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .public-past-event-button:hover,
@@ -5069,8 +5094,20 @@ a:hover {
     }
 
     .public-past-event-button {
-        grid-template-columns: 1fr;
-        gap: 0.25rem;
+        grid-template-columns: 56px 1fr;
+        gap: 0.45rem 0.75rem;
+    }
+
+    .public-past-date,
+    .public-past-title,
+    .public-past-note {
+        grid-column: 2;
+    }
+
+    .public-past-thumb {
+        grid-column: 1;
+        grid-row: 1 / span 3;
+        align-self: start;
     }
 
     .public-past-note {
@@ -5218,7 +5255,7 @@ textarea:focus-visible,
         linear-gradient(
             rgba(239, 244, 235, 0.9),
             rgba(239, 244, 235, 0.9)),
-        url("/images/public/grass-texture.jpg")
+        url("/images/public/grass-texture.webp")
         center / cover;
     color: var(--kzn-green-dark);
 }
@@ -5280,7 +5317,7 @@ textarea:focus-visible,
         linear-gradient(
             rgba(236, 244, 233, 0.88),
             rgba(236, 244, 233, 0.88)),
-        url("/images/public/grass-texture.jpg")
+        url("/images/public/grass-texture.webp")
         center / cover;
     color: var(--kzn-green-dark);
 }
@@ -5302,7 +5339,7 @@ textarea:focus-visible,
             135deg,
             rgba(231, 239, 226, 0.97),
             rgba(245, 247, 241, 0.92)),
-        url("/images/public/grass-texture.jpg")
+        url("/images/public/grass-texture.webp")
         center / cover;
     color: var(--kzn-green-dark);
     box-shadow: 0 24px 55px rgba(9, 39, 27, 0.1);
@@ -5384,18 +5421,10 @@ textarea:focus-visible,
     scroll-margin-top: 100px;
 }
 
-/*
-   Paw videos were previously decoding continuously even while off-screen.
-   JS now starts them only when visible; paint containment keeps them cheap.
-*/
+/* Static paw trails use the tiny paw icon instead of continuously decoded video. */
 .public-paw-trail {
     contain: layout paint;
     pointer-events: none;
-}
-
-.public-paw-trail video {
-    filter: none !important;
-    transform: translateZ(0);
 }
 
 /*
@@ -5568,7 +5597,18 @@ textarea:focus-visible,
         will-change: auto;
     }
 
-    .public-paw-trail video {
-        display: none;
-    }
+}
+
+/* Form validation affordances */
+.form-label.is-required::after,
+label.is-required::after {
+    content: " *";
+    color: var(--bs-danger, #b02a37);
+    font-weight: 700;
+}
+
+.file-validation-feedback {
+    margin-top: 0.35rem;
+    color: var(--bs-danger, #b02a37);
+    font-size: 0.875rem;
 }

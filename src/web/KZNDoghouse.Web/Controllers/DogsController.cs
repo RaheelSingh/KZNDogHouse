@@ -16,19 +16,22 @@ public class DogsController : Controller
     private readonly IUserProfileRepository _userProfileRepository;
     private readonly IDogMedicalService _dogMedicalService;
     private readonly IFosteringService _fosteringService;
+    private readonly ILogger<DogsController> _logger;
 
     public DogsController(
         IDogService dogService,
         IDogImageService dogImageService,
         IUserProfileRepository userProfileRepository,
         IDogMedicalService dogMedicalService,
-        IFosteringService fosteringService)
+        IFosteringService fosteringService,
+        ILogger<DogsController> logger)
     {
         _dogService = dogService;
         _dogImageService = dogImageService;
         _userProfileRepository = userProfileRepository;
         _dogMedicalService = dogMedicalService;
         _fosteringService = fosteringService;
+        _logger = logger;
     }
 
     [HttpGet]
@@ -76,50 +79,61 @@ public class DogsController : Controller
             return Challenge();
         }
 
-        var dog = new Dog
+        try
         {
-            Name = model.Name,
-            Breed = model.Breed,
-            DateOfBirth = model.DateOfBirth,
-            EstimatedAgeYears = model.EstimatedAgeYears,
-            Gender = model.Gender,
-            Size = model.Size,
-            WeightKg = model.WeightKg,
-            EyeColour = model.EyeColour,
-            Temperament = model.Temperament,
-            About = model.About,
-            KennelLocation = model.KennelLocation,
-            IntakeDate = model.IntakeDate,
-            IntakeType = model.IntakeType,
-            Status = model.Status,
-            IsVaccinated = model.IsVaccinated
-        };
+            var dog = new Dog
+            {
+                Name = model.Name.Trim(),
+                Breed = model.Breed?.Trim(),
+                DateOfBirth = model.DateOfBirth,
+                EstimatedAgeYears = model.EstimatedAgeYears,
+                Gender = model.Gender,
+                Size = model.Size,
+                WeightKg = model.WeightKg,
+                EyeColour = model.EyeColour?.Trim(),
+                Temperament = model.Temperament?.Trim(),
+                About = model.About?.Trim(),
+                KennelLocation = model.KennelLocation?.Trim(),
+                IntakeDate = model.IntakeDate,
+                IntakeType = model.IntakeType,
+                Status = model.Status,
+                IsVaccinated = model.IsVaccinated
+            };
 
-        var createdDog =
-            await _dogService.RegisterDogAsync(
-                dog,
-                currentProfile.Id);
+            var createdDog =
+                await _dogService.RegisterDogAsync(
+                    dog,
+                    currentProfile.Id);
 
-        var upload =
-            await _dogImageService.UploadAsync(
-                createdDog.Id,
-                model.Images,
-                currentProfile.Id);
+            var upload =
+                await _dogImageService.UploadAsync(
+                    createdDog.Id,
+                    model.Images,
+                    currentProfile.Id);
 
-        TempData["SuccessMessage"] =
-            $"{createdDog.Name} has been added."
-            + (upload.ChangedCount > 0
-                ? $" {upload.Message}"
-                : string.Empty);
+            TempData["SuccessMessage"] =
+                $"{createdDog.Name} has been added."
+                + (upload.ChangedCount > 0
+                    ? $" {upload.Message}"
+                    : string.Empty);
 
-        if (!upload.Success)
-        {
-            TempData["ErrorMessage"] = upload.Message;
+            if (!upload.Success)
+            {
+                TempData["ErrorMessage"] = upload.Message;
+            }
+
+            return RedirectToAction(
+                nameof(Details),
+                new { id = createdDog.Id });
         }
-
-        return RedirectToAction(
-            nameof(Details),
-            new { id = createdDog.Id });
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Dog creation failed.");
+            ModelState.AddModelError(
+                string.Empty,
+                "The dog could not be saved right now. Please check the details and try again.");
+            return View(model);
+        }
     }
 
     [HttpGet]
@@ -176,48 +190,61 @@ public class DogsController : Controller
             return NotFound();
         }
 
-        dog.Name = model.Name;
-        dog.Breed = model.Breed;
-        dog.DateOfBirth = model.DateOfBirth;
-        dog.EstimatedAgeYears = model.EstimatedAgeYears;
-        dog.Gender = model.Gender;
-        dog.Size = model.Size;
-        dog.WeightKg = model.WeightKg;
-        dog.EyeColour = model.EyeColour;
-        dog.Temperament = model.Temperament;
-        dog.About = model.About;
-        dog.KennelLocation = model.KennelLocation;
-        dog.IntakeDate = model.IntakeDate;
-        dog.IntakeType = model.IntakeType;
-        dog.Status = model.Status;
-        dog.IsVaccinated = model.IsVaccinated;
-        dog.UpdatedAt = DateTime.UtcNow;
-
-        await _dogService.UpdateDogAsync(dog);
-
-        var currentProfile =
-            await GetCurrentProfileAsync();
-
-        if (currentProfile != null)
+        try
         {
-            var upload =
-                await _dogImageService.UploadAsync(
-                    dog.Id,
-                    model.Images,
-                    currentProfile.Id);
+            dog.Name = model.Name.Trim();
+            dog.Breed = model.Breed?.Trim();
+            dog.DateOfBirth = model.DateOfBirth;
+            dog.EstimatedAgeYears = model.EstimatedAgeYears;
+            dog.Gender = model.Gender;
+            dog.Size = model.Size;
+            dog.WeightKg = model.WeightKg;
+            dog.EyeColour = model.EyeColour?.Trim();
+            dog.Temperament = model.Temperament?.Trim();
+            dog.About = model.About?.Trim();
+            dog.KennelLocation = model.KennelLocation?.Trim();
+            dog.IntakeDate = model.IntakeDate;
+            dog.IntakeType = model.IntakeType;
+            dog.Status = model.Status;
+            dog.IsVaccinated = model.IsVaccinated;
+            dog.UpdatedAt = DateTime.UtcNow;
 
-            if (!upload.Success)
+            await _dogService.UpdateDogAsync(dog);
+
+            var currentProfile =
+                await GetCurrentProfileAsync();
+
+            if (currentProfile != null)
             {
-                TempData["ErrorMessage"] = upload.Message;
+                var upload =
+                    await _dogImageService.UploadAsync(
+                        dog.Id,
+                        model.Images,
+                        currentProfile.Id);
+
+                if (!upload.Success)
+                {
+                    TempData["ErrorMessage"] = upload.Message;
+                }
             }
+
+            TempData["SuccessMessage"] =
+                $"{dog.Name}'s profile has been updated.";
+
+            return RedirectToAction(
+                nameof(Details),
+                new { id = dog.Id });
         }
-
-        TempData["SuccessMessage"] =
-            $"{dog.Name}'s profile has been updated.";
-
-        return RedirectToAction(
-            nameof(Details),
-            new { id = dog.Id });
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Dog update failed for {DogId}.", id);
+            ViewData["DogId"] = id;
+            ViewData["DogName"] = dog.Name;
+            ModelState.AddModelError(
+                string.Empty,
+                "The dog could not be updated right now. Please try again.");
+            return View(model);
+        }
     }
 
     [HttpPost]
@@ -353,6 +380,16 @@ public class DogsController : Controller
         string? vetName,
         DateTime? nextActionDate)
     {
+        if (!MedicalRecordTypes.All.Contains(recordType)
+            || string.IsNullOrWhiteSpace(title))
+        {
+            TempData["ErrorMessage"] =
+                "Choose a valid medical record type and enter a title.";
+            return RedirectToAction(
+                nameof(Details),
+                new { id = dogId });
+        }
+
         var currentProfile =
             await GetCurrentProfileAsync();
 
@@ -364,9 +401,9 @@ public class DogsController : Controller
         await _dogMedicalService.AddRecordAsync(
             dogId,
             recordType,
-            title,
-            details,
-            vetName,
+            title.Trim(),
+            details?.Trim(),
+            vetName?.Trim(),
             nextActionDate,
             currentProfile.Id);
 
@@ -400,12 +437,20 @@ public class DogsController : Controller
         Guid dogId,
         string note)
     {
+        if (string.IsNullOrWhiteSpace(note))
+        {
+            TempData["ErrorMessage"] = "Enter a note before saving.";
+            return RedirectToAction(
+                nameof(Details),
+                new { id = dogId });
+        }
+
         var currentProfile =
             await GetCurrentProfileAsync();
 
         await _dogMedicalService.AddNoteAsync(
             dogId,
-            note,
+            note.Trim(),
             currentProfile?.Id);
 
         TempData["SuccessMessage"] =

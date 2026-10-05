@@ -34,15 +34,18 @@ public class DogImageService : IDogImageService
     private readonly IDogImageRepository _imageRepository;
     private readonly IDogRepository _dogRepository;
     private readonly IMediaStorageService _mediaStorageService;
+    private readonly ILogger<DogImageService> _logger;
 
     public DogImageService(
         IDogImageRepository imageRepository,
         IDogRepository dogRepository,
-        IMediaStorageService mediaStorageService)
+        IMediaStorageService mediaStorageService,
+        ILogger<DogImageService> logger)
     {
         _imageRepository = imageRepository;
         _dogRepository = dogRepository;
         _mediaStorageService = mediaStorageService;
+        _logger = logger;
     }
 
     public Task<IReadOnlyList<DogImage>> GetForDogAsync(
@@ -138,12 +141,18 @@ public class DogImageService : IDogImageService
                     await _dogRepository.UpdateAsync(dog);
                 }
             }
-            catch
+            catch (Exception ex)
             {
                 await _mediaStorageService
                     .DeletePublicImageAsync(image.StoragePath);
 
-                throw;
+                _logger.LogError(
+                    ex,
+                    "Dog image metadata could not be saved for {DogId}.",
+                    dogId);
+
+                errors.Add(
+                    $"{file.FileName} could not be saved.");
             }
         }
 

@@ -32,3 +32,18 @@ public static class DogSizes
 
     public static readonly string[] All = [Small, Medium, Large];
 }
+
+public static class DogIntakeTypes
+{
+    public const string Stray = "Stray";
+    public const string Rescued = "Rescued";
+    public const string OwnerSurrender = "Owner surrender";
+    public const string Transferred = "Transferred";
+    public const string BornAtShelter = "Born at shelter";
+    public const string Other = "Other";
+
+    public static readonly string[] All =
+    [
+        Stray, Rescued, OwnerSurrender, Transferred, BornAtShelter, Other
+    ];
+}

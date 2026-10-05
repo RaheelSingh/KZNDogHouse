@@ -692,7 +692,6 @@ document.addEventListener("DOMContentLoaded", () => {
     initPublicDogCycles();
     initPublicEventExplorer();
     initPublicEventHeroSlideshow();
-    initPublicPawVideos();
 });
 
 const publicReducedMotion =
@@ -905,71 +904,6 @@ function initPublicEventHeroSlideshow() {
         });
 }
 
-function initPublicPawVideos() {
-    const videos = Array.from(
-        document.querySelectorAll(
-            "video[data-paw-video]"));
-
-    if (!videos.length) {
-        return;
-    }
-
-    const pauseAll = () => {
-        videos.forEach((video) =>
-            video.pause());
-    };
-
-    if (publicReducedMotion.matches
-        || !("IntersectionObserver" in window))
-    {
-        pauseAll();
-        return;
-    }
-
-    const visibleVideos = new Set();
-
-    const syncVideo = (video) => {
-        const shouldPlay =
-            visibleVideos.has(video)
-            && document.visibilityState === "visible";
-
-        if (shouldPlay) {
-            video.play().catch(() => {});
-        }
-        else {
-            video.pause();
-        }
-    };
-
-    const observer =
-        new IntersectionObserver((entries) => {
-            entries.forEach((entry) => {
-                const video = entry.target;
-
-                if (entry.isIntersecting) {
-                    visibleVideos.add(video);
-                }
-                else {
-                    visibleVideos.delete(video);
-                }
-
-                syncVideo(video);
-            });
-        }, {
-            threshold: 0.12,
-            rootMargin: "80px 0px"
-        });
-
-    videos.forEach((video) =>
-        observer.observe(video));
-
-    document.addEventListener(
-        "visibilitychange",
-        () => {
-            videos.forEach(syncVideo);
-        });
-}
-
 function initPublicEventExplorer() {
     const explorer =
         document.querySelector(
@@ -1062,7 +996,15 @@ function initPublicEventExplorer() {
             !location);
 
         if (featureImage) {
-            featureImage.src = image;
+            if (image) {
+                featureImage.src = image;
+                featureImage.alt = `Image for ${source.dataset.title ?? "event"}`;
+            }
+            else {
+                featureImage.removeAttribute("src");
+                featureImage.alt = "";
+            }
+
             featureImage.classList.toggle(
                 "d-none",
                 !image);
@@ -1130,3 +1072,74 @@ function initPublicEventExplorer() {
         ?.classList.add("d-none");
 }
 
+
+// Apply consistent required-field affordances and reject obviously invalid
+// uploads before a form reaches the server. Server-side validation remains
+// authoritative; this simply gives users immediate feedback.
+document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll("input, select, textarea").forEach((control) => {
+        const isRequired =
+            control.required
+            || control.hasAttribute("data-val-required");
+
+        if (!isRequired) {
+            return;
+        }
+
+        const labels = Array.from(control.labels ?? []);
+        labels.forEach((label) => label.classList.add("is-required"));
+    });
+
+    document.querySelectorAll('input[type="file"]').forEach((input) => {
+        const acceptsImages =
+            (input.accept ?? "").toLowerCase().includes("image/");
+
+        const maxBytes = Number(
+            input.dataset.maxFileBytes
+            || (acceptsImages ? 5 * 1024 * 1024 : 0));
+
+        const maxFiles = Number(input.dataset.maxFiles || 0);
+
+        if (!maxBytes && !maxFiles) {
+            return;
+        }
+
+        const feedback = document.createElement("div");
+        feedback.className = "file-validation-feedback";
+        feedback.setAttribute("role", "alert");
+        input.insertAdjacentElement("afterend", feedback);
+
+        const validate = () => {
+            const files = Array.from(input.files ?? []);
+            let message = "";
+
+            if (maxFiles && files.length > maxFiles) {
+                message = `Choose no more than ${maxFiles} files.`;
+            }
+
+            const oversized = files.find((file) => maxBytes && file.size > maxBytes);
+            if (!message && oversized) {
+                const limitMb = Math.round(maxBytes / 1024 / 1024);
+                message = `${oversized.name} is too large. Images must be ${limitMb} MB or smaller.`;
+            }
+
+            const unsupported = files.find((file) =>
+                acceptsImages
+                && file.type
+                && !["image/jpeg", "image/png", "image/webp"].includes(file.type));
+
+            if (!message && unsupported) {
+                message = `${unsupported.name} is not supported. Use JPG, PNG or WebP.`;
+            }
+
+            input.setCustomValidity(message);
+            input.classList.toggle("is-invalid", Boolean(message));
+            feedback.textContent = message;
+            feedback.hidden = !message;
+        };
+
+        input.addEventListener("change", validate);
+        input.closest("form")?.addEventListener("submit", validate);
+        feedback.hidden = true;
+    });
+});

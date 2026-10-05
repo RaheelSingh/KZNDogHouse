@@ -33,6 +33,7 @@
             <div class="col-md-6">
                 <label asp-for="Breed" class="form-label"></label>
                 <input asp-for="Breed" class="form-control" />
+                <span asp-validation-for="Breed" class="text-danger small"></span>
             </div>
 
             <div class="col-md-4">
@@ -60,16 +61,19 @@
             <div class="col-md-4">
                 <label asp-for="EstimatedAgeYears" class="form-label"></label>
                 <input asp-for="EstimatedAgeYears" class="form-control" />
+                <span asp-validation-for="EstimatedAgeYears" class="text-danger small"></span>
             </div>
 
             <div class="col-md-4">
                 <label asp-for="DateOfBirth" class="form-label"></label>
                 <input asp-for="DateOfBirth" class="form-control" />
+                <span asp-validation-for="DateOfBirth" class="text-danger small"></span>
             </div>
 
             <div class="col-md-4">
                 <label asp-for="WeightKg" class="form-label"></label>
                 <input asp-for="WeightKg" class="form-control" />
+                <span asp-validation-for="WeightKg" class="text-danger small"></span>
             </div>
 
             <div class="col-md-4">
@@ -90,7 +94,14 @@
 
             <div class="col-md-4">
                 <label asp-for="IntakeType" class="form-label"></label>
-                <input asp-for="IntakeType" class="form-control" placeholder="e.g. Stray, rescued" />
+                <select asp-for="IntakeType" class="form-select">
+                    <option value="">Not recorded</option>
+                    @foreach (var intakeType in DogIntakeTypes.All)
+                    {
+                        <option value="@intakeType">@intakeType</option>
+                    }
+                </select>
+                <span asp-validation-for="IntakeType" class="text-danger small"></span>
             </div>
 
             <div class="col-md-4">
@@ -119,8 +130,11 @@
                        type="file"
                        class="form-control"
                        accept="image/jpeg,image/png,image/webp"
+                       data-max-file-bytes="5242880"
+                       data-max-files="10"
                        multiple />
                 <div class="form-text">JPG, PNG or WebP. Up to 5 MB per image and 10 images per dog. The first uploaded image becomes the profile image.</div>
+                <span asp-validation-for="Images" class="text-danger small"></span>
             </div>
 
             <div class="col-12 form-check">
