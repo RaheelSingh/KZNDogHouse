@@ -3,7 +3,7 @@ services:
     name: kzn-doghouse
     runtime: docker
     plan: free
-    branch: develop
+    branch: main
     dockerfilePath: ./src/web/KZNDoghouse.Web/Dockerfile
     dockerContext: .
     healthCheckPath: /api/health
