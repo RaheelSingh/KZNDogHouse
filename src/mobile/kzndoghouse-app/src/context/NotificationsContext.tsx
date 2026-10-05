@@ -99,7 +99,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     registerForPushNotifications().catch((err) => console.warn('[push] registration failed:', err));
   }, [profileId]);
 
-  .
+
     useEffect(() => {
     const appStateSub = AppState.addEventListener('change', (state) => {
       if (state === 'active') refresh();
