@@ -4,10 +4,10 @@ import { supabase } from '@/lib/supabase';
 export type UserRole = 'volunteer' | 'staff';
 
 export type AppUser = {
-  id: string; 
+  id: string;
   name: string;
   email: string;
-  role: UserRole; 
+  role: UserRole;
 };
 
 export type RegisterDetails = {
@@ -26,45 +26,60 @@ type AuthContextValue = {
   signOut: () => Promise<void>;
 };
 
+type ApiEnvelope<T> = {
+  success: boolean;
+  message: string;
+  data: T | null;
+};
+
+type ProfileResponse = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+};
+
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
+function mapMobileRole(role: string): UserRole {
+  const roleLower = role.trim().toLowerCase();
 
-async function fetchProfile(
-  accessToken: string,
-  fallback: { id: string; email: string }
-): Promise<AppUser> {
+  if (roleLower === 'volunteer') {
+    return 'volunteer';
+  }
+
+  if (roleLower === 'staff' || roleLower === 'administrator') {
+    return 'staff';
+  }
+
+  throw new Error('This account does not currently have access to the mobile app.');
+}
+
+async function fetchProfile(accessToken: string): Promise<AppUser> {
   if (!API_BASE_URL) {
-    console.warn(
-      '[auth] EXPO_PUBLIC_API_BASE_URL not set — using fallback profile, role defaults to "volunteer".'
+    throw new Error(
+      'EXPO_PUBLIC_API_BASE_URL is not configured. Add the ASP.NET API address to the mobile environment file.'
     );
-    return { id: fallback.id, name: fallback.email, email: fallback.email, role: 'volunteer' };
   }
 
-  try {
-    const res = await fetch(`${API_BASE_URL}/api/me`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
+  const res = await fetch(`${API_BASE_URL}/api/me`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
 
-    if (!res.ok) {
-      throw new Error(`/api/me returned ${res.status}`);
-    }
+  const body = (await res.json().catch(() => null)) as ApiEnvelope<ProfileResponse> | null;
 
-    const data = await res.json();
-    const roleLower = String(data.role).toLowerCase();
-    const role: UserRole = roleLower === 'staff' || roleLower === 'administrator' ? 'staff' : 'volunteer';
-
-    return {
-      id: data.id ?? fallback.id,
-      name: data.name ?? fallback.email,
-      email: fallback.email,
-      role,
-    };
-  } catch (err) {
-    console.warn('[auth] Could not reach /api/me, using fallback profile:', err);
-    return { id: fallback.id, name: fallback.email, email: fallback.email, role: 'volunteer' };
+  if (!res.ok || !body?.success || !body.data) {
+    throw new Error(body?.message || `Profile request failed with status ${res.status}.`);
   }
+
+  return {
+    id: body.data.id,
+    name: body.data.name || body.data.email,
+    email: body.data.email,
+    role: mapMobileRole(body.data.role),
+  };
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -75,29 +90,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     mounted.current = true;
 
+    const loadInitialSession = async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        const supaSession = data.session;
 
-    supabase.auth.getSession().then(async ({ data }) => {
-      const supaSession = data.session;
-      if (supaSession) {
-        const profile = await fetchProfile(supaSession.access_token, {
-          id: supaSession.user.id,
-          email: supaSession.user.email ?? '',
-        });
+        if (!supaSession) {
+          if (mounted.current) setSession(null);
+          return;
+        }
+
+        const profile = await fetchProfile(supaSession.access_token);
         if (mounted.current) setSession(profile);
+      } catch (error) {
+        console.warn('[auth] Mobile profile could not be loaded:', error);
+        if (mounted.current) setSession(null);
+      } finally {
+        if (mounted.current) setIsLoading(false);
       }
-      if (mounted.current) setIsLoading(false);
-    });
+    };
+
+    void loadInitialSession();
 
     const { data: listener } = supabase.auth.onAuthStateChange(async (_event, supaSession) => {
       if (!supaSession) {
         if (mounted.current) setSession(null);
         return;
       }
-      const profile = await fetchProfile(supaSession.access_token, {
-        id: supaSession.user.id,
-        email: supaSession.user.email ?? '',
-      });
-      if (mounted.current) setSession(profile);
+
+      try {
+        const profile = await fetchProfile(supaSession.access_token);
+        if (mounted.current) setSession(profile);
+      } catch (error) {
+        console.warn('[auth] Signed-in account does not have valid mobile access:', error);
+        if (mounted.current) setSession(null);
+      }
     });
 
     return () => {
@@ -107,15 +134,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
-    // session state updates via the onAuthStateChange listener above
+    if (!data.session) throw new Error('No sign-in session was returned.');
+
+    try {
+      const profile = await fetchProfile(data.session.access_token);
+      setSession(profile);
+    } catch (error) {
+      await supabase.auth.signOut();
+      setSession(null);
+      throw error;
+    }
   };
 
   const register = async (details: RegisterDetails) => {
     const { firstName, lastName, email, phone, password } = details;
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -123,13 +159,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           first_name: firstName,
           last_name: lastName,
           phone,
-          role: 'volunteer',
+          volunteer_interest: true,
         },
       },
     });
 
     if (error) throw error;
-    // session state updates via the onAuthStateChange listener above
+
+    if (data.session) {
+      await supabase.auth.signOut();
+    }
+
+    setSession(null);
   };
 
   const signOut = async () => {

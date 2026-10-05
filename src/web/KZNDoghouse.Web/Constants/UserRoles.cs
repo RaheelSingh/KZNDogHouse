@@ -44,4 +44,5 @@ public static class RateLimitPolicies
 {
     public const string Login = "LoginAttempts";
     public const string Register = "RegistrationAttempts";
+    public const string Api = "ApiRequests";
 }

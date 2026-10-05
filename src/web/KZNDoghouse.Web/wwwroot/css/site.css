@@ -5092,3 +5092,39 @@ a:hover {
 }
 
 .public-event-feature { scroll-margin-top: 100px; }
+
+
+/* Commit 8: keep empty inventory feedback inside the stock result pane. */
+.portal-record-empty {
+    min-height: 220px;
+    height: 100%;
+    display: grid;
+    place-items: center;
+    padding: 2rem;
+    border: 1px dashed var(--kzn-border);
+    border-radius: var(--kzn-radius);
+    background-color: var(--kzn-white);
+    color: var(--kzn-text-muted);
+    text-align: center;
+}
+
+.portal-record-empty[hidden] {
+    display: none !important;
+}
+
+.portal-record-empty strong,
+.portal-record-empty span {
+    display: block;
+}
+
+.portal-record-empty strong {
+    margin-bottom: 0.35rem;
+    color: var(--kzn-green-dark);
+    font-family: "Archivo", "Inter", sans-serif;
+    font-size: 0.95rem;
+}
+
+.portal-record-empty span {
+    max-width: 420px;
+    font-size: 0.8rem;
+}

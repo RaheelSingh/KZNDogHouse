@@ -108,6 +108,25 @@
              class="portal-record-scroll portal-record-scroll-workspace portal-filter-results portal-inventory-list"
              data-equal-workspace-scroll>
 
+            @if (!Model.Items.Any())
+            {
+                <div id="inventoryEmpty" class="portal-record-empty">
+                    <div>
+                        <strong>No inventory items have been added yet.</strong>
+                        <span>Add the first item using the form on the right.</span>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div id="inventoryEmpty" class="portal-record-empty" hidden>
+                    <div>
+                        <strong>No inventory items match the current search and filters.</strong>
+                        <span>Change the search or reset the filters to show the stock list again.</span>
+                    </div>
+                </div>
+            }
+
             @foreach (var summary in Model.Items)
             {
                 var item = summary.Item;
@@ -318,14 +337,6 @@
             }
         </div>
 
-        <div id="inventoryEmpty" class="portal-card portal-filter-empty" hidden>
-            No inventory items match the current search and filters.
-        </div>
-
-        @if (!Model.Items.Any())
-        {
-            <div class="portal-card text-center text-muted py-4">No inventory items have been added yet.</div>
-        }
     </section>
 
     <aside class="portal-workspace-aside">

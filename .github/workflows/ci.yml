@@ -1,0 +1,52 @@
+name: Web CI
+
+on:
+  push:
+    branches:
+      - develop
+      - test
+      - main
+  pull_request:
+    branches:
+      - develop
+      - test
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  web-build-and-test:
+    name: Build and test ASP.NET Core
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore KZNDoghouse.sln
+
+      - name: Build solution
+        run: dotnet build KZNDoghouse.sln --configuration Release --no-restore
+
+      - name: Run automated tests
+        run: >-
+          dotnet test tests/web/KZNDoghouse.Web.Tests/KZNDoghouse.Web.Tests.csproj
+          --configuration Release
+          --no-build
+          --logger "trx;LogFileName=test-results.trx"
+          --collect:"XPlat Code Coverage"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-test-results
+          path: tests/web/KZNDoghouse.Web.Tests/TestResults/
+          if-no-files-found: ignore

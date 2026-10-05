@@ -28,6 +28,10 @@ builder.Services.AddScoped<
     IAuthService,
     AuthService>();
 
+builder.Services.AddScoped<
+    IApiAuthenticationService,
+    ApiAuthenticationService>();
+
 builder.Services.AddScoped<AuthCookieEvents>();
 
 builder.Services.AddScoped<
@@ -104,8 +108,37 @@ builder.Services.AddRateLimiter(options =>
                     AutoReplenishment = true
                 }));
 
+    options.AddPolicy(
+        RateLimitPolicies.Api,
+        context =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: GetClientKey(context),
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 120,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueLimit = 0,
+                    AutoReplenishment = true
+                }));
+
     options.OnRejected = async (context, cancellationToken) =>
     {
+        if (context.HttpContext.Request.Path.StartsWithSegments("/api"))
+        {
+            context.HttpContext.Response.StatusCode =
+                StatusCodes.Status429TooManyRequests;
+
+            await context.HttpContext.Response.WriteAsJsonAsync(
+                new
+                {
+                    success = false,
+                    message = "Too many API requests. Please wait before trying again."
+                },
+                cancellationToken);
+
+            return;
+        }
+
         var isRegister =
             context.HttpContext.Request.Path
                 .StartsWithSegments(
@@ -116,8 +149,6 @@ builder.Services.AddRateLimiter(options =>
             : "/Auth/Login?rateLimited=true";
 
         context.HttpContext.Response.Redirect(target);
-
-        await Task.CompletedTask;
     };
 });
 
@@ -135,6 +166,8 @@ builder.Services.AddScoped<IAvailabilitySlotRepository, AvailabilitySlotReposito
 builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
 builder.Services.AddScoped<ICalendarEventRepository, CalendarEventRepository>();
 builder.Services.AddScoped<ICalendarEventService, CalendarEventService>();
+builder.Services.AddScoped<IEventAssignmentRepository, EventAssignmentRepository>();
+builder.Services.AddScoped<IEventRegistrationService, EventRegistrationService>();
 builder.Services.AddScoped<IFosterApplicationRepository, FosterApplicationRepository>();
 builder.Services.AddScoped<IFosterApplicationService, FosterApplicationService>();
 builder.Services.AddScoped<IContactMessageRepository, ContactMessageRepository>();
@@ -191,4 +224,8 @@ static string GetClientKey(HttpContext context)
     return context.Connection.RemoteIpAddress
         ?.ToString()
         ?? "unknown";
+}
+
+public partial class Program
+{
 }

@@ -10,6 +10,11 @@ public interface IAvailabilitySlotRepository
 
     Task<IReadOnlyList<AvailabilitySlot>> GetPendingAsync();
 
+    Task<IReadOnlyList<AvailabilitySlot>> GetForVolunteerAsync(
+        Guid volunteerId);
+
+    Task<AvailabilitySlot> CreateAsync(AvailabilitySlot slot);
+
     Task ReviewAsync(
         Guid id,
         string status,
@@ -64,6 +69,41 @@ public class AvailabilitySlotRepository : IAvailabilitySlotRepository
         return response.Models
             .OrderBy(x => x.SubmittedAt)
             .ToList();
+    }
+
+    public async Task<IReadOnlyList<AvailabilitySlot>> GetForVolunteerAsync(
+        Guid volunteerId)
+    {
+        var client =
+            await _supabaseClientFactory.CreateServiceClientAsync();
+
+        var response = await client
+            .From<AvailabilitySlot>()
+            .Where(x => x.VolunteerId == volunteerId)
+            .Get();
+
+        if (response.Models == null)
+        {
+            return Array.Empty<AvailabilitySlot>();
+        }
+
+        return response.Models
+            .OrderByDescending(x => x.DayDate)
+            .ThenBy(x => x.Slot)
+            .ToList();
+    }
+
+    public async Task<AvailabilitySlot> CreateAsync(
+        AvailabilitySlot slot)
+    {
+        var client =
+            await _supabaseClientFactory.CreateServiceClientAsync();
+
+        var response = await client
+            .From<AvailabilitySlot>()
+            .Insert(slot);
+
+        return response.Models.First();
     }
 
     public async Task ReviewAsync(

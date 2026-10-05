@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -80,7 +81,13 @@ export default function RegisterScreen() {
         phone: phone.trim(),
         password,
       });
-   
+
+      setIsSubmitting(false);
+      Alert.alert(
+        'Application submitted',
+        'Your account has been created and your volunteer request is waiting for administrator approval. You can sign in to the mobile app after approval.'
+      );
+      router.replace('/(auth)/sign-in');
     } catch (err: any) {
       setFormError(err?.message ?? 'Something went wrong creating your account. Please try again.');
       setIsSubmitting(false);

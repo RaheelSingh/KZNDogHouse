@@ -10,6 +10,14 @@ public interface IAvailabilityService
 
     Task<IReadOnlyList<AvailabilitySlot>> GetPendingAsync();
 
+    Task<IReadOnlyList<AvailabilitySlot>> GetForVolunteerAsync(
+        Guid volunteerId);
+
+    Task<AvailabilitySubmissionResult> SubmitAsync(
+        Guid volunteerId,
+        DateTime dayDate,
+        string slot);
+
     Task ApproveAsync(
         AvailabilitySlot slot,
         Guid reviewedByProfileId);
@@ -18,6 +26,11 @@ public interface IAvailabilityService
         AvailabilitySlot slot,
         Guid reviewedByProfileId);
 }
+
+public record AvailabilitySubmissionResult(
+    bool Success,
+    string Message,
+    AvailabilitySlot? Slot = null);
 
 public class AvailabilityService : IAvailabilityService
 {
@@ -37,6 +50,89 @@ public class AvailabilityService : IAvailabilityService
 
     public Task<IReadOnlyList<AvailabilitySlot>> GetPendingAsync() =>
         _repository.GetPendingAsync();
+
+    public Task<IReadOnlyList<AvailabilitySlot>> GetForVolunteerAsync(
+        Guid volunteerId) =>
+        _repository.GetForVolunteerAsync(volunteerId);
+
+    public async Task<AvailabilitySubmissionResult> SubmitAsync(
+        Guid volunteerId,
+        DateTime dayDate,
+        string slot)
+    {
+        var normalizedDate = dayDate.Date;
+
+        if (normalizedDate < DateTime.UtcNow.Date)
+        {
+            return new AvailabilitySubmissionResult(
+                false,
+                "Availability cannot be submitted for a past date.");
+        }
+
+        var normalizedSlot = AvailabilitySlotNames.All
+            .FirstOrDefault(x => string.Equals(
+                x,
+                slot?.Trim(),
+                StringComparison.OrdinalIgnoreCase));
+
+        if (normalizedSlot == null)
+        {
+            return new AvailabilitySubmissionResult(
+                false,
+                "Choose Morning, Afternoon or Evening.");
+        }
+
+        var existing = await _repository.GetForVolunteerAsync(volunteerId);
+
+        var duplicate = existing.FirstOrDefault(x =>
+            x.DayDate.Date == normalizedDate
+            && x.Slot == normalizedSlot
+            && (x.Status == AvailabilitySlotStatuses.Pending
+                || x.Status == AvailabilitySlotStatuses.Approved));
+
+        if (duplicate != null)
+        {
+            return new AvailabilitySubmissionResult(
+                false,
+                "You already have pending or approved availability for this date and time slot.",
+                duplicate);
+        }
+
+        var dayOffset = ((int)normalizedDate.DayOfWeek + 6) % 7;
+        var weekStart = normalizedDate.AddDays(-dayOffset);
+
+        var availability = new AvailabilitySlot
+        {
+            Id = Guid.NewGuid(),
+            VolunteerId = volunteerId,
+            WeekStart = weekStart,
+            DayDate = normalizedDate,
+            Slot = normalizedSlot,
+            Status = AvailabilitySlotStatuses.Pending,
+            SubmittedAt = DateTime.UtcNow
+        };
+
+        var created = await _repository.CreateAsync(availability);
+
+        var body = $"New {normalizedSlot.ToLowerInvariant()} availability was submitted for {normalizedDate:dd MMM yyyy}.";
+
+        await _notificationService.NotifyActiveRoleAsync(
+            UserRoles.Staff,
+            NotificationCategories.General,
+            "New availability submission",
+            body);
+
+        await _notificationService.NotifyActiveRoleAsync(
+            UserRoles.Administrator,
+            NotificationCategories.General,
+            "New availability submission",
+            body);
+
+        return new AvailabilitySubmissionResult(
+            true,
+            "Availability submitted for staff review.",
+            created);
+    }
 
     public async Task ApproveAsync(
         AvailabilitySlot slot,
