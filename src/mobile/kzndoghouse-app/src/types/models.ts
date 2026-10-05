@@ -117,3 +117,15 @@ export interface AppNotification {
   cleared_at?: string | null;
   created_at: string;
 }
+
+export interface DogImage {
+  id: string;
+  dog_id: string;
+  storage_path: string;
+  public_url: string;
+  is_primary: boolean;
+  sort_order: number;
+  alt_text: string | null;
+  created_by: string | null;
+  created_at: string;
+}

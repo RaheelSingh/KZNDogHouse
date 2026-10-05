@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-
-const GREEN = '#16302a';
+import { colors, radius } from '@/theme';
 
 type DateTimeFieldProps = {
   label: string;
@@ -23,11 +22,11 @@ function formatDisplay(value: string): string {
 }
 
 export default function DateTimeField({ label, value, onChange, placeholder, minimumDate }: DateTimeFieldProps) {
-  const [showPicker, setShowPicker] = useState(false); // iOS only — Android uses the imperative API below
+  const [showPicker, setShowPicker] = useState(false); // iOS only, Android uses the imperative API below
 
   const currentDate = value ? new Date(value) : new Date();
 
- const openPicker = () => {
+  const openPicker = () => {
     if (Platform.OS === 'android') {
       const handleDatePicked = (_event: unknown, selectedDate?: Date) => {
         if (!selectedDate) return;
@@ -40,14 +39,12 @@ export default function DateTimeField({ label, value, onChange, placeholder, min
         DateTimePickerAndroid.open({
           value: selectedDate,
           mode: 'time',
-          onChange: handleTimePicked,
           onValueChange: handleTimePicked,
         } as any);
       };
       DateTimePickerAndroid.open({
         value: currentDate,
         mode: 'date',
-        onChange: handleDatePicked,
         onValueChange: handleDatePicked,
         minimumDate,
       } as any);
@@ -57,7 +54,7 @@ export default function DateTimeField({ label, value, onChange, placeholder, min
   };
 
   return (
-    <View>
+    <View style={{ marginTop: 16 }}>
       <Text style={styles.label}>{label}</Text>
       <Pressable style={styles.input} onPress={openPicker}>
         <Text style={value ? styles.valueText : styles.placeholderText}>
@@ -74,6 +71,7 @@ export default function DateTimeField({ label, value, onChange, placeholder, min
           value={currentDate}
           mode="datetime"
           display="spinner"
+          themeVariant="dark"
           onValueChange={(_event, selectedDate) => {
             if (selectedDate) onChange(selectedDate.toISOString());
           }}
@@ -85,16 +83,16 @@ export default function DateTimeField({ label, value, onChange, placeholder, min
 }
 
 const styles = StyleSheet.create({
-  label: { fontSize: 12, fontWeight: '600', color: GREEN, marginBottom: 6, marginTop: 10 },
+  label: { color: colors.fgMuted, fontSize: 12, fontWeight: '800', letterSpacing: 0.4, marginBottom: 8 },
   input: {
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#d9e0d9',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
+    borderColor: colors.line,
+    borderRadius: radius.md,
+    paddingHorizontal: 16,
+    paddingVertical: 15,
   },
-  valueText: { fontSize: 13, color: GREEN },
-  placeholderText: { fontSize: 13, color: '#8a9a8f' },
-  clearText: { fontSize: 11, color: '#b3261e', marginTop: 6 },
+  valueText: { fontSize: 15, color: colors.fg },
+  placeholderText: { fontSize: 15, color: colors.fgFaint },
+  clearText: { fontSize: 12, color: colors.dangerSoft, marginTop: 8, fontWeight: '700' },
 });

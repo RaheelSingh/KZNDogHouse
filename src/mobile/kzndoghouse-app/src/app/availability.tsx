@@ -1,15 +1,21 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { getCurrentProfileId } from '@/lib/profile';
 import { isStaff } from '@/lib/roles';
+import { colors, radius } from '@/theme';
+import { PageHeader, PillButton, Tag } from '@/components/ui';
 import type { AvailabilitySlot, AvailabilitySlotName } from '@/types/models';
 
-const GREEN = '#16302a';
-const GOLD = '#c98a2c';
-
-const SLOTS: AvailabilitySlotName[] = ['Morning', 'Afternoon', 'Evening'];
+const SLOTS: { name: AvailabilitySlotName; hours: string }[] = [
+  { name: 'Morning', hours: '8–12' },
+  { name: 'Afternoon', hours: '12–4' },
+  { name: 'Evening', hours: '4–7' },
+];
 
 function getMonday(date: Date): Date {
   const d = new Date(date);
@@ -33,26 +39,26 @@ function toDateOnlyString(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-function formatDayLabel(date: Date): string {
-  return date.toLocaleDateString([], { weekday: 'short', day: 'numeric' });
+function isoWeek(date: Date): number {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86_400_000 + 1) / 7);
 }
 
-function formatWeekLabel(weekStart: Date): string {
-  const weekEnd = addDays(weekStart, 6);
-  const sameMonth = weekStart.getMonth() === weekEnd.getMonth();
-  const startLabel = weekStart.toLocaleDateString([], { day: 'numeric', month: sameMonth ? undefined : 'short' });
-  const endLabel = weekEnd.toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' });
-  return `${startLabel} – ${endLabel}`;
-}
-
-function statusColor(status: string) {
-  if (status === 'Approved') return { color: '#1f6b3a' };
-  if (status === 'Rejected') return { color: '#b3261e' };
-  return { color: '#8a5a12' };
+function formatRange(weekStart: Date): string {
+  const end = addDays(weekStart, 6);
+  if (weekStart.getMonth() === end.getMonth()) {
+    return `${weekStart.getDate()} – ${end.getDate()} ${end.toLocaleDateString([], { month: 'long' })}`;
+  }
+  const short = (d: Date) => d.toLocaleDateString([], { day: 'numeric', month: 'short' });
+  return `${short(weekStart)} – ${short(end)}`;
 }
 
 export default function AvailabilityScreen() {
   const { session } = useAuth();
+  const insets = useSafeAreaInsets();
   const staff = isStaff(session?.role);
 
   const [weekOffset, setWeekOffset] = useState(1); // default: next week
@@ -67,10 +73,12 @@ export default function AvailabilityScreen() {
   const [volunteerNames, setVolunteerNames] = useState<Record<string, string>>({});
   const [actingId, setActingId] = useState<string | null>(null);
 
+  const todayStr = useMemo(() => toDateOnlyString(new Date()), []);
   const weekStart = useMemo(() => addDays(getMonday(new Date()), weekOffset * 7), [weekOffset]);
   const weekStartStr = useMemo(() => toDateOnlyString(weekStart), [weekStart]);
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
   const dayStrs = useMemo(() => days.map(toDateOnlyString), [days]);
+  const weekNumber = useMemo(() => isoWeek(weekStart), [weekStart]);
 
   const rowsByKey = useMemo(() => {
     const map: Record<string, AvailabilitySlot> = {};
@@ -144,8 +152,6 @@ export default function AvailabilityScreen() {
   }, [load]);
 
   const toggleSlot = (key: string) => {
-    const existingRow = rowsByKey[key];
-    if (existingRow?.status === 'Approved') return; // locked once approved
     setSelectedKeys((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
@@ -161,7 +167,7 @@ export default function AvailabilityScreen() {
       const ops: PromiseLike<unknown>[] = [];
 
       dayStrs.forEach((dayStr) => {
-        SLOTS.forEach((slot) => {
+        SLOTS.forEach(({ name: slot }) => {
           const key = `${dayStr}_${slot}`;
           const existingRow = rowsByKey[key];
           const isSelected = selectedKeys.has(key);
@@ -217,172 +223,239 @@ export default function AvailabilityScreen() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator color={GREEN} size="large" />
-      </View>
-    );
-  }
+  const submittedRows = mySlots.filter((r) => r.status !== 'Rejected');
+  const submissionStatus = submittedRows.some((r) => r.status === 'Pending') ? 'PENDING' : 'CONFIRMED';
 
   return (
-    <ScrollView
-      style={styles.flex}
-      contentContainerStyle={styles.container}
-      refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />}
-    >
-      <View style={styles.weekNav}>
-        <Pressable style={styles.weekNavBtn} onPress={() => setWeekOffset((w) => w - 1)}>
-          <Text style={styles.weekNavText}>{'‹'}</Text>
-        </Pressable>
-        <Text style={styles.weekLabel}>{formatWeekLabel(weekStart)}</Text>
-        <Pressable style={styles.weekNavBtn} onPress={() => setWeekOffset((w) => w + 1)}>
-          <Text style={styles.weekNavText}>{'›'}</Text>
-        </Pressable>
-      </View>
+    <View style={styles.root}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: staff ? 40 + insets.bottom : 190 + insets.bottom }}
+        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor="#fff" />}
+      >
+        <PageHeader
+          title={staff ? 'Volunteer availability' : 'When are you free?'}
+          subtitle={staff ? 'Review and approve submissions for this week.' : 'Tap the slots you can volunteer this week.'}
+          onBack={() => router.back()}
+        />
 
-      {staff ? (
-        <View>
-          <Text style={styles.sectionTitle}>Volunteer availability</Text>
-          <Text style={styles.helperText}>Review and approve submissions for this week.</Text>
+        <View style={styles.body}>
+          <View style={styles.weekNav}>
+            <Pressable onPress={() => setWeekOffset((w) => w - 1)} hitSlop={10} style={styles.navBtn}>
+              <Ionicons name="chevron-back" size={20} color="#fff" />
+            </Pressable>
+            <View style={{ alignItems: 'center' }}>
+              <Text style={styles.weekRange}>{formatRange(weekStart)}</Text>
+              <Text style={styles.weekNum}>Week {weekNumber}</Text>
+            </View>
+            <Pressable onPress={() => setWeekOffset((w) => w + 1)} hitSlop={10} style={styles.navBtn}>
+              <Ionicons name="chevron-forward" size={20} color="#fff" />
+            </Pressable>
+          </View>
 
-          {days.map((day, dayIndex) => {
-            const dayStr = dayStrs[dayIndex];
-            const dayRows = allSlots.filter((row) => row.day_date === dayStr);
-            if (dayRows.length === 0) return null;
-            return (
-              <View key={dayStr} style={styles.dayGroup}>
-                <Text style={styles.dayHeading}>{formatDayLabel(day)}</Text>
-                {dayRows.map((row) => (
-                  <View key={row.id} style={styles.reviewRow}>
-                    <View style={styles.reviewInfo}>
-                      <Text style={styles.reviewName}>
-                        {volunteerNames[row.volunteer_id] ?? 'Volunteer'} · {row.slot}
-                      </Text>
-                      <Text style={[styles.reviewStatus, statusColor(row.status)]}>{row.status}</Text>
+          {isLoading ? (
+            <ActivityIndicator color="#fff" size="large" style={{ marginTop: 40 }} />
+          ) : staff ? (
+            <View>
+              {days.map((day, i) => {
+                const dayStr = dayStrs[i];
+                const dayRows = allSlots.filter((row) => row.day_date === dayStr);
+                if (dayRows.length === 0) return null;
+                return (
+                  <View key={dayStr} style={styles.dayCard}>
+                    <View style={styles.dayHeadRow}>
+                      <Text style={styles.dayName}>{day.toLocaleDateString([], { weekday: 'long' })}</Text>
+                      <Text style={styles.dayDate}>{day.toLocaleDateString([], { day: 'numeric', month: 'long' })}</Text>
                     </View>
-                    {row.status === 'Pending' ? (
-                      <View style={styles.reviewActions}>
-                        <Pressable
-                          style={styles.approveBtn}
-                          onPress={() => handleReview(row.id, 'Approved')}
-                          disabled={actingId === row.id}
-                        >
-                          <Text style={styles.approveBtnText}>Approve</Text>
-                        </Pressable>
-                        <Pressable
-                          style={styles.rejectBtn}
-                          onPress={() => handleReview(row.id, 'Rejected')}
-                          disabled={actingId === row.id}
-                        >
-                          <Text style={styles.rejectBtnText}>Reject</Text>
-                        </Pressable>
-                      </View>
-                    ) : null}
+                    {dayRows.map((row) => {
+                      const tone =
+                        row.status === 'Approved'
+                          ? { bg: '#dcecdd', fg: '#1f6b3a' }
+                          : row.status === 'Rejected'
+                            ? { bg: '#f4d3cf', fg: '#b3261e' }
+                            : { bg: '#f3e1c2', fg: '#8a5a12' };
+                      return (
+                        <View key={row.id} style={styles.reviewRow}>
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.reviewName}>{volunteerNames[row.volunteer_id] ?? 'Volunteer'}</Text>
+                            <Text style={styles.reviewSlot}>{row.slot}</Text>
+                            <View style={{ marginTop: 6 }}>
+                              <Tag label={row.status.toUpperCase()} bg={tone.bg} fg={tone.fg} />
+                            </View>
+                          </View>
+                          {row.status === 'Pending' ? (
+                            <View style={styles.reviewActions}>
+                              <Pressable
+                                style={styles.approveBtn}
+                                onPress={() => handleReview(row.id, 'Approved')}
+                                disabled={actingId === row.id}
+                              >
+                                <Text style={styles.approveText}>Approve</Text>
+                              </Pressable>
+                              <Pressable
+                                style={styles.rejectBtn}
+                                onPress={() => handleReview(row.id, 'Rejected')}
+                                disabled={actingId === row.id}
+                              >
+                                <Text style={styles.rejectText}>Reject</Text>
+                              </Pressable>
+                            </View>
+                          ) : null}
+                        </View>
+                      );
+                    })}
                   </View>
-                ))}
-              </View>
-            );
-          })}
+                );
+              })}
+              {allSlots.length === 0 ? (
+                <Text style={styles.emptyText}>No availability submitted for this week yet.</Text>
+              ) : null}
+            </View>
+          ) : (
+            <View>
+              {days.map((day, i) => {
+                const dayStr = dayStrs[i];
+                const isToday = dayStr === todayStr;
+                const isPast = dayStr < todayStr;
+                return (
+                  <View key={dayStr} style={[styles.dayCard, isToday && styles.dayCardToday]}>
+                    <View style={styles.dayHeadRow}>
+                      <Text style={styles.dayName}>
+                        {day.toLocaleDateString([], { weekday: 'long' })}{' '}
+                        <Text style={styles.dayDate}>{day.toLocaleDateString([], { day: 'numeric', month: 'long' })}</Text>
+                      </Text>
+                      {isToday ? <Tag label="TODAY" bg={colors.gold} fg={colors.header} /> : null}
+                    </View>
+                    <View style={styles.slotRow}>
+                      {SLOTS.map(({ name, hours }) => {
+                        const key = `${dayStr}_${name}`;
+                        const existing = rowsByKey[key];
+                        const selected = selectedKeys.has(key);
+                        const approved = existing?.status === 'Approved';
+                        const rejectedAndOff = existing?.status === 'Rejected' && !selected;
+                        const locked = isPast || approved;
+                        const dashed = isPast && !existing;
+                        const caption = selected && existing ? existing.status : rejectedAndOff ? 'Rejected' : null;
+                        return (
+                          <Pressable
+                            key={name}
+                            disabled={locked}
+                            onPress={() => toggleSlot(key)}
+                            style={[styles.slot, selected && styles.slotOn, dashed && styles.slotDashed]}
+                          >
+                            <Text style={[styles.slotName, selected && styles.slotTextOn, dashed && styles.slotTextOff]}>
+                              {name}
+                            </Text>
+                            <Text style={[styles.slotHours, selected && styles.slotTextOn, dashed && styles.slotTextOff]}>
+                              {hours}
+                            </Text>
+                            {caption ? (
+                              <Text style={[styles.slotCaption, rejectedAndOff && { color: colors.dangerSoft }]}>{caption}</Text>
+                            ) : null}
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </View>
+                );
+              })}
 
-          {allSlots.length === 0 ? (
-            <Text style={styles.emptyText}>No availability submitted for this week yet.</Text>
-          ) : null}
-        </View>
-      ) : (
-        <View>
-          <Text style={styles.sectionTitle}>Your availability</Text>
-          <Text style={styles.helperText}>
-            Tap the times you're free this week, then submit. Approved slots are locked in.
-          </Text>
-
-          {days.map((day, dayIndex) => {
-            const dayStr = dayStrs[dayIndex];
-            return (
-              <View key={dayStr} style={styles.dayRow}>
-                <Text style={styles.dayRowLabel}>{formatDayLabel(day)}</Text>
-                <View style={styles.slotChipsRow}>
-                  {SLOTS.map((slot) => {
-                    const key = `${dayStr}_${slot}`;
-                    const existingRow = rowsByKey[key];
-                    const isSelected = selectedKeys.has(key);
-                    const isApproved = existingRow?.status === 'Approved';
-                    const isRejectedAndUnselected = existingRow?.status === 'Rejected' && !isSelected;
-
-                    return (
-                      <Pressable
-                        key={slot}
-                        onPress={() => toggleSlot(key)}
-                        style={[
-                          styles.slotChip,
-                          isSelected && styles.slotChipSelected,
-                          isApproved && styles.slotChipApproved,
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.slotChipText,
-                            (isSelected || isApproved) && styles.slotChipTextSelected,
-                          ]}
-                        >
-                          {slot}
-                        </Text>
-                        {isApproved ? <Text style={styles.slotChipTag}>Approved</Text> : null}
-                        {isRejectedAndUnselected ? <Text style={styles.slotChipTagRejected}>Rejected</Text> : null}
-                      </Pressable>
-                    );
-                  })}
+              {submittedRows.length > 0 ? (
+                <View>
+                  <Text style={styles.sectionLabel}>Your submissions</Text>
+                  <View style={styles.submissionCard}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.submissionTitle}>
+                        Week {weekNumber} · {formatRange(weekStart)}
+                      </Text>
+                      <Text style={styles.submissionSub}>
+                        {submittedRows.length} slot{submittedRows.length === 1 ? '' : 's'} submitted
+                      </Text>
+                    </View>
+                    <Tag
+                      label={submissionStatus}
+                      bg={submissionStatus === 'CONFIRMED' ? '#dcecdd' : '#f3e1c2'}
+                      fg={submissionStatus === 'CONFIRMED' ? '#1f6b3a' : '#8a5a12'}
+                    />
+                  </View>
                 </View>
-              </View>
-            );
-          })}
-
-          <Pressable
-            style={[styles.submitBtn, isSubmitting && styles.submitBtnDisabled]}
-            onPress={handleSubmit}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>Submit availability</Text>}
-          </Pressable>
+              ) : null}
+            </View>
+          )}
         </View>
-      )}
-    </ScrollView>
+      </ScrollView>
+
+      {!staff ? (
+        <View style={[styles.bottomBar, { paddingBottom: 16 + insets.bottom }]}>
+          <Text style={styles.bottomText}>
+            {selectedKeys.size} slot{selectedKeys.size === 1 ? '' : 's'} selected for this week
+          </Text>
+          <PillButton label="Submit availability" loading={isSubmitting} onPress={handleSubmit} style={{ marginTop: 12 }} />
+        </View>
+      ) : null}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: '#fff' },
-  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' },
-  container: { padding: 20, paddingBottom: 60 },
-  weekNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
-  weekNavBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#eef2ee', alignItems: 'center', justifyContent: 'center' },
-  weekNavText: { fontSize: 18, color: GREEN, fontWeight: '700' },
-  weekLabel: { fontSize: 15, fontWeight: '700', color: GREEN },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: GREEN, marginBottom: 4 },
-  helperText: { fontSize: 12, color: '#6b7a70', marginBottom: 16 },
-  dayRow: { marginBottom: 16 },
-  dayRowLabel: { fontSize: 13, fontWeight: '600', color: GREEN, marginBottom: 8 },
-  slotChipsRow: { flexDirection: 'row', gap: 8 },
-  slotChip: { flex: 1, borderWidth: 1, borderColor: '#d9e0d9', borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
-  slotChipSelected: { backgroundColor: GREEN, borderColor: GREEN },
-  slotChipApproved: { backgroundColor: '#1f6b3a', borderColor: '#1f6b3a' },
-  slotChipText: { fontSize: 12, fontWeight: '600', color: GREEN },
-  slotChipTextSelected: { color: '#fff' },
-  slotChipTag: { fontSize: 9, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
-  slotChipTagRejected: { fontSize: 9, color: '#b3261e', marginTop: 2 },
-  submitBtn: { backgroundColor: GOLD, borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 12 },
-  submitBtnDisabled: { opacity: 0.6 },
-  submitText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  dayGroup: { marginBottom: 20 },
-  dayHeading: { fontSize: 13, fontWeight: '700', color: '#6b7a70', marginBottom: 8, textTransform: 'uppercase' },
-  reviewRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#f0f2f0', paddingVertical: 10 },
-  reviewInfo: { flex: 1 },
-  reviewName: { fontSize: 13, fontWeight: '600', color: GREEN },
-  reviewStatus: { fontSize: 11, marginTop: 2, fontWeight: '600' },
+  root: { flex: 1, backgroundColor: colors.page },
+  body: { paddingHorizontal: 20 },
+
+  weekNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginVertical: 22 },
+  navBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  weekRange: { color: '#fff', fontSize: 17, fontWeight: '800' },
+  weekNum: { color: colors.fgMuted, fontSize: 12, marginTop: 2 },
+
+  dayCard: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: 14, marginBottom: 12, borderWidth: 1.5, borderColor: 'transparent' },
+  dayCardToday: { borderColor: colors.gold },
+  dayHeadRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  dayName: { color: '#fff', fontSize: 17, fontWeight: '800' },
+  dayDate: { color: colors.fgMuted, fontSize: 12, fontWeight: '500' },
+
+  slotRow: { flexDirection: 'row', gap: 8 },
+  slot: {
+    flex: 1,
+    minHeight: 62,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+  },
+  slotOn: { backgroundColor: colors.gold, borderColor: colors.gold },
+  slotDashed: { borderStyle: 'dashed', backgroundColor: 'transparent' },
+  slotName: { color: '#fff', fontSize: 13, fontWeight: '800' },
+  slotHours: { color: colors.fgMuted, fontSize: 11, marginTop: 2 },
+  slotTextOn: { color: colors.header },
+  slotTextOff: { color: colors.fgFaint },
+  slotCaption: { color: colors.header, fontSize: 9, fontWeight: '800', marginTop: 2 },
+
+  sectionLabel: { color: '#fff', fontSize: 22, fontWeight: '800', marginTop: 20, marginBottom: 12 },
+  submissionCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: radius.lg, padding: 16 },
+  submissionTitle: { color: '#fff', fontSize: 14, fontWeight: '800' },
+  submissionSub: { color: colors.fgMuted, fontSize: 12, marginTop: 2 },
+
+  reviewRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderTopWidth: 1, borderTopColor: colors.line },
+  reviewName: { color: '#fff', fontSize: 15, fontWeight: '800' },
+  reviewSlot: { color: colors.fgMuted, fontSize: 12, marginTop: 2 },
   reviewActions: { flexDirection: 'row', gap: 8 },
-  approveBtn: { backgroundColor: '#1f6b3a', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
-  approveBtnText: { color: '#fff', fontSize: 11, fontWeight: '700' },
-  rejectBtn: { borderWidth: 1, borderColor: '#b3261e', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
-  rejectBtnText: { color: '#b3261e', fontSize: 11, fontWeight: '700' },
-  emptyText: { fontSize: 13, color: '#8a9a8f', marginTop: 12, textAlign: 'center' },
+  approveBtn: { backgroundColor: colors.gold, borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 8 },
+  approveText: { color: colors.header, fontSize: 12, fontWeight: '800' },
+  rejectBtn: { borderWidth: 1.5, borderColor: colors.dangerSoft, borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 7 },
+  rejectText: { color: colors.dangerSoft, fontSize: 12, fontWeight: '800' },
+  emptyText: { textAlign: 'center', color: colors.fgMuted, marginTop: 30, fontSize: 14 },
+
+  bottomBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+  },
+  bottomText: { textAlign: 'center', color: colors.fgMuted, fontSize: 13 },
 });

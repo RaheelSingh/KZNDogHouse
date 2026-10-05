@@ -1,25 +1,35 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { StatusBar } from 'expo-status-bar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/context/AuthContext';
+import { useNotifications } from '@/context/NotificationsContext';
 import { supabase } from '@/lib/supabase';
 import { getCurrentProfileId } from '@/lib/profile';
 import { isStaff } from '@/lib/roles';
-
-const GREEN = '#16302a';
-const GREEN_DARK = '#0f231e';
+import { colors, radius } from '@/theme';
+import { ListRow } from '@/components/ui';
 
 export default function ProfileScreen() {
   const { session, signOut } = useAuth();
+  const { unreadCount } = useNotifications();
+  const insets = useSafeAreaInsets();
   const staff = isStaff(session?.role);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isSigningOut, setIsSigningOut] = useState(false);
   const [upcomingCount, setUpcomingCount] = useState(0);
   const [completedCount, setCompletedCount] = useState(0);
+  const [phone, setPhone] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const profileId = await getCurrentProfileId();
+    const { data: userData } = await supabase.auth.getUser();
+    const metaPhone = userData.user?.user_metadata?.phone;
+    setPhone(typeof metaPhone === 'string' && metaPhone.length > 0 ? metaPhone : null);
+
     if (!profileId) return;
     const nowIso = new Date().toISOString();
 
@@ -64,13 +74,10 @@ export default function ProfileScreen() {
         text: 'Sign out',
         style: 'destructive',
         onPress: async () => {
-          setIsSigningOut(true);
           try {
             await signOut();
           } catch (err) {
             console.warn('[profile] sign out failed:', err);
-          } finally {
-            setIsSigningOut(false);
           }
         },
       },
@@ -86,26 +93,29 @@ export default function ProfileScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator color={GREEN} size="large" />
+      <View style={styles.center}>
+        <StatusBar style="light" />
+        <ActivityIndicator color="#fff" size="large" />
       </View>
     );
   }
 
   return (
     <ScrollView
-      style={styles.flex}
-      contentContainerStyle={styles.container}
-      refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />}
+      style={styles.root}
+      contentContainerStyle={{ paddingTop: insets.top + 28, paddingBottom: 40 }}
+      refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor="#fff" />}
     >
+      <StatusBar style="light" />
+
       <View style={styles.header}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{initials || '?'}</Text>
         </View>
         <Text style={styles.name}>{session?.name ?? 'Unknown'}</Text>
-        <Text style={styles.email}>{session?.email}</Text>
-        <View style={styles.roleBadge}>
-          <Text style={styles.roleBadgeText}>{staff ? 'Staff' : 'Volunteer'}</Text>
+        <View style={styles.rolePill}>
+          <Ionicons name={staff ? 'shield-checkmark-outline' : 'heart-outline'} size={18} color={colors.gold} />
+          <Text style={styles.roleText}>{staff ? 'Staff' : 'Volunteer'}</Text>
         </View>
       </View>
 
@@ -120,38 +130,76 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Account</Text>
-        <Pressable
-          style={[styles.signOutBtn, isSigningOut && styles.signOutBtnDisabled]}
-          onPress={handleSignOut}
-          disabled={isSigningOut}
-        >
-          {isSigningOut ? <ActivityIndicator color="#b3261e" /> : <Text style={styles.signOutText}>Sign out</Text>}
-        </Pressable>
+      <View style={styles.list}>
+        <ListRow icon="mail-outline" title="Email" subtitle={session?.email} />
+        {phone ? <ListRow icon="call-outline" title="Phone" subtitle={phone} /> : null}
+        <ListRow
+          icon="time-outline"
+          title="My availability"
+          subtitle="Set your hours"
+          onPress={() => router.push('/availability')}
+        />
+        <ListRow
+          icon="notifications-outline"
+          title="Notifications"
+          subtitle={unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}
+          onPress={() => router.push('/(tabs)/alerts')}
+          right={
+            unreadCount > 0 ? (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{unreadCount}</Text>
+              </View>
+            ) : undefined
+          }
+        />
+        <ListRow icon="log-out-outline" title="Sign out" danger onPress={handleSignOut} />
       </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: '#fff' },
-  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' },
-  container: { padding: 20, paddingTop: 56, paddingBottom: 60 },
-  header: { alignItems: 'center', marginBottom: 28 },
-  avatar: { width: 72, height: 72, borderRadius: 36, backgroundColor: GREEN, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  avatarText: { color: '#fff', fontSize: 26, fontWeight: '700' },
-  name: { fontSize: 20, fontWeight: '700', color: GREEN },
-  email: { fontSize: 13, color: '#6b7a70', marginTop: 2 },
-  roleBadge: { backgroundColor: '#eef2ee', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 6, marginTop: 10 },
-  roleBadgeText: { fontSize: 12, fontWeight: '700', color: GREEN },
-  statsRow: { flexDirection: 'row', gap: 12, marginBottom: 28 },
-  statTile: { flex: 1, backgroundColor: GREEN_DARK, borderRadius: 16, paddingVertical: 18, alignItems: 'center' },
-  statValue: { color: '#fff', fontSize: 22, fontWeight: '700' },
-  statLabel: { color: 'rgba(255,255,255,0.6)', fontSize: 11, marginTop: 4, textAlign: 'center' },
-  section: { marginBottom: 20 },
-  sectionTitle: { fontSize: 14, fontWeight: '700', color: GREEN, marginBottom: 10 },
-  signOutBtn: { borderWidth: 1, borderColor: '#b3261e', borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
-  signOutBtnDisabled: { opacity: 0.6 },
-  signOutText: { color: '#b3261e', fontWeight: '700', fontSize: 15 },
+  root: { flex: 1, backgroundColor: colors.page },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.page },
+  header: { alignItems: 'center', marginBottom: 26 },
+  avatar: {
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    backgroundColor: colors.raised,
+    borderWidth: 3,
+    borderColor: colors.gold,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  avatarText: { color: '#fff', fontSize: 32, fontWeight: '800' },
+  name: { color: '#fff', fontSize: 32, fontWeight: '800', textAlign: 'center', paddingHorizontal: 20 },
+  rolePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 2,
+    borderColor: colors.gold,
+    borderRadius: radius.pill,
+    paddingHorizontal: 22,
+    paddingVertical: 9,
+    marginTop: 16,
+  },
+  roleText: { color: '#fff', fontWeight: '800', fontSize: 15 },
+  statsRow: { flexDirection: 'row', gap: 12, paddingHorizontal: 20, marginBottom: 22 },
+  statTile: { flex: 1, backgroundColor: colors.surface, borderRadius: radius.lg, paddingVertical: 20, alignItems: 'center' },
+  statValue: { color: '#fff', fontSize: 30, fontWeight: '800' },
+  statLabel: { color: colors.fgMuted, fontSize: 12, marginTop: 4 },
+  list: { paddingHorizontal: 20 },
+  badge: {
+    minWidth: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.gold,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 7,
+  },
+  badgeText: { color: colors.header, fontSize: 12, fontWeight: '800' },
 });

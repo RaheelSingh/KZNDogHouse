@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { AppState } from 'react-native';
-import * as Notifications from 'expo-notifications';
+import { Notifications } from '@/lib/notificationsSafe';
 import { supabase } from '@/lib/supabase';
 import { getCurrentProfileId } from '@/lib/profile';
 import { registerForPushNotifications } from '@/lib/pushNotifications';
@@ -27,7 +27,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // 1. Resolve user_profiles.id whenever the signed-in user changes.
+  
   useEffect(() => {
     let cancelled = false;
     if (!session) {
@@ -59,7 +59,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     setNotifications((data ?? []) as AppNotification[]);
   }, [profileId]);
 
-  // 2. Initial load + LIVE updates through Supabase Realtime.
+  
   useEffect(() => {
     if (!profileId) return;
 
@@ -93,31 +93,31 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     };
   }, [profileId, refresh]);
 
-  // 3. Register this phone for FCM push once we know who the user is.
+
   useEffect(() => {
     if (!profileId) return;
     registerForPushNotifications().catch((err) => console.warn('[push] registration failed:', err));
   }, [profileId]);
 
-  // 4. Safety nets: refresh when the app returns to the foreground or a push arrives while open.
-  useEffect(() => {
+  .
+    useEffect(() => {
     const appStateSub = AppState.addEventListener('change', (state) => {
       if (state === 'active') refresh();
     });
-    const receivedSub = Notifications.addNotificationReceivedListener(() => {
+    const receivedSub = Notifications?.addNotificationReceivedListener(() => {
       refresh();
     });
     return () => {
       appStateSub.remove();
-      receivedSub.remove();
+      receivedSub?.remove();
     };
   }, [refresh]);
 
   const unreadCount = useMemo(() => notifications.filter((n) => !n.is_read).length, [notifications]);
 
-  // 5. Keep the launcher icon badge in sync with unread alerts.
-  useEffect(() => {
-    Notifications.setBadgeCountAsync(unreadCount).catch(() => {});
+
+    useEffect(() => {
+    Notifications?.setBadgeCountAsync(unreadCount).catch(() => {});
   }, [unreadCount]);
 
   const markAsRead = useCallback(
@@ -146,8 +146,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     }
   }, [profileId, refresh]);
 
-  // "Clear all" hides the rows (cleared_at) instead of deleting them, so the reminder
-  // job can never recreate a reminder the user already dismissed.
+
   const clearAll = useCallback(async () => {
     if (!profileId) return;
     setNotifications([]);

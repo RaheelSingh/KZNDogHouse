@@ -1,24 +1,37 @@
 import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  RefreshControl,
+  SectionList,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { router, type Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useNotifications } from '@/context/NotificationsContext';
+import { colors, radius } from '@/theme';
+import { PageHeader, UnderlineTabs } from '@/components/ui';
 import type { AppNotification, NotificationCategory } from '@/types/models';
 
-const GREEN = '#16302a';
-const GREEN_DARK = '#0f231e';
-const PAGE_BG = '#eef0ea';
-
 type Filter = 'All' | NotificationCategory;
-const FILTERS: Filter[] = ['All', 'Medical', 'Calendar', 'Tasks', 'Messages'];
+const TABS: { key: Filter; label: string }[] = [
+  { key: 'All', label: 'All' },
+  { key: 'Medical', label: 'Medical' },
+  { key: 'Calendar', label: 'Calendar' },
+  { key: 'Tasks', label: 'Tasks' },
+  { key: 'Messages', label: 'Messages' },
+];
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 const CATEGORY_STYLE: Record<NotificationCategory, { bg: string; fg: string; icon: IconName }> = {
   Medical: { bg: '#f4d3cf', fg: '#b3261e', icon: 'medkit-outline' },
-  Calendar: { bg: '#e6dcc2', fg: '#8a5a12', icon: 'calendar-outline' },
-  Tasks: { bg: '#e3ece6', fg: GREEN, icon: 'checkbox-outline' },
+  Calendar: { bg: '#f3e1c2', fg: '#8a5a12', icon: 'calendar-outline' },
+  Tasks: { bg: '#dcecdd', fg: '#1f6b3a', icon: 'checkbox-outline' },
   Messages: { bg: '#dbe3f0', fg: '#2b4a8a', icon: 'chatbubble-ellipses-outline' },
-  General: { bg: '#e5e5e5', fg: '#555555', icon: 'notifications-outline' },
+  General: { bg: '#e8ebe5', fg: '#555555', icon: 'notifications-outline' },
 };
 
 type SectionTitle = 'TODAY' | 'YESTERDAY' | 'EARLIER';
@@ -89,128 +102,80 @@ export default function AlertsScreen() {
     ]);
   };
 
-  if (isLoading && notifications.length === 0) {
-    return (
-      <View style={styles.loading}>
-        <ActivityIndicator color={GREEN} size="large" />
-      </View>
-    );
-  }
-
   return (
-    <SectionList
-      style={styles.flex}
-      contentContainerStyle={styles.listContent}
-      sections={sections}
-      keyExtractor={(item) => item.id}
-      stickySectionHeadersEnabled={false}
-      refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />}
-      ListHeaderComponent={
-        <View>
-          <View style={styles.hero}>
-            <View style={styles.heroTopRow}>
-              <Text style={styles.heroTitle}>Notifications</Text>
-              <Pressable onPress={onClearAll} hitSlop={8}>
-                <Text style={styles.clearAll}>Clear all</Text>
-              </Pressable>
-            </View>
-            <Text style={styles.heroCount}>
-              {unreadCount === 0 ? "You're all caught up" : `${unreadCount} new update${unreadCount === 1 ? '' : 's'}`}
-            </Text>
-            <Text style={styles.heroSubtitle}>Everything that needs your attention.</Text>
-          </View>
-
-          <View style={styles.chipsRow}>
-            {FILTERS.map((f) => (
-              <Pressable key={f} onPress={() => setFilter(f)} style={[styles.chip, filter === f && styles.chipActive]}>
-                <Text style={[styles.chipText, filter === f && styles.chipTextActive]}>{f}</Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-      }
-      renderSectionHeader={({ section }) => <Text style={styles.sectionHeader}>{section.title}</Text>}
-      ListEmptyComponent={
-        <View style={styles.empty}>
-          <Ionicons name="notifications-off-outline" size={36} color="#9aa89f" />
-          <Text style={styles.emptyText}>No notifications yet.</Text>
-        </View>
-      }
-      renderItem={({ item }) => {
-        const look = CATEGORY_STYLE[item.category] ?? CATEGORY_STYLE.General;
-        return (
-          <Pressable style={[styles.card, !item.is_read && styles.cardUnread]} onPress={() => onPressItem(item)}>
-            <View style={[styles.iconBox, { backgroundColor: look.bg }]}>
-              <Ionicons name={look.icon} size={18} color={look.fg} />
-            </View>
-            <View style={styles.cardBody}>
-              <Text style={styles.cardTitle}>{item.title}</Text>
-              {item.body ? <Text style={styles.cardText}>{item.body}</Text> : null}
-              <Text style={styles.cardTime}>{formatWhen(item.created_at)}</Text>
-            </View>
-            {!item.is_read ? <View style={styles.unreadDot} /> : null}
+    <View style={styles.root}>
+      <PageHeader
+        title="Notifications"
+        subtitle={unreadCount === 0 ? "You're all caught up" : `${unreadCount} new update${unreadCount === 1 ? '' : 's'}`}
+        right={
+          <Pressable onPress={onClearAll} hitSlop={10}>
+            <Text style={styles.clearAll}>Clear all</Text>
           </Pressable>
-        );
-      }}
-    />
+        }
+      >
+        <UnderlineTabs tabs={TABS} active={filter} onChange={setFilter} />
+      </PageHeader>
+
+      {isLoading && notifications.length === 0 ? (
+        <View style={styles.center}>
+          <ActivityIndicator color="#fff" size="large" />
+        </View>
+      ) : (
+        <SectionList
+          sections={sections}
+          keyExtractor={(item) => item.id}
+          stickySectionHeadersEnabled={false}
+          contentContainerStyle={styles.listContent}
+          refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor="#fff" />}
+          renderSectionHeader={({ section }) => <Text style={styles.sectionHeader}>{section.title}</Text>}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Ionicons name="notifications-off-outline" size={40} color={colors.fgFaint} />
+              <Text style={styles.emptyText}>No notifications yet.</Text>
+            </View>
+          }
+          renderItem={({ item }) => {
+            const look = CATEGORY_STYLE[item.category] ?? CATEGORY_STYLE.General;
+            return (
+              <Pressable style={[styles.card, !item.is_read && styles.cardUnread]} onPress={() => onPressItem(item)}>
+                <View style={[styles.iconBox, { backgroundColor: look.bg }]}>
+                  <Ionicons name={look.icon} size={20} color={look.fg} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.cardTitle}>{item.title}</Text>
+                  {item.body ? <Text style={styles.cardText}>{item.body}</Text> : null}
+                  <Text style={styles.cardTime}>{formatWhen(item.created_at)}</Text>
+                </View>
+              </Pressable>
+            );
+          }}
+        />
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: PAGE_BG },
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: PAGE_BG },
-  listContent: { paddingBottom: 40 },
-  hero: {
-    backgroundColor: GREEN_DARK,
-    paddingTop: 56,
-    paddingHorizontal: 20,
-    paddingBottom: 24,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-  },
-  heroTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
-  heroTitle: { color: '#fff', fontSize: 15, fontWeight: '600' },
-  clearAll: { color: '#fff', fontSize: 12, fontWeight: '700' },
-  heroCount: { color: '#fff', fontSize: 24, fontWeight: '700' },
-  heroSubtitle: { color: 'rgba(255,255,255,0.65)', fontSize: 12, marginTop: 4 },
-  chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, paddingTop: 16 },
-  chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 20,
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#d9e0d9',
-  },
-  chipActive: { backgroundColor: GREEN, borderColor: GREEN },
-  chipText: { fontSize: 12, color: GREEN, fontWeight: '600' },
-  chipTextActive: { color: '#fff' },
-  sectionHeader: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#8a9a8f',
-    letterSpacing: 0.8,
-    marginTop: 20,
-    marginBottom: 8,
-    paddingHorizontal: 16,
-  },
+  root: { flex: 1, backgroundColor: colors.page },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  clearAll: { color: colors.gold, fontSize: 14, fontWeight: '800' },
+  listContent: { paddingHorizontal: 20, paddingBottom: 40 },
+  sectionHeader: { color: colors.fgFaint, fontSize: 12, fontWeight: '800', letterSpacing: 1, marginTop: 22, marginBottom: 12 },
   card: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderRadius: 14,
+    gap: 14,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
     padding: 14,
-    marginHorizontal: 16,
     marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#e3e8e3',
+    borderWidth: 1.5,
+    borderColor: 'transparent',
   },
-  cardUnread: { borderColor: GREEN },
-  iconBox: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  cardBody: { flex: 1 },
-  cardTitle: { fontSize: 14, fontWeight: '700', color: GREEN },
-  cardText: { fontSize: 12, color: '#4d5c52', marginTop: 3, lineHeight: 17 },
-  cardTime: { fontSize: 11, color: '#8a9a8f', marginTop: 6 },
-  unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#b3261e', marginLeft: 8, marginTop: 4 },
-  empty: { alignItems: 'center', paddingTop: 60, gap: 10 },
-  emptyText: { color: '#6b7a70', fontSize: 14 },
+  cardUnread: { borderColor: colors.gold },
+  iconBox: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  cardTitle: { color: '#fff', fontSize: 15, fontWeight: '800' },
+  cardText: { color: colors.fgMuted, fontSize: 13, marginTop: 3, lineHeight: 18 },
+  cardTime: { color: colors.fgFaint, fontSize: 11, marginTop: 6 },
+  empty: { alignItems: 'center', paddingTop: 70, gap: 10 },
+  emptyText: { color: colors.fgMuted, fontSize: 15 },
 });
