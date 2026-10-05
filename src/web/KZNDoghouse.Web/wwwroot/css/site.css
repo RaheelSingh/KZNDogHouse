@@ -4445,3 +4445,165 @@ a:hover {
         grid-template-columns: 1fr;
     }
 }
+
+/* Final Commit 7 filter sizing and inventory list alignment */
+
+/*
+   Let filter controls size to readable labels instead of squeezing them
+   into fixed grid columns. If they no longer fit, they wrap naturally.
+*/
+.portal-filter-bar,
+.portal-filter-bar-calendar,
+.portal-filter-bar-inventory,
+.portal-filter-bar-dogs,
+.portal-filter-bar-foster,
+.portal-filter-bar-availability,
+.portal-filter-bar-users,
+.portal-filter-bar-notifications {
+    display: flex !important;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    width: 100%;
+}
+
+.portal-filter-bar > div:not(.portal-filter-search):not(.portal-filter-date) {
+    flex: 0 0 auto !important;
+    min-width: 0;
+}
+
+.portal-filter-search {
+    flex: 1 1 300px;
+    min-width: 280px;
+}
+
+.portal-filter-bar .form-select {
+    width: auto;
+    min-width: 190px;
+    max-width: none;
+    padding-right: 2.35rem;
+    white-space: nowrap;
+}
+
+.portal-filter-date {
+    flex: 0 0 170px !important;
+    width: 170px;
+    min-width: 170px;
+}
+
+.portal-filter-date .form-control {
+    width: 100%;
+}
+
+.portal-sort-button {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+/*
+   Reset is always the final control. On a wrapped filter bar this pushes
+   it to the lower-right; on a single row it remains at the far right.
+*/
+.portal-filter-reset {
+    order: 99;
+    flex: 0 0 auto;
+    margin-left: auto;
+    white-space: nowrap;
+}
+
+/* Keep filter typography consistent with the stronger portal form styling. */
+.portal-filter-bar .form-control,
+.portal-filter-bar .form-select,
+.portal-filter-reset,
+.portal-sort-button {
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 650;
+    letter-spacing: -0.005em;
+}
+
+/*
+   Inventory uses one continuous scroll panel like Calendar rather than
+   stretching each individual inventory record to fill the available height.
+*/
+.portal-inventory-list {
+    display: flex;
+    flex-direction: column;
+    align-content: flex-start;
+    gap: 0;
+    padding: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    border: 1px solid var(--kzn-border);
+    border-radius: 12px;
+    background-color: var(--kzn-white);
+}
+
+.portal-inventory-list > .portal-inventory-row {
+    flex: 0 0 auto;
+    width: 100%;
+    margin: 0;
+    border: 0;
+    border-bottom: 1px solid var(--kzn-border);
+    border-radius: 0;
+    box-shadow: none;
+    background-color: var(--kzn-white);
+}
+
+.portal-inventory-list > .portal-inventory-row:last-child {
+    border-bottom: 0;
+}
+
+.portal-inventory-row-main {
+    min-height: 92px;
+}
+
+.portal-inventory-row-expand {
+    background-color: var(--kzn-cream);
+}
+
+/* Avoid action buttons being clipped on narrower desktop widths. */
+.portal-inventory-row-actions {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.45rem;
+}
+
+.portal-inventory-row-actions .btn {
+    white-space: nowrap;
+}
+
+/* When space becomes limited, wrapping the filter controls is preferred to clipping text. */
+@media (max-width: 1399.98px) {
+    .portal-filter-search {
+        flex-basis: 100%;
+        min-width: 100%;
+    }
+
+    .portal-filter-bar .form-select {
+        min-width: 180px;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .portal-filter-search,
+    .portal-filter-bar > div:not(.portal-filter-search),
+    .portal-filter-date {
+        flex: 1 1 100% !important;
+        width: 100%;
+        min-width: 100%;
+    }
+
+    .portal-filter-bar .form-select,
+    .portal-filter-date .form-control {
+        width: 100%;
+        min-width: 100%;
+    }
+
+    .portal-filter-reset {
+        margin-left: auto;
+    }
+}
+
