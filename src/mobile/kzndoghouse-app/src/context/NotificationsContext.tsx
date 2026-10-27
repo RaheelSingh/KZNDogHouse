@@ -14,12 +14,14 @@ type NotificationsContextValue = {
   refresh: () => Promise<void>;
   markAsRead: (id: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
+  clearOne: (id: string) => Promise<void>;
   clearAll: () => Promise<void>;
 };
 
 const NotificationsContext = createContext<NotificationsContextValue | undefined>(undefined);
 
 const SELECT_COLUMNS = 'id, recipient_id, category, title, body, data, is_read, cleared_at, created_at';
+const MAX_LOADED = 100;
 
 export function NotificationsProvider({ children }: { children: React.ReactNode }) {
   const { session } = useAuth();
@@ -27,7 +29,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  
+  // Resolve the profile id whenever the signed-in user changes.
   useEffect(() => {
     let cancelled = false;
     if (!session) {
@@ -51,7 +53,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       .eq('recipient_id', profileId)
       .is('cleared_at', null)
       .order('created_at', { ascending: false })
-      .limit(100);
+      .limit(MAX_LOADED);
     if (error) {
       console.warn('[notifications] load failed:', error);
       return;
@@ -59,7 +61,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     setNotifications((data ?? []) as AppNotification[]);
   }, [profileId]);
 
-  
+  // Initial load + live updates for this user only.
   useEffect(() => {
     if (!profileId) return;
 
@@ -93,14 +95,14 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     };
   }, [profileId, refresh]);
 
-
+  // Register this phone for push once we know who is signed in.
   useEffect(() => {
     if (!profileId) return;
     registerForPushNotifications().catch((err) => console.warn('[push] registration failed:', err));
   }, [profileId]);
 
-
-    useEffect(() => {
+  // Catch up when the app returns to the foreground or a push arrives while open.
+  useEffect(() => {
     const appStateSub = AppState.addEventListener('change', (state) => {
       if (state === 'active') refresh();
     });
@@ -115,8 +117,8 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
 
   const unreadCount = useMemo(() => notifications.filter((n) => !n.is_read).length, [notifications]);
 
-
-    useEffect(() => {
+  // Keep the app icon badge in sync with the unread count.
+  useEffect(() => {
     Notifications?.setBadgeCountAsync(unreadCount).catch(() => {});
   }, [unreadCount]);
 
@@ -139,13 +141,29 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       .from('notifications')
       .update({ is_read: true })
       .eq('recipient_id', profileId)
-      .eq('is_read', false);
+      .eq('is_read', false)
+      .is('cleared_at', null);
     if (error) {
       console.warn('[notifications] mark all read failed:', error);
       refresh();
     }
   }, [profileId, refresh]);
 
+  // "Clearing" hides a notification for this user; the row is purged by the nightly cleanup job.
+  const clearOne = useCallback(
+    async (id: string) => {
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+      const { error } = await supabase
+        .from('notifications')
+        .update({ cleared_at: new Date().toISOString(), is_read: true })
+        .eq('id', id);
+      if (error) {
+        console.warn('[notifications] clear one failed:', error);
+        refresh();
+      }
+    },
+    [refresh]
+  );
 
   const clearAll = useCallback(async () => {
     if (!profileId) return;
@@ -156,14 +174,14 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       .eq('recipient_id', profileId)
       .is('cleared_at', null);
     if (error) {
-      console.warn('[notifications] clear failed:', error);
+      console.warn('[notifications] clear all failed:', error);
       refresh();
     }
   }, [profileId, refresh]);
 
   return (
     <NotificationsContext.Provider
-      value={{ notifications, unreadCount, isLoading, refresh, markAsRead, markAllAsRead, clearAll }}
+      value={{ notifications, unreadCount, isLoading, refresh, markAsRead, markAllAsRead, clearOne, clearAll }}
     >
       {children}
     </NotificationsContext.Provider>

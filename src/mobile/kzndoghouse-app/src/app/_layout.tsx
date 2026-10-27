@@ -4,10 +4,10 @@ import { Notifications } from '@/lib/notificationsSafe';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { NotificationsProvider, useNotifications } from '@/context/NotificationsContext';
 
-
+/** Opens the right screen when the user taps a push notification. */
 function useNotificationTapNavigation(enabled: boolean) {
   const { markAsRead } = useNotifications();
-  
+
   const lastResponse = Notifications ? Notifications.useLastNotificationResponse() : null;
   const handled = useRef(new Set<string>());
 
@@ -37,7 +37,6 @@ function RootNavigator() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Protected guard={!!session}>
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="availability" options={{ presentation: 'modal', headerShown: false }} />
       </Stack.Protected>
       <Stack.Protected guard={!session}>
         <Stack.Screen name="(auth)" />

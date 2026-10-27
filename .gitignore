@@ -99,3 +99,10 @@ docs/private/
 service-account*.json
 supabase/.temp/
 supabase/functions/.env
+# Build outputs
+*.apk
+*.aab
+*.ipa
+*.tar.gz
+.env
+.env.*

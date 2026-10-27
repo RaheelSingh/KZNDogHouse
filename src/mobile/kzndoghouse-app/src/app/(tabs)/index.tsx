@@ -20,28 +20,34 @@ import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/context/NotificationsContext';
 import { supabase } from '@/lib/supabase';
 import { getCurrentProfileId } from '@/lib/profile';
+import { EVENT_COLUMNS, checkInToEvent, isCheckInOpen, toFriendlyMessage } from '@/lib/events';
 import { colors, radius } from '@/theme';
 import type { CalendarEvent, Dog } from '@/types/models';
 
-type SectionKey = 'welcome' | 'dogs' | 'calendar' | 'availability' | 'alerts';
+type SectionKey = 'welcome' | 'dogs' | 'calendar' | 'myEvents' | 'alerts';
 type Section = { key: SectionKey; label: string };
 
 const SECTIONS: Section[] = [
   { key: 'welcome', label: 'Welcome back' },
   { key: 'dogs', label: 'Dogs' },
-  { key: 'calendar', label: 'Calendar' },
-  { key: 'availability', label: 'Availability' },
+  { key: 'calendar', label: 'Today' },
+  { key: 'myEvents', label: 'My events' },
   { key: 'alerts', label: 'Alerts' },
 ];
 
-
 const SLIDE_COLORS = ['#12241c', '#17302a', '#1f3d2e', '#14281f', '#2b4d3b'];
 const CARD = 'rgba(18,36,28,0.82)';
+const DEFAULT_EVENT_LENGTH_MS = 12 * 60 * 60 * 1000;
+const MY_EVENTS_SHOWN = 3;
 
-type ShiftWithAssignment = CalendarEvent & {
-  event_assignments: { id: string; checked_in_at: string | null; status: string; profile_id: string }[];
-};
+type MyEvent = { assignmentId: string; checkedInAt: string | null; event: CalendarEvent };
 type AttentionDog = Pick<Dog, 'id' | 'name' | 'status'> & { reason: string };
+
+type MyAssignmentRow = {
+  id: string;
+  checked_in_at: string | null;
+  calendar_events: CalendarEvent | null;
+};
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -54,12 +60,22 @@ function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 }
 
+function formatDayTime(iso: string): string {
+  return new Date(iso).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+}
+
 function startEndOfToday() {
   const start = new Date();
   start.setHours(0, 0, 0, 0);
   const end = new Date();
   end.setHours(23, 59, 59, 999);
   return { start, end };
+}
+
+function hasEnded(event: CalendarEvent, now: number = Date.now()): boolean {
+  const start = new Date(event.start_at).getTime();
+  const end = event.end_at ? new Date(event.end_at).getTime() : start + DEFAULT_EVENT_LENGTH_MS;
+  return now > end;
 }
 
 function SlideBackground({ index, uri }: { index: number; uri?: string }) {
@@ -87,24 +103,28 @@ export default function HomeScreen() {
   const [dogsInCareCount, setDogsInCareCount] = useState(0);
   const [fostersOutCount, setFostersOutCount] = useState(0);
   const [todaysSchedule, setTodaysSchedule] = useState<CalendarEvent[]>([]);
-  const [myShift, setMyShift] = useState<ShiftWithAssignment | null>(null);
+  const [myEvents, setMyEvents] = useState<MyEvent[]>([]);
   const [attentionDogs, setAttentionDogs] = useState<AttentionDog[]>([]);
   const [photos, setPhotos] = useState<string[]>([]);
   const [isCheckingIn, setIsCheckingIn] = useState(false);
+  const [checkInError, setCheckInError] = useState<string | null>(null);
 
   const loadHome = useCallback(async () => {
     const { start, end } = startEndOfToday();
     const todayIso = start.toISOString();
     const todayEndIso = end.toISOString();
-    const todayDateOnly = start.toISOString().slice(0, 10);
+    const todayDateOnly = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(
+      start.getDate()
+    ).padStart(2, '0')}`;
+
     const profileId = await getCurrentProfileId();
 
-    const [dogsCountRes, fostersCountRes, scheduleRes, attentionRes, photosRes] = await Promise.all([
+    const [dogsCountRes, fostersCountRes, scheduleRes, attentionRes, photosRes, myRes] = await Promise.all([
       supabase.from('dogs').select('id', { count: 'exact', head: true }).neq('status', 'Adopted'),
       supabase.from('fostering_records').select('id', { count: 'exact', head: true }).eq('status', 'Active'),
       supabase
         .from('calendar_events')
-        .select('id, title, category, description, location, start_at, end_at, visibility, dog_id, created_by, created_at')
+        .select(EVENT_COLUMNS)
         .gte('start_at', todayIso)
         .lte('start_at', todayEndIso)
         .order('start_at', { ascending: true }),
@@ -116,35 +136,33 @@ export default function HomeScreen() {
         .order('next_action_date', { ascending: true })
         .limit(6),
       supabase.from('dogs').select('photo_url').not('photo_url', 'is', null).neq('status', 'Adopted').limit(5),
+      profileId
+        ? supabase
+            .from('event_assignments')
+            .select(`id, checked_in_at, calendar_events!inner(${EVENT_COLUMNS})`)
+            .eq('profile_id', profileId)
+            .neq('status', 'Cancelled')
+            .gte('calendar_events.start_at', todayIso)
+            .limit(20)
+        : Promise.resolve({ data: [] as MyAssignmentRow[], error: null }),
     ]);
 
     setDogsInCareCount(dogsCountRes.count ?? 0);
     setFostersOutCount(fostersCountRes.count ?? 0);
-    setTodaysSchedule((scheduleRes.data as CalendarEvent[]) ?? []);
-    setPhotos(((photosRes.data as { photo_url: string }[]) ?? []).map((r) => r.photo_url));
+    setTodaysSchedule((scheduleRes.data as unknown as CalendarEvent[] | null) ?? []);
+    setPhotos(((photosRes.data as { photo_url: string }[] | null) ?? []).map((r) => r.photo_url));
 
-    if (profileId) {
-      const shiftRes = await supabase
-        .from('calendar_events')
-        .select(
-          'id, title, category, description, location, start_at, end_at, visibility, dog_id, created_by, created_at, event_assignments!inner(id, checked_in_at, status, profile_id)'
-        )
-        .eq('category', 'Shift')
-        .gte('start_at', todayIso)
-        .lte('start_at', todayEndIso)
-        .eq('event_assignments.profile_id', profileId)
-        .neq('event_assignments.status', 'Cancelled')
-        .order('start_at', { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      setMyShift((shiftRes.data as ShiftWithAssignment | null) ?? null);
-    } else {
-      setMyShift(null);
-    }
+    // Embedded rows can't be ordered by the parent query, so sort by event start here.
+    const mine = ((myRes.data as unknown as MyAssignmentRow[] | null) ?? [])
+      .filter((row): row is MyAssignmentRow & { calendar_events: CalendarEvent } => !!row.calendar_events)
+      .map((row) => ({ assignmentId: row.id, checkedInAt: row.checked_in_at, event: row.calendar_events }))
+      .filter((m) => !hasEnded(m.event))
+      .sort((a, b) => new Date(a.event.start_at).getTime() - new Date(b.event.start_at).getTime());
+    setMyEvents(mine);
 
     const seen = new Set<string>();
     const dogs: AttentionDog[] = [];
-    for (const row of (attentionRes.data as any[]) ?? []) {
+    for (const row of (attentionRes.data as any[] | null) ?? []) {
       const dog = row.dogs;
       if (!dog || seen.has(dog.id)) continue;
       seen.add(dog.id);
@@ -153,7 +171,7 @@ export default function HomeScreen() {
     setAttentionDogs(dogs);
   }, []);
 
-  // Reload whenever the Home tab comes into view.
+  // Reload whenever Home comes into view; only the very first load shows a spinner.
   useFocusEffect(
     useCallback(() => {
       loadHome()
@@ -162,18 +180,20 @@ export default function HomeScreen() {
     }, [loadHome])
   );
 
+  // Today's event I'm signed up for that hasn't finished yet.
+  const { end: todayEnd } = startEndOfToday();
+  const onDuty = myEvents.find((m) => new Date(m.event.start_at).getTime() <= todayEnd.getTime()) ?? null;
+
   const handleCheckIn = async () => {
-    if (!myShift || myShift.event_assignments.length === 0) return;
+    if (!onDuty) return;
     setIsCheckingIn(true);
+    setCheckInError(null);
     try {
-      const { error } = await supabase
-        .from('event_assignments')
-        .update({ checked_in_at: new Date().toISOString() })
-        .eq('id', myShift.event_assignments[0].id);
-      if (error) throw error;
+      await checkInToEvent(onDuty.event.id);
       await loadHome();
     } catch (err) {
       console.warn('[home] check-in failed:', err);
+      setCheckInError(toFriendlyMessage(err, 'Could not check you in. Please try again.'));
     } finally {
       setIsCheckingIn(false);
     }
@@ -189,8 +209,46 @@ export default function HomeScreen() {
     setActiveIndex(Math.round(e.nativeEvent.contentOffset.y / pageHeight));
   };
 
-  const checkedInAt = myShift?.event_assignments[0]?.checked_in_at ?? null;
   const firstName = session?.name?.split(' ')[0] || session?.name || '';
+
+  const renderOnDutyCard = () => {
+    if (!onDuty) return null;
+    const { event, checkedInAt } = onDuty;
+    const open = isCheckInOpen(event);
+    const opensAt = new Date(new Date(event.start_at).getTime() - 60 * 60 * 1000).toISOString();
+
+    return (
+      <View style={[styles.card, { marginTop: 14 }]}>
+        <Text style={styles.eyebrow}>YOU'RE ON TODAY</Text>
+        <Text style={styles.cardBigTitle}>
+          {formatTime(event.start_at)}
+          {event.end_at ? ` – ${formatTime(event.end_at)}` : ''}
+        </Text>
+        <Text style={styles.cardMeta} numberOfLines={1}>
+          {[event.title, event.location].filter(Boolean).join(' · ')}
+        </Text>
+        <Pressable
+          style={[styles.goldBtn, (!!checkedInAt || !open) && styles.goldBtnDisabled]}
+          onPress={handleCheckIn}
+          disabled={!!checkedInAt || !open || isCheckingIn}
+          accessibilityRole="button"
+        >
+          {isCheckingIn ? (
+            <ActivityIndicator color={colors.header} />
+          ) : (
+            <Text style={[styles.goldBtnText, (!!checkedInAt || !open) && { color: '#fff' }]}>
+              {checkedInAt
+                ? `Checked in ${formatTime(checkedInAt)}`
+                : open
+                  ? 'Check in'
+                  : `Check-in opens ${formatTime(opensAt)}`}
+            </Text>
+          )}
+        </Pressable>
+        {checkInError ? <Text style={styles.errorText}>{checkInError}</Text> : null}
+      </View>
+    );
+  };
 
   const renderBottom = (key: SectionKey) => {
     switch (key) {
@@ -202,31 +260,7 @@ export default function HomeScreen() {
             </Text>
             <Text style={styles.subText}>Here's what's happening at the shelter today.</Text>
 
-            {myShift ? (
-              <View style={[styles.card, { marginTop: 14 }]}>
-                <Text style={styles.eyebrow}>ON DUTY TODAY</Text>
-                <Text style={styles.cardBigTitle}>
-                  {formatTime(myShift.start_at)}
-                  {myShift.end_at ? ` – ${formatTime(myShift.end_at)}` : ''}
-                </Text>
-                <Text style={styles.cardMeta} numberOfLines={1}>
-                  {[myShift.location, myShift.title].filter(Boolean).join(' · ')}
-                </Text>
-                <Pressable
-                  style={[styles.goldBtn, !!checkedInAt && styles.goldBtnDisabled]}
-                  onPress={handleCheckIn}
-                  disabled={!!checkedInAt || isCheckingIn}
-                >
-                  {isCheckingIn ? (
-                    <ActivityIndicator color={colors.header} />
-                  ) : (
-                    <Text style={styles.goldBtnText}>
-                      {checkedInAt ? `Checked in ${formatTime(checkedInAt)}` : 'Check in'}
-                    </Text>
-                  )}
-                </Pressable>
-              </View>
-            ) : null}
+            {renderOnDutyCard()}
 
             <View style={styles.statsRow}>
               <View style={styles.statTile}>
@@ -235,7 +269,7 @@ export default function HomeScreen() {
               </View>
               <View style={styles.statTile}>
                 <Text style={styles.statNumber}>{todaysSchedule.length}</Text>
-                <Text style={styles.statLabel}>Tasks today</Text>
+                <Text style={styles.statLabel}>Events today</Text>
               </View>
               <View style={styles.statTile}>
                 <Text style={styles.statNumber}>{fostersOutCount}</Text>
@@ -317,20 +351,50 @@ export default function HomeScreen() {
           </View>
         );
 
-      case 'availability':
+      case 'myEvents':
         return (
           <View>
-            <Text style={styles.bigText}>Next week</Text>
-            <Text style={styles.subText}>Tell us when you're free to volunteer.</Text>
-            <View style={styles.whiteCard}>
-              <Text style={styles.whiteCardTitle}>Set your availability</Text>
-              <Text style={styles.whiteCardText}>
-                Tap the mornings, afternoons and evenings you can help. A coordinator will approve them.
-              </Text>
-              <Pressable style={styles.solidBtn} onPress={() => router.push('/availability')}>
-                <Text style={styles.solidBtnText}>Open availability</Text>
+            <View style={styles.rowBetween}>
+              <Text style={styles.bigText}>My events</Text>
+              <Pressable style={styles.outlinePill} onPress={() => router.push('/(tabs)/calendar')}>
+                <Text style={styles.outlinePillText}>Find more</Text>
               </Pressable>
             </View>
+            {myEvents.length === 0 ? (
+              <Text style={[styles.subText, { marginTop: 10 }]}>
+                You haven't signed up for anything yet. Open the calendar to join an event.
+              </Text>
+            ) : (
+              <View style={{ marginTop: 14, gap: 10 }}>
+                {myEvents.slice(0, MY_EVENTS_SHOWN).map((m) => (
+                  <Pressable
+                    key={m.assignmentId}
+                    style={styles.myEventRow}
+                    onPress={() => router.push(`/(tabs)/calendar/${m.event.id}`)}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.eyebrow}>{formatDayTime(m.event.start_at)}</Text>
+                      <Text style={styles.cardTitle} numberOfLines={1}>
+                        {m.event.title}
+                      </Text>
+                      {m.event.location ? (
+                        <Text style={styles.cardMeta} numberOfLines={1}>
+                          {m.event.location}
+                        </Text>
+                      ) : null}
+                    </View>
+                    {m.checkedInAt ? (
+                      <Ionicons name="checkmark-circle" size={22} color={colors.gold} />
+                    ) : (
+                      <Ionicons name="chevron-forward" size={20} color="#fff" />
+                    )}
+                  </Pressable>
+                ))}
+                {myEvents.length > MY_EVENTS_SHOWN ? (
+                  <Text style={styles.cardMeta}>+{myEvents.length - MY_EVENTS_SHOWN} more on your calendar</Text>
+                ) : null}
+              </View>
+            )}
           </View>
         );
 
@@ -374,7 +438,7 @@ export default function HomeScreen() {
           renderItem={({ item, index }) => (
             <View style={{ height: pageHeight }}>
               <SlideBackground index={index} uri={photos.length > 0 ? photos[index % photos.length] : undefined} />
-              {/* Soft fade: dark at the top for the titles, dark at the bottom for the cards */}
+              {/* Dark at the top for the titles, dark at the bottom for the cards */}
               <LinearGradient
                 colors={['rgba(9,19,15,0.85)', 'rgba(9,19,15,0.15)', 'rgba(9,19,15,0.9)']}
                 locations={[0, 0.45, 1]}
@@ -386,14 +450,13 @@ export default function HomeScreen() {
         />
       ) : null}
 
-      
       <View style={[styles.header, { paddingTop: insets.top + 10 }]} pointerEvents="box-none">
         <View style={styles.headerRow}>
           <View style={styles.brandPill}>
             <Ionicons name="paw" size={16} color={colors.gold} />
             <Text style={styles.brandText}>KZN Doghouse</Text>
           </View>
-          <Pressable onPress={() => router.push('/(tabs)/alerts')} hitSlop={10}>
+          <Pressable onPress={() => router.push('/(tabs)/alerts')} hitSlop={10} accessibilityLabel="Open alerts">
             <Ionicons name="notifications-outline" size={27} color="#fff" />
             {unreadCount > 0 ? (
               <View style={styles.bellBadge}>
@@ -411,7 +474,7 @@ export default function HomeScreen() {
         ))}
       </View>
 
-      {/* Dots on the right */}
+      {/* Page dots on the right */}
       <View style={[styles.dots, { top: insets.top + 118 }]} pointerEvents="none">
         {SECTIONS.map((s, i) => (
           <View key={s.key} style={[styles.dot, i === activeIndex && styles.dotActive]} />
@@ -475,8 +538,9 @@ const styles = StyleSheet.create({
   card: { backgroundColor: CARD, borderRadius: radius.md, padding: 16 },
   eyebrow: { color: colors.gold, fontSize: 11, fontWeight: '800', letterSpacing: 0.8 },
   cardBigTitle: { color: '#fff', fontSize: 22, fontWeight: '800', marginTop: 6 },
-  cardTitle: { color: '#fff', fontSize: 16, fontWeight: '800', marginTop: 8 },
+  cardTitle: { color: '#fff', fontSize: 16, fontWeight: '800', marginTop: 6 },
   cardMeta: { color: 'rgba(255,255,255,0.7)', fontSize: 12, marginTop: 4 },
+  errorText: { color: colors.dangerSoft, fontSize: 12, marginTop: 8, textAlign: 'center' },
 
   goldBtn: { backgroundColor: colors.gold, borderRadius: radius.pill, paddingVertical: 12, alignItems: 'center', marginTop: 14 },
   goldBtnDisabled: { backgroundColor: 'rgba(255,255,255,0.22)' },
@@ -492,10 +556,5 @@ const styles = StyleSheet.create({
   dogAvatar: { width: 46, height: 46, borderRadius: 12, backgroundColor: colors.cardGreen, alignItems: 'center', justifyContent: 'center' },
   dogInitial: { color: '#fff', fontSize: 20, fontWeight: '800' },
   eventCard: { width: 210, backgroundColor: CARD, borderRadius: radius.md, padding: 14 },
-
-  whiteCard: { backgroundColor: '#fff', borderRadius: radius.md, padding: 20, marginTop: 16 },
-  whiteCardTitle: { color: colors.text, fontSize: 18, fontWeight: '800' },
-  whiteCardText: { color: colors.textMuted, fontSize: 13, marginTop: 6, lineHeight: 19 },
-  solidBtn: { backgroundColor: colors.primary, borderRadius: radius.pill, paddingVertical: 13, alignItems: 'center', marginTop: 16 },
-  solidBtnText: { color: '#fff', fontWeight: '800', fontSize: 14 },
+  myEventRow: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: CARD, borderRadius: radius.md, padding: 14 },
 });
