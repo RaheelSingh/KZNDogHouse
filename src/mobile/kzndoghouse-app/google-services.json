@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "689030865812",
+    "project_id": "kzndoghouse-f99bd",
+    "storage_bucket": "kzndoghouse-f99bd.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:689030865812:android:459812a3a73167df6a2581",
+        "android_client_info": {
+          "package_name": "com.shaheerj.kzndoghouseapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDksmGshlS8TC6CMdAXJVdccEAMS0z5GnE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

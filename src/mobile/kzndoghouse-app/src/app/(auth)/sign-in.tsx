@@ -8,20 +8,25 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { Link } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '@/context/AuthContext';
+import { colors, radius } from '@/theme';
+import { PillButton, UnderlineTabs } from '@/components/ui';
+import { Field } from '@/components/form';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+type AccountType = 'volunteer' | 'staff';
 
 export default function SignInScreen() {
   const { signIn } = useAuth();
 
- 
-  const [accountType, setAccountType] = useState<'volunteer' | 'staff'>('volunteer');
-
+  const [accountType, setAccountType] = useState<AccountType>('volunteer');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [staySignedIn, setStaySignedIn] = useState(true);
@@ -45,7 +50,6 @@ export default function SignInScreen() {
     setIsSubmitting(true);
     try {
       await signIn(email.trim(), password);
-     
     } catch (err: any) {
       setFormError(err?.message ?? 'Sign in failed. Please check your details and try again.');
     } finally {
@@ -54,179 +58,118 @@ export default function SignInScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <StatusBar style="light" />
+      <LinearGradient colors={[colors.header, colors.primary]} style={StyleSheet.absoluteFill} />
+      <Ionicons name="paw" size={420} color="rgba(255,255,255,0.045)" style={styles.paw} />
+
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <View style={styles.logoWrap}>
-          <Text style={styles.brand}>The KZN Doghouse</Text>
+        <View style={styles.brandPill}>
+          <Ionicons name="paw" size={16} color={colors.gold} />
+          <Text style={styles.brandText}>The KZN Doghouse</Text>
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.title}>Sign in</Text>
-          <Text style={styles.subtitle}>Welcome back</Text>
+        <Text style={styles.title}>Sign in</Text>
+        <Text style={styles.subtitle}>Welcome back to the pack.</Text>
 
-          <View style={styles.toggleRow}>
-            <Pressable
-              style={[styles.toggleBtn, accountType === 'volunteer' && styles.toggleBtnActive]}
-              onPress={() => setAccountType('volunteer')}
-            >
-              <Text
-                style={[
-                  styles.toggleText,
-                  accountType === 'volunteer' && styles.toggleTextActive,
-                ]}
-              >
-                Volunteer
-              </Text>
-            </Pressable>
-            <Pressable
-              style={[styles.toggleBtn, accountType === 'staff' && styles.toggleBtnActive]}
-              onPress={() => setAccountType('staff')}
-            >
-              <Text
-                style={[styles.toggleText, accountType === 'staff' && styles.toggleTextActive]}
-              >
-                Staff
-              </Text>
-            </Pressable>
-          </View>
+        <UnderlineTabs
+          tabs={[
+            { key: 'volunteer', label: 'Volunteer' },
+            { key: 'staff', label: 'Staff' },
+          ]}
+          active={accountType}
+          onChange={setAccountType}
+        />
 
-          <Text style={styles.label}>Email address</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="you@example.com"
-            placeholderTextColor="#8a9a8f"
-            autoCapitalize="none"
-            keyboardType="email-address"
-            autoComplete="email"
-            value={email}
-            onChangeText={setEmail}
-          />
-          {errors.email ? <Text style={styles.fieldError}>{errors.email}</Text> : null}
+        <Field
+          label="Email address"
+          placeholder="you@example.com"
+          autoCapitalize="none"
+          keyboardType="email-address"
+          autoComplete="email"
+          value={email}
+          onChangeText={setEmail}
+          error={errors.email}
+        />
+        <Field
+          label="Password"
+          placeholder="••••••••"
+          secureTextEntry
+          autoComplete="password"
+          value={password}
+          onChangeText={setPassword}
+          error={errors.password}
+        />
 
-          <Text style={styles.label}>Password</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="••••••••"
-            placeholderTextColor="#8a9a8f"
-            secureTextEntry
-            autoComplete="password"
-            value={password}
-            onChangeText={setPassword}
-          />
-          {errors.password ? <Text style={styles.fieldError}>{errors.password}</Text> : null}
-
-          <View style={styles.row}>
-            <Pressable style={styles.checkboxRow} onPress={() => setStaySignedIn((v) => !v)}>
-              <View style={[styles.checkbox, staySignedIn && styles.checkboxChecked]} />
-              <Text style={styles.checkboxLabel}>Stay signed in</Text>
-            </Pressable>
-
-            <Pressable
-              onPress={() =>
-                Alert.alert('Forgot password', 'Password reset is not implemented yet.')
-              }
-            >
-              <Text style={styles.link}>Forgot?</Text>
-            </Pressable>
-          </View>
-
-          {formError ? <Text style={styles.formError}>{formError}</Text> : null}
-
-          <Pressable
-            style={[styles.submitBtn, isSubmitting && styles.submitBtnDisabled]}
-            onPress={handleSignIn}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.submitText}>Sign in</Text>
-            )}
+        <View style={styles.row}>
+          <Pressable style={styles.checkRow} onPress={() => setStaySignedIn((v) => !v)}>
+            <View style={[styles.checkbox, staySignedIn && styles.checkboxOn]}>
+              {staySignedIn ? <Ionicons name="checkmark" size={12} color={colors.header} /> : null}
+            </View>
+            <Text style={styles.checkLabel}>Stay signed in</Text>
           </Pressable>
 
-          <View style={styles.footerRow}>
-            <Text style={styles.footerText}>New volunteer? </Text>
-            <Link href="/(auth)/register" asChild>
-              <Pressable>
-                <Text style={styles.link}>Apply to join the team</Text>
-              </Pressable>
-            </Link>
-          </View>
+          <Pressable onPress={() => Alert.alert('Forgot password', 'Password reset is not implemented yet.')}>
+            <Text style={styles.forgot}>Forgot?</Text>
+          </Pressable>
+        </View>
+
+        {formError ? <Text style={styles.formError}>{formError}</Text> : null}
+
+        <PillButton label="Sign in" onPress={handleSignIn} loading={isSubmitting} style={{ marginTop: 24 }} />
+
+        <View style={styles.footerRow}>
+          <Text style={styles.footerText}>New volunteer? </Text>
+          <Link href="/(auth)/register" asChild>
+            <Pressable>
+              <Text style={styles.footerLink}>Apply to join the team</Text>
+            </Pressable>
+          </Link>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
-const GREEN = '#16302a';
-const GREEN_DARK = '#0f231e';
-
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: GREEN_DARK },
-  container: { flexGrow: 1, justifyContent: 'center', padding: 24 },
-  logoWrap: { alignItems: 'center', marginBottom: 24 },
-  brand: { color: '#fff', fontSize: 20, fontWeight: '700' },
-  card: { backgroundColor: '#fff', borderRadius: 20, padding: 24 },
-  title: { fontSize: 24, fontWeight: '700', color: '#16302a' },
-  subtitle: { fontSize: 14, color: '#6b7a70', marginBottom: 20 },
-  toggleRow: {
+  root: { flex: 1, backgroundColor: colors.page },
+  paw: { position: 'absolute', right: -110, bottom: 40 },
+  container: { flexGrow: 1, justifyContent: 'center', padding: 24, paddingTop: 70 },
+
+  brandPill: {
+    alignSelf: 'flex-start',
     flexDirection: 'row',
-    backgroundColor: '#eef2ee',
-    borderRadius: 12,
-    padding: 4,
-    marginBottom: 20,
-  },
-  toggleBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center' },
-  toggleBtnActive: { backgroundColor: '#fff' },
-  toggleText: { color: '#6b7a70', fontWeight: '600' },
-  toggleTextActive: { color: GREEN },
-  label: { fontSize: 13, fontWeight: '600', color: '#16302a', marginBottom: 6, marginTop: 12 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#d9e0d9',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: '#16302a',
-  },
-  fieldError: { color: '#b3261e', fontSize: 12, marginTop: 4 },
-  formError: {
-    color: '#b3261e',
-    fontSize: 13,
-    marginTop: 14,
-    textAlign: 'center',
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 18,
+    gap: 8,
+    borderWidth: 2,
+    borderColor: '#fff',
+    borderRadius: radius.pill,
+    paddingHorizontal: 18,
+    paddingVertical: 9,
+    marginBottom: 36,
   },
-  checkboxRow: { flexDirection: 'row', alignItems: 'center' },
+  brandText: { color: '#fff', fontWeight: '800', fontSize: 15 },
+
+  title: { color: '#fff', fontSize: 40, fontWeight: '800' },
+  subtitle: { color: colors.fgMuted, fontSize: 15, marginTop: 4, marginBottom: 6 },
+
+  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 20 },
+  checkRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   checkbox: {
-    width: 18,
-    height: 18,
-    borderRadius: 4,
-    borderWidth: 1.5,
-    borderColor: '#9aa89f',
-    marginRight: 8,
-  },
-  checkboxChecked: { backgroundColor: GREEN, borderColor: GREEN },
-  checkboxLabel: { fontSize: 13, color: '#16302a' },
-  link: { fontSize: 13, color: GREEN, fontWeight: '600' },
-  submitBtn: {
-    backgroundColor: GREEN,
-    borderRadius: 12,
-    paddingVertical: 14,
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: colors.fgMuted,
     alignItems: 'center',
-    marginTop: 22,
+    justifyContent: 'center',
   },
-  submitBtnDisabled: { opacity: 0.6 },
-  submitText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  footerRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 18 },
-  footerText: { fontSize: 13, color: '#6b7a70' },
+  checkboxOn: { backgroundColor: colors.gold, borderColor: colors.gold },
+  checkLabel: { color: colors.fgMuted, fontSize: 13 },
+  forgot: { color: colors.gold, fontSize: 13, fontWeight: '800' },
+
+  formError: { color: colors.dangerSoft, fontSize: 13, marginTop: 16, textAlign: 'center' },
+  footerRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 22 },
+  footerText: { color: colors.fgMuted, fontSize: 13 },
+  footerLink: { color: '#fff', fontSize: 13, fontWeight: '800' },
 });

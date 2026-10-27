@@ -1,29 +1,55 @@
 import { useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
+import { colors, radius } from '@/theme';
+import { PillButton } from '@/components/ui';
+import { ErrorText, Field, FieldLabel, FormScreen } from '@/components/form';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Same rule as the website's RegisterViewModel.
+const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+const MIN_AGE = 16;
+const MAX_NAME_LENGTH = 50;
+const MAX_NOTE_LENGTH = 500;
 const INTEREST_OPTIONS = ['Dog walking', 'Bathing & grooming', 'Events', 'Fundraising', 'Admin help'];
 
-type StepOneErrors = Partial<Record<'firstName' | 'lastName' | 'email' | 'phone' | 'dob' | 'password' | 'confirmPassword', string>>;
+type StepOneField = 'firstName' | 'lastName' | 'email' | 'phone' | 'dob' | 'password' | 'confirmPassword';
+type StepOneErrors = Partial<Record<StepOneField, string>>;
+
+/** Returns an error message, or null if the date is a real date and the person is old enough. */
+function validateDob(value: string): string | null {
+  if (!DATE_REGEX.test(value)) return 'Use the format YYYY-MM-DD.';
+  const [year, month, day] = value.split('-').map(Number);
+  const dob = new Date(year, month - 1, day);
+  if (dob.getFullYear() !== year || dob.getMonth() !== month - 1 || dob.getDate() !== day) {
+    return 'Enter a real date.';
+  }
+  const today = new Date();
+  if (dob > today) return 'Date of birth cannot be in the future.';
+
+  let age = today.getFullYear() - year;
+  const birthdayPassed = today.getMonth() > month - 1 || (today.getMonth() === month - 1 && today.getDate() >= day);
+  if (!birthdayPassed) age -= 1;
+  if (age < MIN_AGE) return `Volunteers must be at least ${MIN_AGE} years old.`;
+  if (age > 110) return 'Enter a valid date of birth.';
+  return null;
+}
+
+function validatePhone(value: string): string | null {
+  const digits = value.replace(/\D/g, '');
+  if (!/^\+?[\d\s()-]+$/.test(value) || digits.length < 9 || digits.length > 15) {
+    return 'Enter a valid phone number.';
+  }
+  return null;
+}
 
 export default function RegisterScreen() {
   const { register } = useAuth();
   const [step, setStep] = useState<0 | 1>(0);
 
- 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -33,12 +59,12 @@ export default function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [stepOneErrors, setStepOneErrors] = useState<StepOneErrors>({});
 
-  
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
-  const [availabilityNote, setAvailabilityNote] = useState('');
+  const [note, setNote] = useState('');
 
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmEmailSentTo, setConfirmEmailSentTo] = useState<string | null>(null);
 
   const toggleInterest = (interest: string) => {
     setSelectedInterests((prev) =>
@@ -50,12 +76,27 @@ export default function RegisterScreen() {
     const next: StepOneErrors = {};
     if (!firstName.trim()) next.firstName = 'First name is required.';
     if (!lastName.trim()) next.lastName = 'Last name is required.';
+
     if (!email.trim()) next.email = 'Email is required.';
     else if (!EMAIL_REGEX.test(email.trim())) next.email = 'Enter a valid email address.';
+
     if (!phone.trim()) next.phone = 'Phone number is required.';
+    else {
+      const phoneError = validatePhone(phone.trim());
+      if (phoneError) next.phone = phoneError;
+    }
+
     if (!dob.trim()) next.dob = 'Date of birth is required.';
+    else {
+      const dobError = validateDob(dob.trim());
+      if (dobError) next.dob = dobError;
+    }
+
     if (!password) next.password = 'Password is required.';
-    else if (password.length < 8) next.password = 'Password must be at least 8 characters.';
+    else if (!PASSWORD_REGEX.test(password)) {
+      next.password = 'At least 8 characters, with an uppercase letter, a number and a symbol.';
+    }
+
     if (!confirmPassword) next.confirmPassword = 'Please confirm your password.';
     else if (confirmPassword !== password) next.confirmPassword = 'Passwords do not match.';
 
@@ -68,277 +109,243 @@ export default function RegisterScreen() {
     if (validateStepOne()) setStep(1);
   };
 
-  const handleBack = () => setStep(0);
-
   const handleSubmit = async () => {
     setFormError(null);
+    if (selectedInterests.length === 0) {
+      setFormError('Pick at least one way you would like to help.');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      await register({
+      const { needsEmailConfirmation } = await register({
         firstName: firstName.trim(),
         lastName: lastName.trim(),
-        email: email.trim(),
+        email: email.trim().toLowerCase(),
         phone: phone.trim(),
+        dateOfBirth: dob.trim(),
+        interests: selectedInterests,
+        note: note.trim(),
         password,
       });
 
-      setIsSubmitting(false);
-      Alert.alert(
-        'Application submitted',
-        'Your account has been created and your volunteer request is waiting for administrator approval. You can sign in to the mobile app after approval.'
-      );
-      router.replace('/(auth)/sign-in');
+      if (needsEmailConfirmation) {
+        setConfirmEmailSentTo(email.trim().toLowerCase());
+      }
+      // Otherwise the user is signed in and the root layout shows the "awaiting approval" screen.
     } catch (err: any) {
-      setFormError(err?.message ?? 'Something went wrong creating your account. Please try again.');
+      console.warn('[register] sign up failed:', err);
+      const message = String(err?.message ?? '');
+      if (/already registered|already exists/i.test(message)) {
+        setFormError('An account with this email already exists. Try signing in instead.');
+      } else if (/password/i.test(message)) {
+        setFormError('That password was rejected. Please choose a stronger one.');
+      } else {
+        setFormError('Something went wrong creating your account. Please try again.');
+      }
+    } finally {
       setIsSubmitting(false);
     }
   };
 
+  if (confirmEmailSentTo) {
+    return (
+      <FormScreen title="Check your email" onBack={() => router.replace('/(auth)/sign-in')}>
+        <View style={styles.doneBox}>
+          <Ionicons name="mail-open-outline" size={48} color={colors.gold} />
+          <Text style={styles.doneText}>
+            We sent a confirmation link to <Text style={styles.doneEmail}>{confirmEmailSentTo}</Text>. Tap it, then
+            sign in. A coordinator will review your application within 3–5 days.
+          </Text>
+          <PillButton
+            label="Back to sign in"
+            onPress={() => router.replace('/(auth)/sign-in')}
+            style={{ marginTop: 26, alignSelf: 'stretch' }}
+          />
+        </View>
+      </FormScreen>
+    );
+  }
+
+  const progress = (
+    <View>
+      <View style={styles.progressRow}>
+        <View style={[styles.segment, styles.segmentOn]} />
+        <View style={[styles.segment, step === 1 && styles.segmentOn]} />
+      </View>
+      <View style={styles.progressLabels}>
+        <Text style={[styles.progressLabel, step === 0 && styles.progressLabelOn]}>Your details</Text>
+        <Text style={[styles.progressLabel, step === 1 && styles.progressLabelOn]}>How you'd like to help</Text>
+      </View>
+    </View>
+  );
+
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    <FormScreen
+      title="Apply to volunteer"
+      subtitle="A coordinator will review your application within 3–5 days."
+      onBack={() => (step === 0 ? router.back() : setStep(0))}
+      header={progress}
     >
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <Pressable onPress={() => (step === 0 ? router.back() : handleBack())} style={styles.backBtn}>
-          <Text style={styles.backText}>{'←'}</Text>
-        </Pressable>
+      {step === 0 ? (
+        <View>
+          <Text style={styles.sectionTitle}>About you</Text>
 
-        <Text style={styles.title}>Apply to volunteer</Text>
-        <Text style={styles.heading}>Let's get you started.</Text>
-        <Text style={styles.subtitle}>
-          A coordinator will review your application within 3–5 days.
-        </Text>
-
-        <View style={styles.progressRow}>
-          <View style={[styles.progressSegment, styles.progressActive]} />
-          <View style={[styles.progressSegment, step === 1 && styles.progressActive]} />
-        </View>
-        <View style={styles.progressLabels}>
-          <Text style={[styles.progressLabel, step === 0 && styles.progressLabelActive]}>
-            Your details
-          </Text>
-          <Text style={[styles.progressLabel, step === 1 && styles.progressLabelActive]}>
-            Availability & interests
-          </Text>
-        </View>
-
-        {step === 0 ? (
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>About you</Text>
-
-            <View style={styles.rowTwo}>
-              <View style={styles.half}>
-                <Text style={styles.label}>First name</Text>
-                <TextInput
-                  style={styles.input}
-                  value={firstName}
-                  onChangeText={setFirstName}
-                  placeholder="Zola"
-                  placeholderTextColor="#8a9a8f"
-                />
-                {stepOneErrors.firstName ? (
-                  <Text style={styles.fieldError}>{stepOneErrors.firstName}</Text>
-                ) : null}
-              </View>
-              <View style={styles.half}>
-                <Text style={styles.label}>Last name</Text>
-                <TextInput
-                  style={styles.input}
-                  value={lastName}
-                  onChangeText={setLastName}
-                  placeholder="Mthembu"
-                  placeholderTextColor="#8a9a8f"
-                />
-                {stepOneErrors.lastName ? (
-                  <Text style={styles.fieldError}>{stepOneErrors.lastName}</Text>
-                ) : null}
-              </View>
+          <View style={styles.rowTwo}>
+            <View style={styles.half}>
+              <Field
+                label="First name"
+                value={firstName}
+                onChangeText={setFirstName}
+                placeholder="Zola"
+                autoComplete="given-name"
+                maxLength={MAX_NAME_LENGTH}
+                error={stepOneErrors.firstName}
+              />
             </View>
-
-            <Text style={styles.label}>Email address</Text>
-            <TextInput
-              style={styles.input}
-              value={email}
-              onChangeText={setEmail}
-              placeholder="you@example.com"
-              placeholderTextColor="#8a9a8f"
-              autoCapitalize="none"
-              keyboardType="email-address"
-              autoComplete="email"
-            />
-            {stepOneErrors.email ? <Text style={styles.fieldError}>{stepOneErrors.email}</Text> : null}
-
-            <Text style={styles.label}>Phone number</Text>
-            <TextInput
-              style={styles.input}
-              value={phone}
-              onChangeText={setPhone}
-              placeholder="+27 82 000 0000"
-              placeholderTextColor="#8a9a8f"
-              keyboardType="phone-pad"
-            />
-            {stepOneErrors.phone ? <Text style={styles.fieldError}>{stepOneErrors.phone}</Text> : null}
-
-            <Text style={styles.label}>Date of birth</Text>
-            <TextInput
-              style={styles.input}
-              value={dob}
-              onChangeText={setDob}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor="#8a9a8f"
-            />
-            {stepOneErrors.dob ? <Text style={styles.fieldError}>{stepOneErrors.dob}</Text> : null}
-
-            <Text style={styles.sectionTitle}>Create a password</Text>
-
-            <Text style={styles.label}>Password</Text>
-            <TextInput
-              style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-              placeholder="At least 8 characters"
-              placeholderTextColor="#8a9a8f"
-              secureTextEntry
-            />
-            {stepOneErrors.password ? (
-              <Text style={styles.fieldError}>{stepOneErrors.password}</Text>
-            ) : null}
-
-            <Text style={styles.label}>Confirm password</Text>
-            <TextInput
-              style={styles.input}
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              placeholder="Re-enter password"
-              placeholderTextColor="#8a9a8f"
-              secureTextEntry
-            />
-            {stepOneErrors.confirmPassword ? (
-              <Text style={styles.fieldError}>{stepOneErrors.confirmPassword}</Text>
-            ) : null}
-
-            {formError ? <Text style={styles.formError}>{formError}</Text> : null}
-
-            <Pressable style={styles.submitBtn} onPress={handleNext}>
-              <Text style={styles.submitText}>Next</Text>
-            </Pressable>
-          </View>
-        ) : (
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>How would you like to help?</Text>
-            <Text style={styles.helperText}>Select any that interest you.</Text>
-
-            <View style={styles.chipsWrap}>
-              {INTEREST_OPTIONS.map((interest) => {
-                const selected = selectedInterests.includes(interest);
-                return (
-                  <Pressable
-                    key={interest}
-                    onPress={() => toggleInterest(interest)}
-                    style={[styles.chip, selected && styles.chipSelected]}
-                  >
-                    <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
-                      {interest}
-                    </Text>
-                  </Pressable>
-                );
-              })}
+            <View style={styles.half}>
+              <Field
+                label="Last name"
+                value={lastName}
+                onChangeText={setLastName}
+                placeholder="Mthembu"
+                autoComplete="family-name"
+                maxLength={MAX_NAME_LENGTH}
+                error={stepOneErrors.lastName}
+              />
             </View>
-
-            <Text style={styles.label}>Anything else you'd like us to know?</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              value={availabilityNote}
-              onChangeText={setAvailabilityNote}
-              placeholder="Optional"
-              placeholderTextColor="#8a9a8f"
-              multiline
-              numberOfLines={4}
-            />
-
-            {formError ? <Text style={styles.formError}>{formError}</Text> : null}
-
-            <Pressable
-              style={[styles.submitBtn, isSubmitting && styles.submitBtnDisabled]}
-              onPress={handleSubmit}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.submitText}>Submit application</Text>
-              )}
-            </Pressable>
           </View>
-        )}
-      </ScrollView>
-    </KeyboardAvoidingView>
+
+          <Field
+            label="Email address"
+            value={email}
+            onChangeText={setEmail}
+            placeholder="you@example.com"
+            autoCapitalize="none"
+            keyboardType="email-address"
+            autoComplete="email"
+            error={stepOneErrors.email}
+          />
+          <Field
+            label="Phone number"
+            value={phone}
+            onChangeText={setPhone}
+            placeholder="+27 82 000 0000"
+            keyboardType="phone-pad"
+            autoComplete="tel"
+            maxLength={20}
+            error={stepOneErrors.phone}
+          />
+          <Field
+            label="Date of birth"
+            value={dob}
+            onChangeText={setDob}
+            placeholder="YYYY-MM-DD"
+            keyboardType="numbers-and-punctuation"
+            maxLength={10}
+            error={stepOneErrors.dob}
+          />
+
+          <View style={styles.divider} />
+
+          <Text style={styles.sectionTitle}>Create a password</Text>
+          <Field
+            label="Password"
+            value={password}
+            onChangeText={setPassword}
+            placeholder="8+ characters, A–Z, 0–9 and a symbol"
+            secureTextEntry
+            autoComplete="new-password"
+            error={stepOneErrors.password}
+          />
+          <Field
+            label="Confirm password"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            placeholder="Re-enter password"
+            secureTextEntry
+            autoComplete="new-password"
+            error={stepOneErrors.confirmPassword}
+          />
+
+          <ErrorText text={formError} />
+
+          <PillButton label="Next" onPress={handleNext} style={{ marginTop: 26 }} />
+        </View>
+      ) : (
+        <View>
+          <Text style={styles.sectionTitle}>How would you like to help?</Text>
+          <Text style={styles.helper}>Select any that interest you.</Text>
+
+          <View style={styles.chipsWrap}>
+            {INTEREST_OPTIONS.map((interest) => {
+              const on = selectedInterests.includes(interest);
+              return (
+                <Pressable
+                  key={interest}
+                  onPress={() => toggleInterest(interest)}
+                  style={[styles.chip, on && styles.chipOn]}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: on }}
+                >
+                  <Text style={[styles.chipText, on && styles.chipTextOn]}>{interest}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <FieldLabel>Anything else you'd like us to know?</FieldLabel>
+          <Field
+            value={note}
+            onChangeText={setNote}
+            placeholder="Optional - e.g. which days usually suit you"
+            multiline
+            numberOfLines={4}
+            maxLength={MAX_NOTE_LENGTH}
+            style={{ marginTop: -8 }}
+          />
+          <Text style={styles.counter}>
+            {note.length}/{MAX_NOTE_LENGTH}
+          </Text>
+
+          <ErrorText text={formError} />
+
+          <PillButton label="Submit application" loading={isSubmitting} onPress={handleSubmit} style={{ marginTop: 26 }} />
+        </View>
+      )}
+    </FormScreen>
   );
 }
 
-const GREEN = '#16302a';
-const GREEN_DARK = '#0f231e';
-const GOLD = '#c98a2c';
-
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: GREEN_DARK },
-  container: { flexGrow: 1, padding: 24, paddingTop: 60 },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  backText: { color: '#fff', fontSize: 18 },
-  title: { color: 'rgba(255,255,255,0.6)', fontSize: 13, marginBottom: 4 },
-  heading: { color: '#fff', fontSize: 24, fontWeight: '700' },
-  subtitle: { color: 'rgba(255,255,255,0.7)', fontSize: 13, marginTop: 6, marginBottom: 20 },
-  progressRow: { flexDirection: 'row', gap: 8 },
-  progressSegment: { flex: 1, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.2)' },
-  progressActive: { backgroundColor: GOLD },
-  progressLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8, marginBottom: 20 },
-  progressLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 11 },
-  progressLabelActive: { color: '#fff', fontWeight: '600' },
-  card: { backgroundColor: '#fff', borderRadius: 20, padding: 24, marginBottom: 24 },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: GREEN, marginTop: 8, marginBottom: 4 },
-  helperText: { fontSize: 12, color: '#6b7a70', marginBottom: 12 },
-  label: { fontSize: 13, fontWeight: '600', color: GREEN, marginBottom: 6, marginTop: 12 },
+  progressRow: { flexDirection: 'row', gap: 8, marginTop: 18 },
+  segment: { flex: 1, height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.2)' },
+  segmentOn: { backgroundColor: colors.gold },
+  progressLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8, marginBottom: 6 },
+  progressLabel: { color: colors.fgFaint, fontSize: 11 },
+  progressLabelOn: { color: '#fff', fontWeight: '800' },
+
+  sectionTitle: { color: '#fff', fontSize: 22, fontWeight: '800' },
+  helper: { color: colors.fgMuted, fontSize: 13, marginTop: 4, marginBottom: 14 },
+  divider: { height: 1, backgroundColor: colors.line, marginVertical: 26 },
   rowTwo: { flexDirection: 'row', gap: 12 },
   half: { flex: 1 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#d9e0d9',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: GREEN,
-  },
-  textArea: { minHeight: 90, textAlignVertical: 'top' },
-  fieldError: { color: '#b3261e', fontSize: 12, marginTop: 4 },
-  formError: { color: '#b3261e', fontSize: 13, marginTop: 16, textAlign: 'center' },
-  chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
+  counter: { color: colors.fgFaint, fontSize: 11, textAlign: 'right', marginTop: 6 },
+
+  chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#d9e0d9',
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    borderColor: colors.line,
+    borderRadius: radius.pill,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
-  chipSelected: { backgroundColor: GREEN, borderColor: GREEN },
-  chipText: { color: GREEN, fontSize: 13 },
-  chipTextSelected: { color: '#fff' },
-  submitBtn: {
-    backgroundColor: GREEN,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 22,
-  },
-  submitBtnDisabled: { opacity: 0.6 },
-  submitText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  chipOn: { backgroundColor: colors.gold, borderColor: colors.gold },
+  chipText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+  chipTextOn: { color: colors.header, fontWeight: '800' },
+
+  doneBox: { alignItems: 'center', paddingTop: 30 },
+  doneText: { color: colors.fgMuted, fontSize: 15, lineHeight: 22, textAlign: 'center', marginTop: 18 },
+  doneEmail: { color: '#fff', fontWeight: '800' },
 });

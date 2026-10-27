@@ -79,13 +79,18 @@ export interface CalendarEvent {
   dog_id: string | null;
   created_by: string | null;
   created_at: string;
+  volunteer_signup_enabled: boolean;
+  max_volunteers: number | null;
 }
+
+export type AssignmentStatus = 'Assigned' | 'Registered' | 'Confirmed' | 'Cancelled';
 
 export interface EventAssignment {
   id: string;
   event_id: string;
   profile_id: string;
-  status: 'Assigned' | 'Registered' | 'Confirmed' | 'Cancelled';
+  status: AssignmentStatus;
+  checked_in_at: string | null;
   created_at: string;
 }
 
@@ -111,6 +116,20 @@ export interface AppNotification {
   category: NotificationCategory;
   title: string;
   body: string | null;
+  data: { route?: string; [key: string]: unknown } | null;
   is_read: boolean;
+  cleared_at?: string | null;
+  created_at: string;
+}
+
+export interface DogImage {
+  id: string;
+  dog_id: string;
+  storage_path: string;
+  public_url: string;
+  is_primary: boolean;
+  sort_order: number;
+  alt_text: string | null;
+  created_by: string | null;
   created_at: string;
 }
