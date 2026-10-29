@@ -81,15 +81,16 @@
                         </button>
 
                         <div class="portal-header-text">
-
-                            <span class="portal-header-system">
-                                Internal Management System
-                            </span>
-
-                            <strong class="portal-header-page">
-                                @ViewData["Title"]
-                            </strong>
-
+                            @if (string.Equals(ViewData["Title"]?.ToString(), "Dashboard", StringComparison.OrdinalIgnoreCase))
+                            {
+                                <strong class="portal-header-page portal-header-greeting">Welcome back, @displayName</strong>
+                                <span class="portal-header-system">@DateTime.Now.ToString("dddd, dd MMMM yyyy")</span>
+                            }
+                            else
+                            {
+                                <span class="portal-header-system">Internal Management System</span>
+                                <strong class="portal-header-page">@ViewData["Title"]</strong>
+                            }
                         </div>
 
                     </div>

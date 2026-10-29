@@ -1250,3 +1250,19 @@ document.addEventListener("DOMContentLoaded", () => {
         feedback.hidden = true;
     });
 });
+
+// Password visibility for the public sign-in and registration forms.
+document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll("[data-password-toggle]").forEach((button) => {
+        const container = button.closest(".auth-password-wrap");
+        const input = container?.querySelector("input");
+        if (!input) return;
+        button.addEventListener("click", () => {
+            const reveal = input.type === "password";
+            input.type = reveal ? "text" : "password";
+            button.setAttribute("aria-pressed", String(reveal));
+            button.setAttribute("aria-label", reveal ? "Hide password" : "Show password");
+            button.title = reveal ? "Hide password" : "Show password";
+        });
+    });
+});

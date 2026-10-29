@@ -40,8 +40,9 @@
     </a>
 </div>
 
-<div class="portal-dashboard-primary-grid">
-    <section class="portal-card portal-dashboard-panel portal-dashboard-schedule">
+<div class="portal-dashboard-board">
+    <div class="portal-dashboard-stack portal-dashboard-stack-left">
+<section class="portal-card portal-dashboard-panel portal-dashboard-schedule">
         <div class="portal-panel-heading">
             <div>
                 <h2>Today's schedule</h2>
@@ -76,34 +77,36 @@
             <div class="portal-dashboard-empty">No events are scheduled for today.</div>
         }
     </section>
-
-    <section class="portal-card portal-dashboard-panel">
+<section class="portal-card portal-dashboard-panel">
         <div class="portal-panel-heading">
             <div>
-                <h2>Pending work</h2>
-                <p>Items currently waiting for attention.</p>
+                <h2>Quick access</h2>
+                <p>Common shelter management actions.</p>
             </div>
         </div>
 
-        <div class="portal-pending-list portal-pending-list-emphasis">
-            <a asp-controller="FosterApplications" asp-action="Index">
-                <span>Foster applications</span>
-                <strong>@Model.PendingFosterApplicationsCount</strong>
+        <div class="portal-quick-grid">
+            <a asp-controller="Dogs" asp-action="Create" class="portal-quick-link">
+                <strong>Add dog</strong>
+                <span>Create a new dog record</span>
             </a>
-            <a asp-route="volunteer-applications">
-                <span>Volunteer applications</span>
-                <strong>@Model.PendingVolunteerApplicationsCount</strong>
+            <a asp-controller="Calendar" asp-action="Index" class="portal-quick-link">
+                <strong>Calendar</strong>
+                <span>Manage shelter events</span>
             </a>
-            <a asp-controller="Inventory" asp-action="Index">
-                <span>Low-stock items</span>
-                <strong>@Model.LowStockItemCount</strong>
+            <a asp-route="volunteer-applications" class="portal-quick-link">
+                <strong>Volunteers</strong>
+                <span>Review event applications</span>
+            </a>
+            <a asp-controller="Inventory" asp-action="Index" class="portal-quick-link">
+                <strong>Inventory</strong>
+                <span>Review stock and supplies</span>
             </a>
         </div>
     </section>
-</div>
-
-<div class="portal-dashboard-secondary-grid">
-    <section class="portal-card portal-dashboard-panel">
+    </div>
+    <div class="portal-dashboard-stack portal-dashboard-stack-right">
+<section class="portal-card portal-dashboard-panel">
         <div class="portal-panel-heading">
             <div>
                 <h2>Dogs needing attention</h2>
@@ -144,33 +147,28 @@
             <div class="portal-dashboard-empty">No dogs are currently marked as under treatment.</div>
         }
     </section>
-
-    <section class="portal-card portal-dashboard-panel">
+<section class="portal-card portal-dashboard-panel">
         <div class="portal-panel-heading">
             <div>
-                <h2>Quick access</h2>
-                <p>Common shelter management actions.</p>
+                <h2>Pending work</h2>
+                <p>Items currently waiting for attention.</p>
             </div>
         </div>
 
-        <div class="portal-quick-grid">
-            <a asp-controller="Dogs" asp-action="Create" class="portal-quick-link">
-                <strong>Add dog</strong>
-                <span>Create a new dog record</span>
+        <div class="portal-pending-list portal-pending-list-emphasis">
+            <a asp-controller="FosterApplications" asp-action="Index">
+                <span>Foster applications</span>
+                <strong>@Model.PendingFosterApplicationsCount</strong>
             </a>
-            <a asp-controller="Calendar" asp-action="Index" class="portal-quick-link">
-                <strong>Calendar</strong>
-                <span>Manage shelter events</span>
+            <a asp-route="volunteer-applications">
+                <span>Volunteer applications</span>
+                <strong>@Model.PendingVolunteerApplicationsCount</strong>
             </a>
-            <a asp-route="volunteer-applications" class="portal-quick-link">
-                <strong>Volunteers</strong>
-                <span>Review event applications</span>
-            </a>
-            <a asp-controller="Inventory" asp-action="Index" class="portal-quick-link">
-                <strong>Inventory</strong>
-                <span>Review stock and supplies</span>
+            <a asp-controller="Inventory" asp-action="Index">
+                <span>Low-stock items</span>
+                <strong>@Model.LowStockItemCount</strong>
             </a>
         </div>
     </section>
+    </div>
 </div>
-
