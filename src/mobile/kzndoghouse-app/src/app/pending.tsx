@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/context/AuthContext';
-import { colors, radius } from '@/theme';
+import { colors } from '@/theme';
 import { PillButton } from '@/components/ui';
 
 export default function PendingApprovalScreen() {

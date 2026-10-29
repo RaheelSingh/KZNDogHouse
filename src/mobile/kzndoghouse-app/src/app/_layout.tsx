@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Stack, router, type Href } from 'expo-router';
-import { Notifications } from '@/lib/notificationsSafe';
+import { Notifications, useLastNotificationResponse } from '@/lib/notificationsSafe';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { NotificationsProvider, useNotifications } from '@/context/NotificationsContext';
 
@@ -8,7 +8,7 @@ import { NotificationsProvider, useNotifications } from '@/context/Notifications
 function useNotificationTapNavigation(enabled: boolean) {
   const { markAsRead } = useNotifications();
 
-  const lastResponse = Notifications ? Notifications.useLastNotificationResponse() : null;
+  const lastResponse = useLastNotificationResponse();
   const handled = useRef(new Set<string>());
 
   useEffect(() => {
@@ -29,14 +29,20 @@ function useNotificationTapNavigation(enabled: boolean) {
 
 function RootNavigator() {
   const { session, isLoading } = useAuth();
-  useNotificationTapNavigation(!isLoading && !!session);
+  const isApproved = !!session && session.role !== 'pending';
+  const isPending = !!session && session.role === 'pending';
+
+  useNotificationTapNavigation(!isLoading && isApproved);
 
   if (isLoading) return null;
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Protected guard={!!session}>
+      <Stack.Protected guard={isApproved}>
         <Stack.Screen name="(tabs)" />
+      </Stack.Protected>
+      <Stack.Protected guard={isPending}>
+        <Stack.Screen name="pending" />
       </Stack.Protected>
       <Stack.Protected guard={!session}>
         <Stack.Screen name="(auth)" />

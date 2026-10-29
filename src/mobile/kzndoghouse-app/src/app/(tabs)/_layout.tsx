@@ -7,11 +7,18 @@ import { colors } from '@/theme';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
-const icon =
-  (name: IconName) =>
-  ({ color, size }: { color: ColorValue; size: number }) => (
-    <Ionicons name={name} size={size} color={color as string} />
-  );
+function makeTabIcon(name: IconName) {
+  function TabBarIcon({ color, size }: { color: ColorValue; size: number }) {
+    return <Ionicons name={name} size={size} color={color as string} />;
+  }
+  return TabBarIcon;
+}
+
+const HomeIcon = makeTabIcon('home-outline');
+const DogsIcon = makeTabIcon('paw-outline');
+const CalendarIcon = makeTabIcon('calendar-outline');
+const AlertsIcon = makeTabIcon('notifications-outline');
+const ProfileIcon = makeTabIcon('person-outline');
 
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
@@ -37,19 +44,19 @@ export default function TabsLayout() {
         },
       }}
     >
-      <Tabs.Screen name="index" options={{ title: 'Home', tabBarIcon: icon('home-outline') }} />
-      <Tabs.Screen name="dogs" options={{ title: 'Dogs', tabBarIcon: icon('paw-outline') }} />
-      <Tabs.Screen name="calendar" options={{ title: 'Calendar', tabBarIcon: icon('calendar-outline') }} />
+      <Tabs.Screen name="index" options={{ title: 'Home', tabBarIcon: HomeIcon }} />
+      <Tabs.Screen name="dogs" options={{ title: 'Dogs', tabBarIcon: DogsIcon }} />
+      <Tabs.Screen name="calendar" options={{ title: 'Calendar', tabBarIcon: CalendarIcon }} />
       <Tabs.Screen
         name="alerts"
         options={{
           title: 'Alerts',
-          tabBarIcon: icon('notifications-outline'),
+          tabBarIcon: AlertsIcon,
           tabBarBadge: unreadCount > 0 ? (unreadCount > 99 ? '99+' : unreadCount) : undefined,
           tabBarBadgeStyle: { backgroundColor: colors.danger, fontSize: 10 },
         }}
       />
-      <Tabs.Screen name="profile" options={{ title: 'Profile', tabBarIcon: icon('person-outline') }} />
+      <Tabs.Screen name="profile" options={{ title: 'Profile', tabBarIcon: ProfileIcon }} />
     </Tabs>
   );
 }

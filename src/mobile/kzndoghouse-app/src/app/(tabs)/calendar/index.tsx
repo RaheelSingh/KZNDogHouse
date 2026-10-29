@@ -198,6 +198,14 @@ export default function CalendarScreen() {
     return `${prefix}, ${date.getDate()} ${date.toLocaleDateString([], { month: 'long' })}`;
   };
 
+  // Message shown when the list is empty (null when an error banner is shown instead).
+  let emptyMessage: string | null = null;
+  if (!loadError) {
+    if (filter === 'Mine') emptyMessage = "You're not signed up for anything this week.";
+    else if (selectedDay) emptyMessage = `Nothing on ${formatDayLong(selectedDay)}.`;
+    else emptyMessage = 'No events match this view.';
+  }
+
   // ---- Render pieces ----
 
   const renderCard = ({ event, joined }: CalendarItem) => {
@@ -252,13 +260,6 @@ export default function CalendarScreen() {
         <Ionicons name="chevron-forward" size={18} color={colors.fgFaint} style={{ alignSelf: 'center' }} />
       </Pressable>
     );
-  };
-
-  const emptyMessage = () => {
-    if (loadError) return null;
-    if (filter === 'Mine') return "You're not signed up for anything this week.";
-    if (selectedDay) return `Nothing on ${formatDayLong(selectedDay)}.`;
-    return 'No events match this view.';
   };
 
   return (
@@ -357,15 +358,23 @@ export default function CalendarScreen() {
             loadError ? (
               <View style={styles.errorBox}>
                 <Text style={styles.errorText}>{loadError}</Text>
-                <PillButton label="Retry" variant="outline" onPress={() => { setIsLoading(true); load(); }} style={{ marginTop: 12 }} />
+                <PillButton
+                  label="Retry"
+                  variant="outline"
+                  onPress={() => {
+                    setIsLoading(true);
+                    load();
+                  }}
+                  style={{ marginTop: 12 }}
+                />
               </View>
-            ) : null
+            ) : undefined
           }
           ListEmptyComponent={
-            emptyMessage() ? (
+            emptyMessage ? (
               <View style={styles.emptyBox}>
                 <Ionicons name="calendar-clear-outline" size={40} color={colors.fgFaint} />
-                <Text style={styles.emptyText}>{emptyMessage()}</Text>
+                <Text style={styles.emptyText}>{emptyMessage}</Text>
                 {filter === 'Mine' || selectedDay ? (
                   <PillButton
                     label="Show all events"
@@ -378,7 +387,7 @@ export default function CalendarScreen() {
                   />
                 ) : null}
               </View>
-            ) : null
+            ) : undefined
           }
           renderItem={({ item: section }) => (
             <View>

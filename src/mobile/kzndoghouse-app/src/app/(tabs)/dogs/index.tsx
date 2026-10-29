@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -8,7 +8,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -28,12 +28,15 @@ const TABS: { key: FilterKey; label: string }[] = [
   { key: 'Under Treatment', label: 'Medical hold' },
 ];
 
+const DAY_MS = 86_400_000;
+
 export default function DogsScreen() {
   const { session } = useAuth();
   const staff = isStaff(session?.role);
 
   const [dogs, setDogs] = useState<Dog[]>([]);
   const [medsDueIds, setMedsDueIds] = useState<Set<string>>(new Set());
+  const [nowMs, setNowMs] = useState(0); // captured when data loads, so render stays pure
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [search, setSearch] = useState('');
@@ -58,21 +61,28 @@ export default function DogsScreen() {
         .lte('next_action_date', todayDateOnly),
     ]);
 
+    if (dogsRes.error) throw dogsRes.error;
+
+    setNowMs(Date.now());
     setDogs((dogsRes.data as Dog[]) ?? []);
-    setMedsDueIds(new Set(((medsRes.data as { dog_id: string }[]) ?? []).map((r) => r.dog_id)));
+    setMedsDueIds(new Set(((medsRes.data as { dog_id: string }[] | null) ?? []).map((r) => r.dog_id)));
   }, []);
 
-  useEffect(() => {
-    setIsLoading(true);
-    load()
-      .catch((err) => console.warn('[dogs] failed to load:', err))
-      .finally(() => setIsLoading(false));
-  }, [load]);
+  // Reload whenever the tab comes into view (e.g. after adding a dog).
+  useFocusEffect(
+    useCallback(() => {
+      load()
+        .catch((err) => console.warn('[dogs] failed to load:', err))
+        .finally(() => setIsLoading(false));
+    }, [load])
+  );
 
   const onRefresh = useCallback(async () => {
     setIsRefreshing(true);
     try {
       await load();
+    } catch (err) {
+      console.warn('[dogs] refresh failed:', err);
     } finally {
       setIsRefreshing(false);
     }
@@ -96,7 +106,8 @@ export default function DogsScreen() {
     [dogs, medsDueIds, filter, search]
   );
 
-  const isNewIntake = (dog: Dog) => (Date.now() - new Date(dog.intake_date).getTime()) / 86_400_000 <= 7;
+  const isNewIntake = (dog: Dog) =>
+    nowMs > 0 && (nowMs - new Date(dog.intake_date).getTime()) / DAY_MS <= 7;
 
   const tagFor = (dog: Dog): { label: string; bg: string; fg: string } | null => {
     if (medsDueIds.has(dog.id)) return { label: 'MEDS DUE', bg: '#f4d3cf', fg: '#b3261e' };
@@ -118,10 +129,7 @@ export default function DogsScreen() {
         subtitle={`${dogs.length} dogs in our care`}
         right={
           <>
-            <IconBtn
-              icon="swap-vertical"
-              onPress={() => setSort((x) => (x === 'recent' ? 'name' : 'recent'))}
-            />
+            <IconBtn icon="swap-vertical" onPress={() => setSort((x) => (x === 'recent' ? 'name' : 'recent'))} />
             {staff ? (
               <IconBtn icon="add-circle-outline" color={colors.gold} onPress={() => router.push('/(tabs)/dogs/add')} />
             ) : null}
@@ -142,6 +150,7 @@ export default function DogsScreen() {
           numColumns={2}
           columnWrapperStyle={styles.columns}
           contentContainerStyle={styles.listContent}
+          keyboardShouldPersistTaps="handled"
           refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor="#fff" />}
           ListHeaderComponent={
             <View>
@@ -153,6 +162,7 @@ export default function DogsScreen() {
                   placeholderTextColor={colors.fgFaint}
                   value={search}
                   onChangeText={setSearch}
+                  accessibilityLabel="Search dogs"
                 />
               </View>
 
@@ -181,9 +191,7 @@ export default function DogsScreen() {
                 </View>
               ) : null}
 
-              <SectionTitle
-                title={filter === 'All' ? 'All dogs' : TABS.find((t) => t.key === filter)?.label ?? 'Dogs'}
-              />
+              <SectionTitle title={filter === 'All' ? 'All dogs' : (TABS.find((t) => t.key === filter)?.label ?? 'Dogs')} />
             </View>
           }
           ListEmptyComponent={<Text style={styles.emptyText}>No dogs match your search or filter yet.</Text>}
