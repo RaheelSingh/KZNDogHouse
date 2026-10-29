@@ -162,10 +162,10 @@
                                         <div>
                                             <h3>@evt.Title</h3>
                                             <div class="portal-calendar-event-time">
-                                                @evt.StartAt.ToString("HH:mm")
+                                                @evt.StartAt.ToString("dd MMM yyyy, HH:mm")
                                                 @if (evt.EndAt.HasValue)
                                                 {
-                                                    <text> – @evt.EndAt.Value.ToString("HH:mm")</text>
+                                                    <text> – @evt.EndAt.Value.ToString("dd MMM yyyy, HH:mm")</text>
                                                 }
                                             </div>
                                         </div>
@@ -197,7 +197,10 @@
                                                 <span> · @pendingCount awaiting review</span>
                                                 @if (evt.VolunteerStartAt.HasValue && evt.VolunteerEndAt.HasValue)
                                                 {
-                                                    <span> · @evt.VolunteerStartAt.Value.ToString("dd MMM, HH:mm")–@evt.VolunteerEndAt.Value.ToString("HH:mm")</span>
+                                                    <span class="portal-volunteer-shift-range">
+                                                        · @evt.VolunteerStartAt.Value.ToString("dd MMM yyyy, HH:mm")
+                                                        to @evt.VolunteerEndAt.Value.ToString("dd MMM yyyy, HH:mm")
+                                                    </span>
                                                 }
                                             </div>
 
@@ -206,38 +209,15 @@
                                                 <div class="text-muted small mt-1">@evt.VolunteerNotes</div>
                                             }
 
-                                            @if (activeAssignments.Count > 0)
+                                            @if (pendingCount > 0)
                                             {
-                                                <details class="portal-volunteer-list mt-2">
-                                                    <summary>Review volunteer applications</summary>
-                                                    <ul>
-                                                        @foreach (var assignment in activeAssignments)
-                                                        {
-                                                            var volunteerName = profilesById.TryGetValue(assignment.ProfileId, out var profile)
-                                                                ? profile.FullName
-                                                                : "Volunteer";
-                                                            <li>
-                                                                <span>@volunteerName</span>
-                                                                <small>@(assignment.Status == EventAssignmentStatuses.Reserve ? "On standby" : assignment.Status == EventAssignmentStatuses.Declined ? "Not selected" : assignment.Status)</small>
-                                                                @if (evt.StartAt > DateTime.UtcNow)
-                                                                {
-                                                                    <form asp-controller="Calendar"
-                                                                          asp-action="ReviewVolunteer"
-                                                                          method="post" class="d-inline-flex flex-wrap gap-1">
-                                                                        <input type="hidden" name="assignmentId" value="@assignment.Id" />
-                                                                        <button type="submit" name="status" value="Confirmed"
-                                                                                class="btn btn-kzn-outline btn-sm"
-                                                                                disabled="@(assignment.Status == EventAssignmentStatuses.Confirmed || confirmedCount >= evt.MaxVolunteers && !EventAssignmentStatuses.CountsTowardCapacity(assignment.Status))">Confirm</button>
-                                                                        <button type="submit" name="status" value="Reserve" class="btn btn-kzn-outline btn-sm"
-                                                                                disabled="@(assignment.Status == EventAssignmentStatuses.Reserve)">Standby</button>
-                                                                        <button type="submit" name="status" value="Declined" class="btn btn-kzn-outline btn-sm"
-                                                                                disabled="@(assignment.Status == EventAssignmentStatuses.Declined)">Not selected</button>
-                                                                    </form>
-                                                                }
-                                                            </li>
-                                                        }
-                                                    </ul>
-                                                </details>
+                                                <a class="portal-volunteer-review-link"
+                                                   asp-controller="Availability"
+                                                   asp-action="Index"
+                                                   asp-route-event="@evt.Id">
+                                                    Review @pendingCount volunteer @(pendingCount == 1 ? "application" : "applications")
+                                                    <span aria-hidden="true">›</span>
+                                                </a>
                                             }
                                         </div>
                                     }

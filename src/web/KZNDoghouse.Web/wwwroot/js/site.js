@@ -101,6 +101,15 @@ document.addEventListener("DOMContentLoaded", () => {
             ...dateToInputs
         ];
 
+        // Support links from Calendar directly to a specific event's applicants.
+        if (targetId === "volunteerApplicationRows") {
+            const eventId = new URLSearchParams(window.location.search).get("event");
+            const eventFilter = filterInputs.find((input) => input.dataset.portalFilterField === "event");
+            if (eventId && eventFilter && Array.from(eventFilter.options).some((option) => option.value === eventId)) {
+                eventFilter.value = eventId;
+            }
+        }
+
         const defaults = new Map(
             controls.map((control) => [
                 control,

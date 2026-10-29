@@ -5686,3 +5686,54 @@ label.is-required::after {
 .portal-volunteer-list small {
     color: var(--bs-secondary-color, #6c757d);
 }
+
+/* Volunteer event management: consistent portal typography and review controls. */
+.volunteer-management .portal-page-title { margin-bottom: 0.3rem; }
+.volunteer-management .portal-card { font-family: inherit; }
+.volunteer-management .table { font-family: inherit; font-size: 0.88rem; color: var(--kzn-green-dark); }
+.volunteer-management .table thead th {
+    font-size: 0.79rem; font-weight: 750; letter-spacing: 0.01em;
+    white-space: nowrap; color: var(--kzn-green-dark);
+}
+.volunteer-management .table tbody td { vertical-align: middle; line-height: 1.45; }
+.volunteer-management .table tbody td strong { font-weight: 700; }
+.volunteer-management .table tbody td:last-child { min-width: 325px; }
+.volunteer-date-range { display: flex; flex-direction: column; gap: 0.12rem; white-space: nowrap; }
+.volunteer-range-divider { font-size: 0.72rem; font-weight: 600; color: #697b70; text-transform: lowercase; }
+.volunteer-status {
+    display: inline-block; padding: 0.3rem 0.65rem; border-radius: 999px;
+    border: 1px solid #d6e1d6; color: #284b36;
+    background: #f3f7f1; font-size: 0.78rem; font-weight: 700;
+    white-space: nowrap;
+}
+.volunteer-status-confirmed, .volunteer-status-assigned, .volunteer-status-registered { background: #d9eadf; }
+.volunteer-status-reserve { background: #fff3d9; border-color: #f1d9ac; color: #785310; }
+.volunteer-status-declined, .volunteer-status-cancelled { color: #626c65; background: #f3f4f2; }
+.volunteer-review-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.4rem; }
+.volunteer-review-button {
+    font: inherit; font-size: 0.78rem; font-weight: 700; min-height: 40px;
+    border: 1px solid #244d37; border-radius: 8px;
+    background: #fff; color: #153b28; padding: 0.35rem 0.35rem;
+    white-space: nowrap; cursor: pointer;
+    transition: color .15s ease, background-color .15s ease, border-color .15s ease;
+}
+.volunteer-review-button:hover:not(:disabled),
+.volunteer-review-button:focus-visible:not(:disabled),
+.volunteer-review-button.is-selected {
+    background: #143c2a; border-color: #143c2a; color: #fff;
+}
+.volunteer-review-button.is-selected:disabled { opacity: 1; cursor: default; }
+.volunteer-review-button:disabled:not(.is-selected) { opacity: .4; cursor: not-allowed; }
+.portal-volunteer-review-link {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    margin-top: 0.6rem; font-weight: 700; color: #164b32;
+    text-decoration: none; border-bottom: 1px solid transparent;
+}
+.portal-volunteer-review-link:hover, .portal-volunteer-review-link:focus-visible {
+    color: #0b3421; border-bottom-color: currentColor;
+}
+.portal-volunteer-shift-range { display: inline-block; }
+@media (max-width: 1050px) {
+    .volunteer-management .portal-list-card { overflow-x: auto; }
+    .volunteer-management .table { min-width: 1050px; }
+}

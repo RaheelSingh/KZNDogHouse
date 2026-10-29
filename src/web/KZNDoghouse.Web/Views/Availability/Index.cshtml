@@ -9,6 +9,7 @@
         .Select(g => g.First()).OrderBy(x => x.StartAt).ToList();
 }
 
+<div class="volunteer-management">
 <div class="portal-page-heading">
     <div>
         <h1 class="portal-page-title mb-2">Volunteers</h1>
@@ -107,7 +108,7 @@
                     var assignment = item.Assignment;
                     var evt = item.Event;
                     var isConfirmed = EventAssignmentStatuses.CountsTowardCapacity(assignment.Status);
-                    var hasSpace = evt.MaxVolunteers.HasValue && item.ConfirmedCount < evt.MaxVolunteers.Value;
+                    var hasSpace = !evt.MaxVolunteers.HasValue || item.ConfirmedCount < evt.MaxVolunteers.Value;
                     var canReview = evt.VolunteerSignupEnabled && evt.StartAt > DateTime.UtcNow
                         && assignment.Status != EventAssignmentStatuses.Cancelled;
                     var label = assignment.Status switch
@@ -130,11 +131,22 @@
                                 <div class="small text-muted">@evt.Location</div>
                             }
                         </td>
-                        <td>@evt.StartAt.ToString("dd MMM yyyy, HH:mm")</td>
+                        <td><span class="volunteer-date-range">
+                            @evt.StartAt.ToString("dd MMM yyyy, HH:mm")
+                            @if (evt.EndAt.HasValue)
+                            {
+                                <span class="volunteer-range-divider">to</span>
+                                @evt.EndAt.Value.ToString("dd MMM yyyy, HH:mm")
+                            }
+                        </span></td>
                         <td>
                             @if (evt.VolunteerStartAt.HasValue && evt.VolunteerEndAt.HasValue)
                             {
-                                <span>@evt.VolunteerStartAt.Value.ToString("dd MMM, HH:mm")–@evt.VolunteerEndAt.Value.ToString("HH:mm")</span>
+                                <span class="volunteer-date-range">
+                                    @evt.VolunteerStartAt.Value.ToString("dd MMM yyyy, HH:mm")
+                                    <span class="volunteer-range-divider">to</span>
+                                    @evt.VolunteerEndAt.Value.ToString("dd MMM yyyy, HH:mm")
+                                </span>
                             }
                             else
                             {
@@ -151,19 +163,22 @@
                                 <span class="text-muted">–</span>
                             }
                         </td>
-                        <td><span class="portal-calendar-badge">@label</span></td>
+                        <td><span class="volunteer-status volunteer-status-@assignment.Status.ToLowerInvariant()">@label</span></td>
                         <td>@assignment.CreatedAt.ToString("dd MMM, HH:mm")</td>
                         <td class="text-end">
                             @if (canReview)
                             {
                                 <form asp-controller="Availability" asp-action="Review"
-                                      method="post" class="d-flex flex-wrap gap-1 justify-content-end">
+                                      method="post" class="volunteer-review-actions" aria-label="Review @item.VolunteerName for @evt.Title">
                                     <input type="hidden" name="assignmentId" value="@assignment.Id" />
-                                    <button type="submit" class="btn btn-kzn-primary btn-sm" name="status" value="Confirmed"
+                                    <button type="submit" class="volunteer-review-button @(isConfirmed ? "is-selected" : "")"
+                                            name="status" value="Confirmed" aria-pressed="@(isConfirmed ? "true" : "false")"
                                             disabled="@(isConfirmed || !hasSpace)">Confirm</button>
-                                    <button type="submit" class="btn btn-kzn-outline btn-sm" name="status" value="Reserve"
+                                    <button type="submit" class="volunteer-review-button @(assignment.Status == EventAssignmentStatuses.Reserve ? "is-selected" : "")"
+                                            name="status" value="Reserve" aria-pressed="@(assignment.Status == EventAssignmentStatuses.Reserve ? "true" : "false")"
                                             disabled="@(assignment.Status == EventAssignmentStatuses.Reserve)">Standby</button>
-                                    <button type="submit" class="btn btn-kzn-outline btn-sm" name="status" value="Declined"
+                                    <button type="submit" class="volunteer-review-button @(assignment.Status == EventAssignmentStatuses.Declined ? "is-selected" : "")"
+                                            name="status" value="Declined" aria-pressed="@(assignment.Status == EventAssignmentStatuses.Declined ? "true" : "false")"
                                             disabled="@(assignment.Status == EventAssignmentStatuses.Declined)">Not selected</button>
                                 </form>
                             }
@@ -180,4 +195,5 @@
     <div id="volunteerApplicationEmpty" class="portal-filter-empty" hidden>
         No volunteer event applications match the current filters.
     </div>
+</div>
 </div>

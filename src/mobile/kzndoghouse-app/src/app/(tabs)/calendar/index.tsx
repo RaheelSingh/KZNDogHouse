@@ -52,6 +52,10 @@ function addDays(date: Date, days: number): Date {
   return d;
 }
 
+function formatDateTime(iso: string): string {
+  return new Date(iso).toLocaleString([], { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
 }
@@ -235,6 +239,19 @@ export default function CalendarScreen() {
               {event.location}
             </Text>
           ) : null}
+          {event.end_at && localKey(new Date(event.start_at)) !== localKey(new Date(event.end_at)) ? (
+            <Text style={styles.cardMeta}>Event ends {formatDateTime(event.end_at)}</Text>
+          ) : null}
+          {!isStaff(session?.role) && (confirmed || myStatus === 'Reserve') && event.volunteer_start_at && event.volunteer_end_at ? (
+            <View style={styles.shiftSchedule}>
+              <Ionicons name="calendar-outline" size={15} color={colors.gold} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.shiftScheduleTitle}>{confirmed ? 'YOUR VOLUNTEER SHIFT' : 'STANDBY SHIFT'}</Text>
+                <Text style={styles.shiftScheduleText}>{formatDateTime(event.volunteer_start_at)}</Text>
+                <Text style={styles.shiftScheduleText}>to {formatDateTime(event.volunteer_end_at)}</Text>
+              </View>
+            </View>
+          ) : null}
           <View style={styles.tagRow}>
             {confirmed ? <Tag label="CONFIRMED" bg={colors.gold} fg={colors.header} /> : null}
             {myStatus === 'Pending' ? <Tag label="PENDING" bg="#f3e1c2" fg="#8a5a12" /> : null}
@@ -395,6 +412,9 @@ export default function CalendarScreen() {
 }
 
 const styles = StyleSheet.create({
+  shiftSchedule: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 9, padding: 9, borderRadius: 9, backgroundColor: colors.surface },
+  shiftScheduleTitle: { fontSize: 10, fontWeight: '800', color: colors.gold, marginBottom: 3 },
+  shiftScheduleText: { fontSize: 12, fontWeight: '600', color: colors.fg },
   root: { flex: 1, backgroundColor: colors.page },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 

@@ -10,23 +10,21 @@ import {
   Text,
   View,
 } from 'react-native';
-import { Link } from 'expo-router';
+import * as Linking from 'expo-linking';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '@/context/AuthContext';
 import { colors, radius } from '@/theme';
-import { PillButton, UnderlineTabs } from '@/components/ui';
+import { PillButton } from '@/components/ui';
 import { Field } from '@/components/form';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-type AccountType = 'volunteer' | 'staff';
 
 export default function SignInScreen() {
   const { signIn } = useAuth();
 
-  const [accountType, setAccountType] = useState<AccountType>('volunteer');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [staySignedIn, setStaySignedIn] = useState(true);
@@ -72,15 +70,6 @@ export default function SignInScreen() {
         <Text style={styles.title}>Sign in</Text>
         <Text style={styles.subtitle}>Welcome back to the pack.</Text>
 
-        <UnderlineTabs
-          tabs={[
-            { key: 'volunteer', label: 'Volunteer' },
-            { key: 'staff', label: 'Staff' },
-          ]}
-          active={accountType}
-          onChange={setAccountType}
-        />
-
         <Field
           label="Email address"
           placeholder="you@example.com"
@@ -119,12 +108,14 @@ export default function SignInScreen() {
         <PillButton label="Sign in" onPress={handleSignIn} loading={isSubmitting} style={{ marginTop: 24 }} />
 
         <View style={styles.footerRow}>
-          <Text style={styles.footerText}>New volunteer? </Text>
-          <Link href="/(auth)/register" asChild>
-            <Pressable>
-              <Text style={styles.footerLink}>Apply to join the team</Text>
-            </Pressable>
-          </Link>
+          <Text style={styles.footerText}>New to the team? </Text>
+          <Pressable
+            accessibilityRole="link"
+            accessibilityLabel="Apply to join the KZN Doghouse team on the website"
+            onPress={() => Linking.openURL('https://kzn-doghouse.onrender.com/Auth/Register')
+              .catch(() => Alert.alert('Cannot open registration', 'Please visit kzn-doghouse.onrender.com/Auth/Register in your browser.'))}>
+            <Text style={styles.footerLink}>Apply to join the team</Text>
+          </Pressable>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

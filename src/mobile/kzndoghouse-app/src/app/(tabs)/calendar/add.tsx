@@ -12,7 +12,7 @@ import type { EventCategory } from '@/types/models';
 
 const CATEGORIES: readonly EventCategory[] = ['Shift', 'Vet & Care', 'Meeting', 'Public Event', 'Other'];
 const VISIBILITIES = ['Internal', 'Public'] as const;
-const SIGNUP_BY_DEFAULT: readonly EventCategory[] = ['Shift', 'Public Event'];
+const SIGNUP_BY_DEFAULT: readonly EventCategory[] = []; // Volunteers are optional for every event.
 
 const MAX_TITLE_LENGTH = 120;
 const MAX_VOLUNTEERS_LIMIT = 200; // matches calendar_events_max_volunteers_check in SQL
@@ -25,9 +25,12 @@ export default function AddEventScreen() {
   const [startAt, setStartAt] = useState<string | null>(null);
   const [endAt, setEndAt] = useState<string | null>(null);
   const [visibility, setVisibility] = useState<(typeof VISIBILITIES)[number]>('Internal');
-  const [signupEnabled, setSignupEnabled] = useState(true);
+  const [signupEnabled, setSignupEnabled] = useState(false);
   const [signupTouched, setSignupTouched] = useState(false);
   const [maxVolunteers, setMaxVolunteers] = useState('');
+  const [volunteerStartAt, setVolunteerStartAt] = useState<string | null>(null);
+  const [volunteerEndAt, setVolunteerEndAt] = useState<string | null>(null);
+  const [volunteerNotes, setVolunteerNotes] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -54,6 +57,18 @@ export default function AddEventScreen() {
     }
     if (endAt && new Date(endAt).getTime() <= new Date(startAt).getTime()) {
       return { error: 'The end time must be after the start time.', max: null };
+    }
+
+    if (signupEnabled) {
+      if (!volunteerStartAt || !volunteerEndAt) {
+        return { error: 'Choose the dates and times volunteers should arrive and finish.', max: null };
+      }
+      if (new Date(volunteerEndAt).getTime() <= new Date(volunteerStartAt).getTime()) {
+        return { error: 'Volunteer finish must be after their arrival.', max: null };
+      }
+      if (!maxVolunteers.trim()) {
+        return { error: 'Enter how many volunteers are required.', max: null };
+      }
     }
 
     let max: number | null = null;
@@ -89,6 +104,9 @@ export default function AddEventScreen() {
           visibility,
           volunteer_signup_enabled: signupEnabled,
           max_volunteers: max,
+          volunteer_start_at: signupEnabled ? volunteerStartAt : null,
+          volunteer_end_at: signupEnabled ? volunteerEndAt : null,
+          volunteer_notes: signupEnabled ? volunteerNotes.trim() || null : null,
           created_by: profileId,
         })
         .select('id')
@@ -151,7 +169,7 @@ export default function AddEventScreen() {
         <View style={{ flex: 1 }}>
           <Text style={styles.switchTitle}>Volunteers can sign up</Text>
           <Text style={styles.switchHint}>
-            {signupEnabled ? 'Volunteers will see a Sign up button.' : 'Only staff can add people to this event.'}
+            {signupEnabled ? 'Volunteers can apply for this event.' : 'No volunteer recruitment is needed for this event.'}
           </Text>
         </View>
         <Switch
@@ -164,14 +182,23 @@ export default function AddEventScreen() {
       </View>
 
       {signupEnabled ? (
-        <Field
-          label="Max volunteers (optional)"
-          value={maxVolunteers}
-          onChangeText={(text) => setMaxVolunteers(text.replace(/[^0-9]/g, ''))}
-          placeholder="Leave blank for no limit"
-          keyboardType="number-pad"
-          maxLength={3}
-        />
+        <View>
+          <Field
+            label="Number of volunteers needed"
+            value={maxVolunteers}
+            onChangeText={(text) => setMaxVolunteers(text.replace(/[^0-9]/g, ''))}
+            placeholder="e.g. 5"
+            keyboardType="number-pad"
+            maxLength={3}
+          />
+          <DateTimeField label="Volunteers arrive" value={volunteerStartAt}
+            onChange={setVolunteerStartAt} />
+          <DateTimeField label="Volunteers finish" value={volunteerEndAt}
+            onChange={setVolunteerEndAt}
+            minimumDate={volunteerStartAt ? new Date(volunteerStartAt) : undefined} />
+          <Field label="Volunteer instructions (optional)" value={volunteerNotes}
+            onChangeText={setVolunteerNotes} multiline numberOfLines={3} />
+        </View>
       ) : null}
 
       <ErrorText text={formError} />

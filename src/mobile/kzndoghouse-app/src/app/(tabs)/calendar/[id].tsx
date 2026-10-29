@@ -84,6 +84,9 @@ export default function EventDetailScreen() {
   const [editEndAt, setEditEndAt] = useState<string | null>(null);
   const [editSignupEnabled, setEditSignupEnabled] = useState(false);
   const [editMaxVolunteers, setEditMaxVolunteers] = useState('');
+  const [editVolunteerStartAt, setEditVolunteerStartAt] = useState<string | null>(null);
+  const [editVolunteerEndAt, setEditVolunteerEndAt] = useState<string | null>(null);
+  const [editVolunteerNotes, setEditVolunteerNotes] = useState('');
   const [editError, setEditError] = useState<string | null>(null);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
@@ -258,6 +261,9 @@ export default function EventDetailScreen() {
     setEditEndAt(event.end_at);
     setEditSignupEnabled(event.volunteer_signup_enabled);
     setEditMaxVolunteers(event.max_volunteers != null ? String(event.max_volunteers) : '');
+    setEditVolunteerStartAt(event.volunteer_start_at);
+    setEditVolunteerEndAt(event.volunteer_end_at);
+    setEditVolunteerNotes(event.volunteer_notes ?? '');
     setEditError(null);
     setIsEditing(true);
   };
@@ -272,6 +278,18 @@ export default function EventDetailScreen() {
     if (!editStartAt) return setEditError('Start date & time is required.');
     if (editEndAt && new Date(editEndAt).getTime() <= new Date(editStartAt).getTime()) {
       return setEditError('The end time must be after the start time.');
+    }
+
+    if (editSignupEnabled) {
+      if (!editVolunteerStartAt || !editVolunteerEndAt) {
+        return setEditError('Volunteer arrival and finish dates are required when signups are enabled.');
+      }
+      if (new Date(editVolunteerEndAt).getTime() <= new Date(editVolunteerStartAt).getTime()) {
+        return setEditError('Volunteer finish date must be after the arrival date.');
+      }
+      if (!editMaxVolunteers.trim()) {
+        return setEditError('Enter how many volunteers are needed.');
+      }
     }
 
     let max: number | null = null;
@@ -298,6 +316,9 @@ export default function EventDetailScreen() {
           end_at: editEndAt,
           volunteer_signup_enabled: editSignupEnabled,
           max_volunteers: editSignupEnabled ? max : null,
+          volunteer_start_at: editSignupEnabled ? editVolunteerStartAt : null,
+          volunteer_end_at: editSignupEnabled ? editVolunteerEndAt : null,
+          volunteer_notes: editSignupEnabled ? editVolunteerNotes.trim() || null : null,
         })
         .eq('id', event.id);
       if (error) throw error;
@@ -351,7 +372,7 @@ export default function EventDetailScreen() {
                 <Text style={styles.statusTitle}>You're confirmed</Text>
                 <Text style={styles.meta}>
                   {myAssignment?.checked_in_at
-                    ? `Checked in at ${formatTime(myAssignment.checked_in_at)}`
+                    ? `Checked in at ${formatDateTime(myAssignment.checked_in_at)}`
                     : `Please arrive ${formatDateTime(event.volunteer_start_at ?? event.start_at)}.${event.volunteer_notes ? ` ${event.volunteer_notes}` : ''}`}
                 </Text>
               </View>
@@ -411,7 +432,7 @@ export default function EventDetailScreen() {
       <HeroHeader
         height={270}
         title={isEditing ? 'Edit event' : event.title}
-        subtitle={isEditing ? undefined : formatDateTime(event.start_at)}
+        subtitle={isEditing ? undefined : `Event: ${formatDateTime(event.start_at)}`}
         onBack={() => (isEditing ? setIsEditing(false) : router.back())}
       >
         {!isEditing ? (
@@ -459,14 +480,21 @@ export default function EventDetailScreen() {
               />
             </View>
             {editSignupEnabled ? (
-              <Field
-                label="Max volunteers (optional)"
-                value={editMaxVolunteers}
-                onChangeText={(text) => setEditMaxVolunteers(text.replace(/[^0-9]/g, ''))}
-                placeholder="Leave blank for no limit"
-                keyboardType="number-pad"
-                maxLength={3}
-              />
+              <View>
+                <Field
+                  label="Number of volunteers needed"
+                  value={editMaxVolunteers}
+                  onChangeText={(text) => setEditMaxVolunteers(text.replace(/[^0-9]/g, ''))}
+                  placeholder="e.g. 5"
+                  keyboardType="number-pad"
+                  maxLength={3}
+                />
+                <DateTimeField label="Volunteers arrive" value={editVolunteerStartAt} onChange={setEditVolunteerStartAt} />
+                <DateTimeField label="Volunteers finish" value={editVolunteerEndAt} onChange={setEditVolunteerEndAt}
+                  minimumDate={editVolunteerStartAt ? new Date(editVolunteerStartAt) : undefined} />
+                <Field label="Volunteer instructions (optional)" value={editVolunteerNotes}
+                  onChangeText={setEditVolunteerNotes} multiline numberOfLines={3} />
+              </View>
             ) : null}
 
             <ErrorText text={editError} />
@@ -483,7 +511,7 @@ export default function EventDetailScreen() {
                 <Ionicons name="time-outline" size={20} color={colors.gold} />
                 <Text style={styles.infoText}>
                   {formatDateTime(event.start_at)}
-                  {event.end_at ? ` – ${formatTime(event.end_at)}` : ''}
+                  {event.end_at ? ` – ${formatDateTime(event.end_at)}` : ''}
                 </Text>
               </View>
               {event.location ? (
@@ -508,13 +536,13 @@ export default function EventDetailScreen() {
 
             {!staff && event.volunteer_signup_enabled ? (
               <View>
-                <SectionTitle title="Volunteer shift" />
-                <View style={styles.infoCard}>
+                <SectionTitle title={signupState === 'joined' ? 'Your confirmed volunteer shift' : signupState === 'reserve' ? 'Your standby shift' : 'Volunteer shift dates'} />
+                <View style={[styles.infoCard, (signupState === 'joined' || signupState === 'reserve') && styles.shiftHighlight]}>
                   <View style={styles.infoRow}>
                     <Ionicons name="time-outline" size={20} color={colors.gold} />
                     <Text style={styles.infoText}>
                       {event.volunteer_start_at ? formatDateTime(event.volunteer_start_at) : 'Start time to be confirmed'}
-                      {event.volunteer_end_at ? ` – ${formatTime(event.volunteer_end_at)}` : ''}
+                      {event.volunteer_end_at ? ` – ${formatDateTime(event.volunteer_end_at)}` : ''}
                     </Text>
                   </View>
                   {event.volunteer_notes ? <Text style={styles.bodyText}>{event.volunteer_notes}</Text> : null}
@@ -598,6 +626,7 @@ const styles = StyleSheet.create({
 
   infoCard: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: 16, gap: 14, marginTop: 18 },
   infoRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  shiftHighlight: { borderWidth: 1.5, borderColor: colors.gold },
   infoText: { flex: 1, color: '#fff', fontSize: 14, fontWeight: '600' },
 
   statusCard: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: 16, borderWidth: 1.5, borderColor: colors.gold },
