@@ -14,20 +14,20 @@ public class PortalDashboardService : IPortalDashboardService
     private readonly IDogRepository _dogRepository;
     private readonly ICalendarEventRepository _calendarEventRepository;
     private readonly IFosterApplicationRepository _fosterApplicationRepository;
-    private readonly IAvailabilitySlotRepository _availabilitySlotRepository;
+    private readonly IEventAssignmentRepository _eventAssignmentRepository;
     private readonly IInventoryRepository _inventoryRepository;
 
     public PortalDashboardService(
         IDogRepository dogRepository,
         ICalendarEventRepository calendarEventRepository,
         IFosterApplicationRepository fosterApplicationRepository,
-        IAvailabilitySlotRepository availabilitySlotRepository,
+        IEventAssignmentRepository eventAssignmentRepository,
         IInventoryRepository inventoryRepository)
     {
         _dogRepository = dogRepository;
         _calendarEventRepository = calendarEventRepository;
         _fosterApplicationRepository = fosterApplicationRepository;
-        _availabilitySlotRepository = availabilitySlotRepository;
+        _eventAssignmentRepository = eventAssignmentRepository;
         _inventoryRepository = inventoryRepository;
     }
 
@@ -36,21 +36,22 @@ public class PortalDashboardService : IPortalDashboardService
         var dogsTask = _dogRepository.GetAllAsync();
         var eventsTask = _calendarEventRepository.GetAllAsync();
         var fosterApplicationsTask = _fosterApplicationRepository.GetAllAsync();
-        var availabilityTask = _availabilitySlotRepository.GetPendingAsync();
+        var assignmentsTask = _eventAssignmentRepository.GetAllAsync();
         var inventoryTask = _inventoryRepository.GetAllItemsAsync();
 
         await Task.WhenAll(
             dogsTask,
             eventsTask,
             fosterApplicationsTask,
-            availabilityTask,
+            assignmentsTask,
             inventoryTask);
 
         var dogs = await dogsTask;
         var events = await eventsTask;
         var fosterApplications = await fosterApplicationsTask;
-        var pendingAvailability = await availabilityTask;
+        var assignments = await assignmentsTask;
         var inventory = await inventoryTask;
+        var pendingVolunteerCount = assignments.Count(x => x.Status == EventAssignmentStatuses.Pending);
 
         var pendingFosterApplications = fosterApplications
             .Where(x =>
@@ -80,12 +81,13 @@ public class PortalDashboardService : IPortalDashboardService
             DogsInFosterCount = dogs.Count(x => x.Status == DogStatuses.Fostered),
             DogsNeedingAttentionCount = dogsNeedingAttention.Count,
             PendingRequestsCount =
-                pendingFosterApplications.Count + pendingAvailability.Count,
+                pendingFosterApplications.Count + pendingVolunteerCount,
             PendingFosterApplicationsCount = pendingFosterApplications.Count,
-            PendingAvailabilityCount = pendingAvailability.Count,
+            PendingVolunteerApplicationsCount = pendingVolunteerCount,
             LowStockItemCount = lowStockItems,
             TodaysEvents = todaysEvents,
             DogsNeedingAttention = dogsNeedingAttention.Take(5).ToList()
         };
     }
 }
+

@@ -90,9 +90,9 @@
                 <span>Foster applications</span>
                 <strong>@Model.PendingFosterApplicationsCount</strong>
             </a>
-            <a asp-controller="Availability" asp-action="Index">
-                <span>Availability submissions</span>
-                <strong>@Model.PendingAvailabilityCount</strong>
+            <a asp-route="volunteer-applications">
+                <span>Volunteer applications</span>
+                <strong>@Model.PendingVolunteerApplicationsCount</strong>
             </a>
             <a asp-controller="Inventory" asp-action="Index">
                 <span>Low-stock items</span>
@@ -162,9 +162,9 @@
                 <strong>Calendar</strong>
                 <span>Manage shelter events</span>
             </a>
-            <a asp-controller="Availability" asp-action="Index" class="portal-quick-link">
-                <strong>Availability</strong>
-                <span>Review volunteer availability</span>
+            <a asp-route="volunteer-applications" class="portal-quick-link">
+                <strong>Volunteers</strong>
+                <span>Review event applications</span>
             </a>
             <a asp-controller="Inventory" asp-action="Index" class="portal-quick-link">
                 <strong>Inventory</strong>
@@ -173,3 +173,4 @@
         </div>
     </section>
 </div>
+

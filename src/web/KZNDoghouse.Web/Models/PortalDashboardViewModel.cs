@@ -12,7 +12,7 @@ public class PortalDashboardViewModel
 
     public int PendingFosterApplicationsCount { get; set; }
 
-    public int PendingAvailabilityCount { get; set; }
+    public int PendingVolunteerApplicationsCount { get; set; }
 
     public int LowStockItemCount { get; set; }
 
@@ -22,3 +22,4 @@ public class PortalDashboardViewModel
     public IReadOnlyList<Dog> DogsNeedingAttention { get; set; } =
         Array.Empty<Dog>();
 }
+

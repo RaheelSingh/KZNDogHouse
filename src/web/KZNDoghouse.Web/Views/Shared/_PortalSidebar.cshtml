@@ -50,9 +50,8 @@
             </a>
 
             <a class="nav-link @(currentController == "Availability" ? "active" : "")"
-               asp-controller="Availability"
-               asp-action="Index">
-                Availability
+               asp-route="volunteer-applications">
+                Volunteers
             </a>
 
             <a class="nav-link @(currentController == "Inventory" ? "active" : "")"
@@ -122,3 +121,4 @@
     </div>
 
 </div>
+

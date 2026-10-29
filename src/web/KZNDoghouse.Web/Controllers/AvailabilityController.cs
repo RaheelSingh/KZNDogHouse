@@ -1,4 +1,4 @@
-using System.Security.Claims;
+using KZNDoghouse.Web.Constants;
 using KZNDoghouse.Web.Models;
 using KZNDoghouse.Web.Repositories;
 using KZNDoghouse.Web.Services;
@@ -10,139 +10,93 @@ namespace KZNDoghouse.Web.Controllers;
 [Authorize(Roles = "Staff,Administrator")]
 public class AvailabilityController : Controller
 {
-    private readonly IAvailabilityService _availabilityService;
+    private readonly ICalendarEventService _calendarEventService;
+    private readonly IEventAssignmentRepository _eventAssignmentRepository;
+    private readonly IEventRegistrationService _eventRegistrationService;
     private readonly IUserProfileRepository _userProfileRepository;
+    private readonly ILogger<AvailabilityController> _logger;
 
     public AvailabilityController(
-        IAvailabilityService availabilityService,
-        IUserProfileRepository userProfileRepository)
+        ICalendarEventService calendarEventService,
+        IEventAssignmentRepository eventAssignmentRepository,
+        IEventRegistrationService eventRegistrationService,
+        IUserProfileRepository userProfileRepository,
+        ILogger<AvailabilityController> logger)
     {
-        _availabilityService = availabilityService;
+        _calendarEventService = calendarEventService;
+        _eventAssignmentRepository = eventAssignmentRepository;
+        _eventRegistrationService = eventRegistrationService;
         _userProfileRepository = userProfileRepository;
+        _logger = logger;
     }
 
-    [HttpGet]
+    [HttpGet("/Volunteers", Name = "volunteer-applications")]
+    [HttpGet("/Availability")]
     public async Task<IActionResult> Index()
     {
-        var slotsTask =
-            _availabilityService.GetAllAsync();
+        try
+        {
+            var eventsTask = _calendarEventService.GetAllAsync();
+            var assignmentsTask = _eventAssignmentRepository.GetAllAsync();
+            var profilesTask = _userProfileRepository.GetAllAsync();
+            await Task.WhenAll(eventsTask, assignmentsTask, profilesTask);
 
-        var usersTask =
-            _userProfileRepository.GetAllAsync();
+            var eventsById = (await eventsTask).ToDictionary(x => x.Id);
+            var assignments = await assignmentsTask;
+            var namesById = (await profilesTask).ToDictionary(x => x.Id, x => x.FullName);
+            var confirmedByEvent = assignments
+                .Where(x => EventAssignmentStatuses.CountsTowardCapacity(x.Status))
+                .GroupBy(x => x.EventId)
+                .ToDictionary(g => g.Key, g => g.Count());
 
-        await Task.WhenAll(
-            slotsTask,
-            usersTask);
+            var items = assignments
+                .Where(x => eventsById.ContainsKey(x.EventId))
+                .Select(x => new VolunteerApplicationListItem
+                {
+                    Assignment = x,
+                    Event = eventsById[x.EventId],
+                    VolunteerName = namesById.TryGetValue(x.ProfileId, out var name)
+                        && !string.IsNullOrWhiteSpace(name) ? name : "Volunteer",
+                    ConfirmedCount = confirmedByEvent.GetValueOrDefault(x.EventId)
+                })
+                .OrderBy(x => x.Assignment.Status == EventAssignmentStatuses.Pending ? 0 : 1)
+                .ThenByDescending(x => x.Event.StartAt)
+                .ThenByDescending(x => x.Assignment.CreatedAt)
+                .ToList();
 
-        var slots = await slotsTask;
-        var users = await usersTask;
-
-        var userNames = users
-            .ToDictionary(
-                x => x.Id,
-                x => x.FullName);
-
-        var items = slots
-            .Select(slot => new AvailabilitySlotListItem
-            {
-                Slot = slot,
-                VolunteerName = userNames.TryGetValue(
-                    slot.VolunteerId,
-                    out var name)
-                        ? name
-                        : "Unknown volunteer"
-            })
-            .ToList();
-
-        return View(items);
+            return View(items);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Volunteer applications could not be loaded.");
+            TempData["ErrorMessage"] = "Volunteer applications could not be loaded right now.";
+            return View(Array.Empty<VolunteerApplicationListItem>());
+        }
     }
 
-    [HttpPost]
+    [HttpPost("/Volunteers/Review")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Approve(Guid id)
+    public async Task<IActionResult> Review(Guid assignmentId, string status)
     {
-        var profile =
-            await GetCurrentProfileAsync();
-
-        if (profile == null)
+        if (!EventAssignmentStatuses.ReviewOptions.Contains(status))
         {
-            return Challenge();
+            TempData["ErrorMessage"] = "Choose a valid volunteer status.";
+            return RedirectToRoute("volunteer-applications");
         }
 
-        var slot =
-            await FindPendingSlotAsync(id);
-
-        if (slot == null)
+        try
         {
-            TempData["ErrorMessage"] =
-                "That submission could not be found.";
-
-            return RedirectToAction(nameof(Index));
+            var result = await _eventRegistrationService.ReviewAsync(assignmentId, status);
+            TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] = result.Message;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unable to review volunteer application {AssignmentId}", assignmentId);
+            TempData["ErrorMessage"] = ex.Message.Contains("volunteer places", StringComparison.OrdinalIgnoreCase)
+                ? "All volunteer places are filled. Put this applicant on standby instead."
+                : "Unable to update this application. Please try again.";
         }
 
-        await _availabilityService
-            .ApproveAsync(slot, profile.Id);
-
-        TempData["SuccessMessage"] =
-            "Availability approved.";
-
-        return RedirectToAction(nameof(Index));
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Reject(Guid id)
-    {
-        var profile =
-            await GetCurrentProfileAsync();
-
-        if (profile == null)
-        {
-            return Challenge();
-        }
-
-        var slot =
-            await FindPendingSlotAsync(id);
-
-        if (slot == null)
-        {
-            TempData["ErrorMessage"] =
-                "That submission could not be found.";
-
-            return RedirectToAction(nameof(Index));
-        }
-
-        await _availabilityService
-            .RejectAsync(slot, profile.Id);
-
-        TempData["SuccessMessage"] =
-            "Availability rejected.";
-
-        return RedirectToAction(nameof(Index));
-    }
-
-    private async Task<UserProfile?> GetCurrentProfileAsync()
-    {
-        var authId =
-            User.FindFirstValue(
-                ClaimTypes.NameIdentifier);
-
-        if (string.IsNullOrWhiteSpace(authId))
-        {
-            return null;
-        }
-
-        return await _userProfileRepository
-            .GetByAuthUserIdAsync(authId);
-    }
-
-    private async Task<AvailabilitySlot?> FindPendingSlotAsync(
-        Guid id)
-    {
-        var pending =
-            await _availabilityService.GetPendingAsync();
-
-        return pending
-            .FirstOrDefault(x => x.Id == id);
+        return RedirectToRoute("volunteer-applications");
     }
 }
