@@ -81,9 +81,12 @@ export interface CalendarEvent {
   created_at: string;
   volunteer_signup_enabled: boolean;
   max_volunteers: number | null;
+  volunteer_start_at: string | null;
+  volunteer_end_at: string | null;
+  volunteer_notes: string | null;
 }
 
-export type AssignmentStatus = 'Assigned' | 'Registered' | 'Confirmed' | 'Cancelled';
+export type AssignmentStatus = 'Pending' | 'Reserve' | 'Declined' | 'Assigned' | 'Registered' | 'Confirmed' | 'Cancelled';
 
 export interface EventAssignment {
   id: string;

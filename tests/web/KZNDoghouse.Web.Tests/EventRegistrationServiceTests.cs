@@ -9,7 +9,7 @@ namespace KZNDoghouse.Web.Tests;
 public class EventRegistrationServiceTests
 {
     [Fact]
-    public async Task RegisterAsync_AllowsVolunteerWhenEntireVolunteerWindowIsApproved()
+    public async Task RegisterAsync_AppliesWhenEntireVolunteerWindowIsApproved()
     {
         var eventId = Guid.NewGuid();
         var profileId = Guid.NewGuid();
@@ -56,7 +56,7 @@ public class EventRegistrationServiceTests
 
         Assert.True(result.Success);
         Assert.NotNull(result.Assignment);
-        Assert.Equal(EventAssignmentStatuses.Registered, result.Assignment.Status);
+        Assert.Equal(EventAssignmentStatuses.Pending, result.Assignment.Status);
     }
 
     [Fact]
@@ -100,7 +100,7 @@ public class EventRegistrationServiceTests
     }
 
     [Fact]
-    public async Task RegisterAsync_RejectsWhenVolunteerCapacityIsFull()
+    public async Task RegisterAsync_AcceptsApplicationEvenWhenPlacesAreFilled()
     {
         var eventId = Guid.NewGuid();
         var profileId = Guid.NewGuid();
@@ -138,6 +138,9 @@ public class EventRegistrationServiceTests
                         Status = EventAssignmentStatuses.Registered
                     }
                 });
+        assignmentRepository
+            .Setup(x => x.CreateAsync(It.IsAny<EventAssignment>()))
+            .ReturnsAsync((EventAssignment assignment) => assignment);
 
         var service = new EventRegistrationService(
             eventRepository.Object,
@@ -147,11 +150,11 @@ public class EventRegistrationServiceTests
 
         var result = await service.RegisterAsync(eventId, profileId);
 
-        Assert.False(result.Success);
-        Assert.Contains("capacity", result.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.True(result.Success);
         assignmentRepository.Verify(
-            x => x.CreateAsync(It.IsAny<EventAssignment>()),
-            Times.Never);
+            x => x.CreateAsync(It.Is<EventAssignment>(a =>
+                a.Status == EventAssignmentStatuses.Pending)),
+            Times.Once);
     }
 
     [Fact]
@@ -183,6 +186,70 @@ public class EventRegistrationServiceTests
 
         Assert.False(result.Success);
         Assert.Contains("not enabled", result.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData(EventAssignmentStatuses.Confirmed)]
+    [InlineData(EventAssignmentStatuses.Reserve)]
+    [InlineData(EventAssignmentStatuses.Declined)]
+    public async Task ReviewAsync_SendsNotificationOnlyWhenStatusChanges(string status)
+    {
+        var eventId = Guid.NewGuid();
+        var volunteerId = Guid.NewGuid();
+        var assignmentId = Guid.NewGuid();
+        var start = DateTime.UtcNow.Date.AddDays(5).AddHours(10);
+        var eventRepository = EventRepository(eventId, start, start.AddHours(3), 5);
+        var assignment = new EventAssignment
+        {
+            Id = assignmentId,
+            EventId = eventId,
+            ProfileId = volunteerId,
+            Status = EventAssignmentStatuses.Pending
+        };
+        var assignments = new Mock<IEventAssignmentRepository>();
+        assignments.Setup(x => x.GetByIdAsync(assignmentId)).ReturnsAsync(assignment);
+        assignments.Setup(x => x.ReviewStatusAsync(assignmentId, status)).ReturnsAsync(true);
+        var notifications = new Mock<INotificationService>();
+        var service = new EventRegistrationService(
+            eventRepository.Object,
+            new Mock<IAvailabilitySlotRepository>().Object,
+            assignments.Object,
+            notifications.Object);
+
+        var result = await service.ReviewAsync(assignmentId, status);
+
+        Assert.True(result.Success);
+        Assert.Equal(status, result.Assignment?.Status);
+        notifications.Verify(x => x.NotifyUserAsync(
+            volunteerId, NotificationCategories.Calendar,
+            It.IsAny<string>(), It.IsAny<string?>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ReviewAsync_DoesNotNotifyOnRepeatedDecision()
+    {
+        var eventId = Guid.NewGuid();
+        var assignmentId = Guid.NewGuid();
+        var start = DateTime.UtcNow.Date.AddDays(3).AddHours(10);
+        var repository = new Mock<IEventAssignmentRepository>();
+        repository.Setup(x => x.GetByIdAsync(assignmentId)).ReturnsAsync(new EventAssignment
+        {
+            Id = assignmentId, EventId = eventId,
+            ProfileId = Guid.NewGuid(), Status = EventAssignmentStatuses.Confirmed
+        });
+        repository.Setup(x => x.ReviewStatusAsync(assignmentId, EventAssignmentStatuses.Confirmed))
+            .ReturnsAsync(false);
+        var notifications = new Mock<INotificationService>();
+        var service = new EventRegistrationService(
+            EventRepository(eventId, start, start.AddHours(2), 5).Object,
+            new Mock<IAvailabilitySlotRepository>().Object,
+            repository.Object, notifications.Object);
+
+        var result = await service.ReviewAsync(assignmentId, EventAssignmentStatuses.Confirmed);
+
+        Assert.True(result.Success);
+        notifications.Verify(x => x.NotifyUserAsync(
+            It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()), Times.Never);
     }
 
     private static Mock<ICalendarEventRepository> EventRepository(

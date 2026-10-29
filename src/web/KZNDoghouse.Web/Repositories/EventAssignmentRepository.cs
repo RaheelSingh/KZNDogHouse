@@ -15,6 +15,10 @@ public interface IEventAssignmentRepository
 
     Task<EventAssignment> CreateAsync(EventAssignment assignment);
 
+    Task<EventAssignment?> GetByIdAsync(Guid assignmentId);
+
+    Task<bool> ReviewStatusAsync(Guid assignmentId, string status);
+
     Task UpdateStatusAsync(Guid assignmentId, string status);
 }
 
@@ -76,6 +80,29 @@ public class EventAssignmentRepository : IEventAssignmentRepository
             .Get();
 
         return response.Models?.FirstOrDefault();
+    }
+
+    public async Task<EventAssignment?> GetByIdAsync(Guid assignmentId)
+    {
+        var client = await _supabaseClientFactory.CreateServiceClientAsync();
+        var response = await client.From<EventAssignment>()
+            .Where(x => x.Id == assignmentId).Get();
+        return response.Models?.FirstOrDefault();
+    }
+
+    public async Task<bool> ReviewStatusAsync(Guid assignmentId, string status)
+    {
+        var client = await _supabaseClientFactory.CreateServiceClientAsync();
+        var response = await client.Rpc(
+            "review_volunteer_application",
+            new Dictionary<string, object>
+            {
+                ["p_assignment_id"] = assignmentId,
+                ["p_status"] = status
+            });
+        // A scalar boolean response is returned only after the database has
+        // atomically checked capacity and changed the assignment status.
+        return System.Text.Json.JsonSerializer.Deserialize<bool>(response.Content);
     }
 
     public async Task<EventAssignment> CreateAsync(

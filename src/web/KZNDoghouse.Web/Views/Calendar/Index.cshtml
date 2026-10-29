@@ -130,6 +130,10 @@
                                     && x.Status != EventAssignmentStatuses.Cancelled)
                                 .OrderBy(x => x.CreatedAt)
                                 .ToList();
+                            var confirmedCount = activeAssignments.Count(x =>
+                                EventAssignmentStatuses.CountsTowardCapacity(x.Status));
+                            var pendingCount = activeAssignments.Count(x =>
+                                x.Status == EventAssignmentStatuses.Pending);
 
                             <article class="portal-calendar-event"
                                      data-portal-row
@@ -189,7 +193,8 @@
                                         <div class="portal-event-volunteer-summary">
                                             <div>
                                                 <strong>Volunteer signup:</strong>
-                                                <span>@activeAssignments.Count / @evt.MaxVolunteers filled</span>
+                                                <span>@confirmedCount / @evt.MaxVolunteers confirmed</span>
+                                                <span> · @pendingCount awaiting review</span>
                                                 @if (evt.VolunteerStartAt.HasValue && evt.VolunteerEndAt.HasValue)
                                                 {
                                                     <span> · @evt.VolunteerStartAt.Value.ToString("dd MMM, HH:mm")–@evt.VolunteerEndAt.Value.ToString("HH:mm")</span>
@@ -204,7 +209,7 @@
                                             @if (activeAssignments.Count > 0)
                                             {
                                                 <details class="portal-volunteer-list mt-2">
-                                                    <summary>View registered volunteers</summary>
+                                                    <summary>Review volunteer applications</summary>
                                                     <ul>
                                                         @foreach (var assignment in activeAssignments)
                                                         {
@@ -213,7 +218,22 @@
                                                                 : "Volunteer";
                                                             <li>
                                                                 <span>@volunteerName</span>
-                                                                <small>@assignment.Status</small>
+                                                                <small>@(assignment.Status == EventAssignmentStatuses.Reserve ? "On standby" : assignment.Status == EventAssignmentStatuses.Declined ? "Not selected" : assignment.Status)</small>
+                                                                @if (evt.StartAt > DateTime.UtcNow)
+                                                                {
+                                                                    <form asp-controller="Calendar"
+                                                                          asp-action="ReviewVolunteer"
+                                                                          method="post" class="d-inline-flex flex-wrap gap-1">
+                                                                        <input type="hidden" name="assignmentId" value="@assignment.Id" />
+                                                                        <button type="submit" name="status" value="Confirmed"
+                                                                                class="btn btn-kzn-outline btn-sm"
+                                                                                disabled="@(assignment.Status == EventAssignmentStatuses.Confirmed || confirmedCount >= evt.MaxVolunteers && !EventAssignmentStatuses.CountsTowardCapacity(assignment.Status))">Confirm</button>
+                                                                        <button type="submit" name="status" value="Reserve" class="btn btn-kzn-outline btn-sm"
+                                                                                disabled="@(assignment.Status == EventAssignmentStatuses.Reserve)">Standby</button>
+                                                                        <button type="submit" name="status" value="Declined" class="btn btn-kzn-outline btn-sm"
+                                                                                disabled="@(assignment.Status == EventAssignmentStatuses.Declined)">Not selected</button>
+                                                                    </form>
+                                                                }
                                                             </li>
                                                         }
                                                     </ul>

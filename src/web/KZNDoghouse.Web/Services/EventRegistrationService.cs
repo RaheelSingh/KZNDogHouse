@@ -17,6 +17,8 @@ public interface IEventRegistrationService
     Task<EventRegistrationResult> CancelAsync(
         Guid eventId,
         Guid profileId);
+
+    Task<EventRegistrationResult> ReviewAsync(Guid assignmentId, string status);
 }
 
 public record EventRegistrationResult(
@@ -121,40 +123,21 @@ public class EventRegistrationService : IEventRegistrationService
         {
             return new EventRegistrationResult(
                 false,
-                "You are already registered or assigned to this event.",
+                "You already have an application for this event.",
                 existing);
-        }
-
-        var allAssignments =
-            await _eventAssignmentRepository.GetAllAsync()
-            ?? Array.Empty<EventAssignment>();
-
-        var activeCount = allAssignments.Count(x =>
-            x.EventId == eventId
-            && x.Status != EventAssignmentStatuses.Cancelled);
-
-        if (activeCount >= calendarEvent.MaxVolunteers.Value)
-        {
-            return new EventRegistrationResult(
-                false,
-                "This event has reached its volunteer capacity.");
         }
 
         if (existing != null)
         {
             await _eventAssignmentRepository.UpdateStatusAsync(
                 existing.Id,
-                EventAssignmentStatuses.Registered);
+                EventAssignmentStatuses.Pending);
 
-            existing.Status = EventAssignmentStatuses.Registered;
-
-            await SendConfirmationAsync(
-                profileId,
-                calendarEvent);
+            existing.Status = EventAssignmentStatuses.Pending;
 
             return new EventRegistrationResult(
                 true,
-                "Event registration restored.",
+                "Your volunteer application is awaiting review.",
                 existing);
         }
 
@@ -163,20 +146,16 @@ public class EventRegistrationService : IEventRegistrationService
             Id = Guid.NewGuid(),
             EventId = eventId,
             ProfileId = profileId,
-            Status = EventAssignmentStatuses.Registered,
+            Status = EventAssignmentStatuses.Pending,
             CreatedAt = DateTime.UtcNow
         };
 
         var created =
             await _eventAssignmentRepository.CreateAsync(assignment);
 
-        await SendConfirmationAsync(
-            profileId,
-            calendarEvent);
-
         return new EventRegistrationResult(
             true,
-            "Event registration confirmed.",
+            "Your volunteer application is awaiting review.",
             created);
     }
 
@@ -217,27 +196,64 @@ public class EventRegistrationService : IEventRegistrationService
             existing);
     }
 
-    private async Task SendConfirmationAsync(
-        Guid profileId,
-        CalendarEvent calendarEvent)
+    public async Task<EventRegistrationResult> ReviewAsync(Guid assignmentId, string status)
     {
-        var volunteerStart =
-            calendarEvent.VolunteerStartAt
-            ?? calendarEvent.StartAt;
+        if (!EventAssignmentStatuses.ReviewOptions.Contains(status))
+        {
+            return new EventRegistrationResult(false, "Choose a valid volunteer status.");
+        }
 
-        var volunteerEnd =
-            calendarEvent.VolunteerEndAt
-            ?? calendarEvent.EndAt;
+        var assignment = await _eventAssignmentRepository.GetByIdAsync(assignmentId);
+        if (assignment == null)
+        {
+            return new EventRegistrationResult(false, "Volunteer application not found.");
+        }
 
-        var timeText = volunteerEnd.HasValue
-            ? $"{volunteerStart:dd MMM} from {volunteerStart:HH:mm} to {volunteerEnd:HH:mm}"
-            : $"{volunteerStart:dd MMM} at {volunteerStart:HH:mm}";
+        var calendarEvent = await _calendarEventRepository.GetByIdAsync(assignment.EventId);
+        if (calendarEvent == null)
+        {
+            return new EventRegistrationResult(false, "Event not found.");
+        }
+
+        if (calendarEvent.StartAt <= DateTime.UtcNow || assignment.Status == EventAssignmentStatuses.Cancelled)
+        {
+            return new EventRegistrationResult(false, "This application can no longer be reviewed.", assignment);
+        }
+
+        // The database function locks the event row, checks the confirmed count,
+        // and returns false for a repeated decision. A local count is not sufficient.
+        var changed = await _eventAssignmentRepository.ReviewStatusAsync(assignmentId, status);
+        assignment.Status = status;
+        if (!changed)
+        {
+            return new EventRegistrationResult(true, "This volunteer already has that status.", assignment);
+        }
+
+        var arrival = calendarEvent.VolunteerStartAt ?? calendarEvent.StartAt;
+        var description = status switch
+        {
+            EventAssignmentStatuses.Confirmed =>
+                $"You're confirmed for {calendarEvent.Title}. Please arrive on {arrival:dd MMM yyyy} at {arrival:HH:mm}. " +
+                (calendarEvent.VolunteerNotes ?? string.Empty),
+            EventAssignmentStatuses.Reserve =>
+                $"You're on standby for {calendarEvent.Title}. If a place becomes available, we'll contact you.",
+            _ =>
+                $"Thank you for offering to help with {calendarEvent.Title}. All volunteer places have been filled for now. We'll be in touch if more help is needed."
+        };
+        var title = status switch
+        {
+            EventAssignmentStatuses.Confirmed => "Volunteer place confirmed",
+            EventAssignmentStatuses.Reserve => "You're on standby",
+            _ => "Volunteer application update"
+        };
 
         await _notificationService.NotifyUserAsync(
-            profileId,
+            assignment.ProfileId,
             NotificationCategories.Calendar,
-            "Event registration confirmed",
-            $"You are registered to volunteer for {calendarEvent.Title} on {timeText}.");
+            title,
+            description.Trim());
+
+        return new EventRegistrationResult(true, "Volunteer status updated.", assignment);
     }
 
     private static IReadOnlyList<(DateTime DayDate, string Slot)> RequiredAvailabilitySlots(

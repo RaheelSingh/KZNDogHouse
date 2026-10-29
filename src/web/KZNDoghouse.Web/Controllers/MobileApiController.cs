@@ -64,7 +64,7 @@ public class MobileApiController : ControllerBase
         var events = await _calendarEventService.GetAllAsync();
         var assignments = await _eventRegistrationService.GetAllAsync();
         var activeCounts = assignments
-            .Where(x => x.Status != EventAssignmentStatuses.Cancelled)
+            .Where(x => EventAssignmentStatuses.CountsTowardCapacity(x.Status))
             .GroupBy(x => x.EventId)
             .ToDictionary(x => x.Key, x => x.Count());
 

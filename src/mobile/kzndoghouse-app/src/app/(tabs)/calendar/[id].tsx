@@ -332,7 +332,9 @@ export default function EventDetailScreen() {
 
   const color = getCategoryColor(event.category);
   const myAssignment = assignments.find((a) => a.profile_id === myProfileId) ?? null;
-  const activeAssignments = assignments.filter(isActiveAssignment);
+  const activeAssignments = assignments.filter((a) =>
+    ['Assigned', 'Registered', 'Confirmed'].includes(a.status)
+  );
   const checkedInCount = activeAssignments.filter((a) => a.checked_in_at).length;
   const signupState = getSignupState(event, myAssignment, signedUpCount);
   const spots = spotsLabel(event, signedUpCount);
@@ -346,11 +348,11 @@ export default function EventDetailScreen() {
             <View style={styles.statusRow}>
               <Ionicons name="checkmark-circle" size={26} color={colors.gold} />
               <View style={{ flex: 1 }}>
-                <Text style={styles.statusTitle}>You're in</Text>
+                <Text style={styles.statusTitle}>You're confirmed</Text>
                 <Text style={styles.meta}>
                   {myAssignment?.checked_in_at
                     ? `Checked in at ${formatTime(myAssignment.checked_in_at)}`
-                    : 'We will remind you 24 hours and 1 hour before.'}
+                    : `Please arrive ${formatDateTime(event.volunteer_start_at ?? event.start_at)}.${event.volunteer_notes ? ` ${event.volunteer_notes}` : ''}`}
                 </Text>
               </View>
             </View>
@@ -370,8 +372,25 @@ export default function EventDetailScreen() {
             ) : null}
           </View>
         );
+      case 'pending':
+      case 'reserve':
+        return (
+          <View style={styles.statusCard}>
+            <Text style={styles.bodyText}>
+              {signupState === 'pending'
+                ? "Your application is awaiting staff review. We'll notify you when it has been reviewed."
+                : "You're on standby for this event. We'll contact you if a place opens up."}
+            </Text>
+            {!started ? (
+              <PillButton label="Withdraw application" variant="outline" loading={busy === 'cancel'}
+                onPress={handleCancel} style={{ marginTop: 12 }} />
+            ) : null}
+          </View>
+        );
+      case 'declined':
+        return <Text style={styles.bodyText}>Thank you for volunteering. All places have been filled for now; we'll be in touch if more help is needed.</Text>;
       case 'open':
-        return <PillButton label="Sign up" loading={busy === 'signup'} onPress={handleSignUp} />;
+        return <PillButton label="Apply to volunteer" loading={busy === 'signup'} onPress={handleSignUp} />;
       case 'full':
         return <Text style={styles.bodyText}>This event is full. Check back later in case a spot opens up.</Text>;
       case 'started':
@@ -403,7 +422,9 @@ export default function EventDetailScreen() {
               bg={event.visibility === 'Public' ? '#f3e1c2' : '#dfe4dc'}
               fg={event.visibility === 'Public' ? '#8a5a12' : '#4d5c52'}
             />
-            {signupState === 'joined' ? <Tag label="YOU'RE IN" bg={colors.gold} fg={colors.header} /> : null}
+            {signupState === 'joined' ? <Tag label="CONFIRMED" bg={colors.gold} fg={colors.header} /> : null}
+            {signupState === 'pending' ? <Tag label="AWAITING REVIEW" bg={colors.gold} fg={colors.header} /> : null}
+            {signupState === 'reserve' ? <Tag label="ON STANDBY" bg={colors.gold} fg={colors.header} /> : null}
           </View>
         ) : null}
       </HeroHeader>
@@ -501,7 +522,7 @@ export default function EventDetailScreen() {
               <View>
                 <SectionTitle title="Volunteers" />
                 <Text style={styles.meta}>
-                  {activeAssignments.length} signed up · {checkedInCount} checked in
+                  {activeAssignments.length} confirmed · {checkedInCount} checked in
                 </Text>
                 {activeAssignments.length === 0 ? (
                   <Text style={[styles.empty, { marginTop: 10 }]}>No one has signed up yet.</Text>
