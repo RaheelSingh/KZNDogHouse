@@ -15,6 +15,20 @@ public class ApiIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
     }
 
     [Fact]
+    public async Task Me_WithoutBearerToken_ReturnsUnauthorized_NotNotFound()
+    {
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            BaseAddress = new Uri("https://localhost"),
+            AllowAutoRedirect = false
+        });
+
+        var response = await client.GetAsync("/api/me");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Health_ReturnsHealthyApiEnvelope_AndSecurityHeaders()
     {
         var client = _factory.CreateClient(new WebApplicationFactoryClientOptions

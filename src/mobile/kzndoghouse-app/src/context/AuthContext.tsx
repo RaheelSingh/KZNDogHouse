@@ -37,7 +37,8 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
+// Accept environment URLs with or without trailing slashes.
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL?.trim().replace(/\/+$/, '');
 
 function mapRole(raw: unknown): UserRole {
   const role = String(raw ?? '').toLowerCase();

@@ -5641,11 +5641,15 @@ label.is-required::after {
 
 /* Registration and sign-in start without red asterisks. Display one only
    when a required field is both blank and invalid. Checkboxes stay unmarked. */
-.auth-form label.is-required::after {
-    content: none;
+/* Login and registration labels do not display required markers by default.
+   Show one only when the corresponding required input is empty and invalid.
+   The opt-in checkboxes never display a required marker. */
+.auth-form label:not(.auth-empty-error)::after,
+.auth-form label.is-required:not(.auth-empty-error)::after {
+    content: none !important;
 }
 .auth-form label.auth-empty-error::after {
-    content: " *";
+    content: " *" !important;
     color: var(--bs-danger, #b02a37);
     font-weight: 700;
 }
