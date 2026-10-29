@@ -38,7 +38,7 @@ export default function ProfileScreen() {
         .from('event_assignments')
         .select('id, calendar_events!inner(start_at)', { count: 'exact', head: true })
         .eq('profile_id', profileId)
-        .neq('status', 'Cancelled')
+        .in('status', ['Assigned', 'Registered', 'Confirmed'])
         .gte('calendar_events.start_at', nowIso),
       supabase
         .from('event_assignments')

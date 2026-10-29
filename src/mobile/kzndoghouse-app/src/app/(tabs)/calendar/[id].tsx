@@ -506,6 +506,22 @@ export default function EventDetailScreen() {
               ) : null}
             </View>
 
+            {!staff && event.volunteer_signup_enabled ? (
+              <View>
+                <SectionTitle title="Volunteer shift" />
+                <View style={styles.infoCard}>
+                  <View style={styles.infoRow}>
+                    <Ionicons name="time-outline" size={20} color={colors.gold} />
+                    <Text style={styles.infoText}>
+                      {event.volunteer_start_at ? formatDateTime(event.volunteer_start_at) : 'Start time to be confirmed'}
+                      {event.volunteer_end_at ? ` – ${formatTime(event.volunteer_end_at)}` : ''}
+                    </Text>
+                  </View>
+                  {event.volunteer_notes ? <Text style={styles.bodyText}>{event.volunteer_notes}</Text> : null}
+                </View>
+              </View>
+            ) : null}
+
             {event.description ? (
               <View>
                 <SectionTitle title="Details" />

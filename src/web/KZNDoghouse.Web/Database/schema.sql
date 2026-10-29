@@ -672,8 +672,6 @@ declare
     v_profile public.user_profiles%rowtype;
     v_event public.calendar_events%rowtype;
     v_assignment public.event_assignments%rowtype;
-    v_day date;
-    v_slot record;
 begin
     if auth.uid() is null then
         raise exception 'Sign in to volunteer.' using errcode = 'P0001';
@@ -700,35 +698,6 @@ begin
     if found and v_assignment.status <> 'Cancelled' then
         raise exception 'You have already applied for this event.' using errcode = 'P0001';
     end if;
-
-    for v_day in
-        select g::date from generate_series(
-            v_event.volunteer_start_at::date,
-            (v_event.volunteer_end_at - interval '1 microsecond')::date,
-            interval '1 day'
-        ) as g
-    loop
-        for v_slot in
-            select required.slot
-            from (values
-                ('Morning', v_day::timestamptz, v_day::timestamptz + interval '12 hours'),
-                ('Afternoon', v_day::timestamptz + interval '12 hours', v_day::timestamptz + interval '17 hours'),
-                ('Evening', v_day::timestamptz + interval '17 hours', v_day::timestamptz + interval '1 day')
-            ) as required(slot, start_at, end_at)
-            where v_event.volunteer_start_at < required.end_at
-              and v_event.volunteer_end_at > required.start_at
-        loop
-            if not exists (
-                select 1 from public.availability_slots a
-                where a.volunteer_id = v_profile.id
-                  and a.day_date = v_day
-                  and a.slot = v_slot.slot
-                  and a.status = 'Approved'
-            ) then
-                raise exception 'Approved availability is required for the full volunteer shift.' using errcode = 'P0001';
-            end if;
-        end loop;
-    end loop;
 
     if v_assignment.id is not null then
         update public.event_assignments set status = 'Pending'

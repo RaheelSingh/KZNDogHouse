@@ -29,18 +29,15 @@ public record EventRegistrationResult(
 public class EventRegistrationService : IEventRegistrationService
 {
     private readonly ICalendarEventRepository _calendarEventRepository;
-    private readonly IAvailabilitySlotRepository _availabilitySlotRepository;
     private readonly IEventAssignmentRepository _eventAssignmentRepository;
     private readonly INotificationService _notificationService;
 
     public EventRegistrationService(
         ICalendarEventRepository calendarEventRepository,
-        IAvailabilitySlotRepository availabilitySlotRepository,
         IEventAssignmentRepository eventAssignmentRepository,
         INotificationService notificationService)
     {
         _calendarEventRepository = calendarEventRepository;
-        _availabilitySlotRepository = availabilitySlotRepository;
         _eventAssignmentRepository = eventAssignmentRepository;
         _notificationService = notificationService;
     }
@@ -88,29 +85,6 @@ public class EventRegistrationService : IEventRegistrationService
             return new EventRegistrationResult(
                 false,
                 "Volunteer signup has not been configured correctly for this event.");
-        }
-
-        var availability =
-            await _availabilitySlotRepository
-                .GetForVolunteerAsync(profileId);
-
-        var requiredSlots = RequiredAvailabilitySlots(
-            calendarEvent.VolunteerStartAt.Value,
-            calendarEvent.VolunteerEndAt.Value);
-
-        var approvedKeys = availability
-            .Where(x => x.Status == AvailabilitySlotStatuses.Approved)
-            .Select(x => (x.DayDate.Date, x.Slot))
-            .ToHashSet();
-
-        var missingSlot = requiredSlots
-            .FirstOrDefault(x => !approvedKeys.Contains((x.DayDate, x.Slot)));
-
-        if (missingSlot != default)
-        {
-            return new EventRegistrationResult(
-                false,
-                $"You need approved {missingSlot.Slot.ToLowerInvariant()} availability for {missingSlot.DayDate:dd MMM yyyy} before registering for this event.");
         }
 
         var existing =
@@ -256,61 +230,4 @@ public class EventRegistrationService : IEventRegistrationService
         return new EventRegistrationResult(true, "Volunteer status updated.", assignment);
     }
 
-    private static IReadOnlyList<(DateTime DayDate, string Slot)> RequiredAvailabilitySlots(
-        DateTime startAt,
-        DateTime endAt)
-    {
-        var required = new List<(DateTime DayDate, string Slot)>();
-        var day = startAt.Date;
-        var finalDay = endAt.AddTicks(-1).Date;
-
-        while (day <= finalDay)
-        {
-            AddIfOverlapping(
-                required,
-                day,
-                AvailabilitySlotNames.Morning,
-                day,
-                day.AddHours(12),
-                startAt,
-                endAt);
-
-            AddIfOverlapping(
-                required,
-                day,
-                AvailabilitySlotNames.Afternoon,
-                day.AddHours(12),
-                day.AddHours(17),
-                startAt,
-                endAt);
-
-            AddIfOverlapping(
-                required,
-                day,
-                AvailabilitySlotNames.Evening,
-                day.AddHours(17),
-                day.AddDays(1),
-                startAt,
-                endAt);
-
-            day = day.AddDays(1);
-        }
-
-        return required;
-    }
-
-    private static void AddIfOverlapping(
-        ICollection<(DateTime DayDate, string Slot)> required,
-        DateTime dayDate,
-        string slot,
-        DateTime slotStart,
-        DateTime slotEnd,
-        DateTime eventStart,
-        DateTime eventEnd)
-    {
-        if (eventStart < slotEnd && eventEnd > slotStart)
-        {
-            required.Add((dayDate.Date, slot));
-        }
-    }
 }

@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { getCurrentProfileId } from '@/lib/profile';
 import { isStaff } from '@/lib/roles';
 import { getCategoryColor } from '@/lib/eventCategory';
-import { EVENT_COLUMNS, fetchSignupCounts, hasStarted, isActiveAssignment, toFriendlyMessage } from '@/lib/events';
+import { EVENT_COLUMNS, fetchSignupCounts, hasStarted, toFriendlyMessage } from '@/lib/events';
 import { colors, radius } from '@/theme';
 import { IconBtn, PageHeader, PillButton, Tag, UnderlineTabs } from '@/components/ui';
 import type { AssignmentStatus, CalendarEvent, EventCategory } from '@/types/models';
@@ -15,7 +15,8 @@ import type { AssignmentStatus, CalendarEvent, EventCategory } from '@/types/mod
 type EventRow = CalendarEvent & {
   event_assignments: { id: string; profile_id: string; status: AssignmentStatus }[];
 };
-type CalendarItem = { event: CalendarEvent; joined: boolean };
+type CalendarItem = { event: CalendarEvent; myStatus: AssignmentStatus | null };
+const MY_ACTIVE_STATUSES: readonly AssignmentStatus[] = ['Pending', 'Reserve', 'Assigned', 'Registered', 'Confirmed'];
 type FilterKey = 'All' | 'Mine' | EventCategory;
 
 const TABS: { key: FilterKey; label: string }[] = [
@@ -113,7 +114,7 @@ export default function CalendarScreen() {
       const rows = (eventsRes.data as unknown as EventRow[] | null) ?? [];
       const nextItems: CalendarItem[] = rows.map(({ event_assignments, ...event }) => ({
         event,
-        joined: !!profileId && event_assignments.some((a) => a.profile_id === profileId && isActiveAssignment(a)),
+        myStatus: profileId ? event_assignments.find((a) => a.profile_id === profileId)?.status ?? null : null,
       }));
 
       const nextCounts = await fetchSignupCounts(
@@ -164,7 +165,7 @@ export default function CalendarScreen() {
 
   const weekSummary = useMemo(() => {
     if (items.length === 0) return 'No events this week';
-    const mine = items.filter((i) => i.joined).length;
+    const mine = items.filter((i) => i.myStatus && MY_ACTIVE_STATUSES.includes(i.myStatus)).length;
     const shifts = items.filter((i) => i.event.category === 'Shift').length;
     const parts = [plural(items.length, 'event', 'events')];
     if (shifts) parts.push(plural(shifts, 'shift', 'shifts'));
@@ -173,8 +174,8 @@ export default function CalendarScreen() {
   }, [items]);
 
   const sections = useMemo(() => {
-    const visible = items.filter(({ event, joined }) => {
-      if (filter === 'Mine' && !joined) return false;
+    const visible = items.filter(({ event, myStatus }) => {
+      if (filter === 'Mine' && (!myStatus || !MY_ACTIVE_STATUSES.includes(myStatus))) return false;
       if (filter !== 'All' && filter !== 'Mine' && event.category !== filter) return false;
       if (selectedDay && localKey(new Date(event.start_at)) !== selectedDay) return false;
       return true;
@@ -200,7 +201,9 @@ export default function CalendarScreen() {
 
   // ---- Render pieces ----
 
-  const renderCard = ({ event, joined }: CalendarItem) => {
+  const renderCard = ({ event, myStatus }: CalendarItem) => {
+    const confirmed = myStatus === 'Assigned' || myStatus === 'Registered' || myStatus === 'Confirmed';
+    const applied = myStatus === 'Pending' || myStatus === 'Reserve';
     const color = getCategoryColor(event.category);
     const past = hasStarted(event) && localKey(new Date(event.start_at)) !== todayKey;
     const count = counts[event.id] ?? 0;
@@ -217,7 +220,7 @@ export default function CalendarScreen() {
         ]}
         onPress={() => router.push(`/(tabs)/calendar/${event.id}`)}
         accessibilityRole="button"
-        accessibilityLabel={`${event.title}, ${formatTime(event.start_at)}${joined ? ", you're in" : ''}`}
+        accessibilityLabel={`${event.title}, ${formatTime(event.start_at)}${confirmed ? ', confirmed' : applied ? ', awaiting a place' : ''}`}
       >
         <View style={styles.timeCol}>
           <Text style={styles.timeStart}>{formatTime(event.start_at)}</Text>
@@ -233,11 +236,14 @@ export default function CalendarScreen() {
             </Text>
           ) : null}
           <View style={styles.tagRow}>
-            {joined ? <Tag label="YOU'RE IN" bg={colors.gold} fg={colors.header} /> : null}
+            {confirmed ? <Tag label="CONFIRMED" bg={colors.gold} fg={colors.header} /> : null}
+            {myStatus === 'Pending' ? <Tag label="PENDING" bg="#f3e1c2" fg="#8a5a12" /> : null}
+            {myStatus === 'Reserve' ? <Tag label="STANDBY" bg="#f3e1c2" fg="#8a5a12" /> : null}
+            {myStatus === 'Declined' ? <Tag label="NOT SELECTED" bg="#e4e7e1" fg="#4d5c52" /> : null}
             {event.category !== 'Other' ? <Tag label={event.category.toUpperCase()} bg={color.bg} fg={color.text} /> : null}
             {event.volunteer_signup_enabled ? (
-              full && !joined ? (
-                <Tag label="FULL" bg="#f4d3cf" fg="#b3261e" />
+              full && !confirmed && !applied ? (
+                <Tag label="STANDBY AVAILABLE" bg="#f3e1c2" fg="#8a5a12" />
               ) : (
                 <Tag
                   label={event.max_volunteers != null ? `${count}/${event.max_volunteers} SPOTS` : `${count} GOING`}
@@ -266,11 +272,7 @@ export default function CalendarScreen() {
       <PageHeader
         title="Calendar"
         subtitle={weekSummary}
-        right={
-          staff ? (
-            <IconBtn icon="add-circle-outline" color={colors.gold} onPress={() => router.push('/(tabs)/calendar/add')} />
-          ) : undefined
-        }
+        right={staff ? <IconBtn icon="add-circle-outline" color={colors.gold} onPress={() => router.push('/(tabs)/calendar/add')} /> : undefined}
       >
         <View style={styles.weekNav}>
           <Pressable

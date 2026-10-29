@@ -9,7 +9,7 @@ namespace KZNDoghouse.Web.Tests;
 public class EventRegistrationServiceTests
 {
     [Fact]
-    public async Task RegisterAsync_AppliesWhenEntireVolunteerWindowIsApproved()
+    public async Task RegisterAsync_AcceptsApplicationWithoutAdvanceAvailability()
     {
         var eventId = Guid.NewGuid();
         var profileId = Guid.NewGuid();
@@ -21,16 +21,6 @@ public class EventRegistrationServiceTests
             start,
             volunteerEnd,
             maxVolunteers: 6);
-
-        var availabilityRepository = new Mock<IAvailabilitySlotRepository>();
-        availabilityRepository
-            .Setup(x => x.GetForVolunteerAsync(profileId))
-            .ReturnsAsync(
-                new[]
-                {
-                    Approved(profileId, start.Date, AvailabilitySlotNames.Morning),
-                    Approved(profileId, start.Date, AvailabilitySlotNames.Afternoon)
-                });
 
         var assignmentRepository = EmptyAssignmentRepository(eventId, profileId);
         assignmentRepository
@@ -48,7 +38,6 @@ public class EventRegistrationServiceTests
 
         var service = new EventRegistrationService(
             eventRepository.Object,
-            availabilityRepository.Object,
             assignmentRepository.Object,
             notifications.Object);
 
@@ -60,43 +49,27 @@ public class EventRegistrationServiceTests
     }
 
     [Fact]
-    public async Task RegisterAsync_RejectsVolunteerWhenPartOfVolunteerWindowIsNotApproved()
+    public async Task RegisterAsync_AllowsApplicationsForEventsSpanningSeveralTimePeriods()
     {
         var eventId = Guid.NewGuid();
         var profileId = Guid.NewGuid();
         var start = DateTime.UtcNow.Date.AddDays(3).AddHours(9);
-        var volunteerEnd = start.Date.AddHours(14);
+        var volunteerEnd = start.Date.AddHours(18);
 
-        var eventRepository = EventRepository(
-            eventId,
-            start,
-            volunteerEnd,
-            maxVolunteers: 6);
-
-        var availabilityRepository = new Mock<IAvailabilitySlotRepository>();
-        availabilityRepository
-            .Setup(x => x.GetForVolunteerAsync(profileId))
-            .ReturnsAsync(
-                new[]
-                {
-                    Approved(profileId, start.Date, AvailabilitySlotNames.Morning)
-                });
-
-        var assignmentRepository = new Mock<IEventAssignmentRepository>();
+        var eventRepository = EventRepository(eventId, start, volunteerEnd, maxVolunteers: 6);
+        var assignments = EmptyAssignmentRepository(eventId, profileId);
+        assignments.Setup(x => x.CreateAsync(It.IsAny<EventAssignment>()))
+            .ReturnsAsync((EventAssignment assignment) => assignment);
 
         var service = new EventRegistrationService(
             eventRepository.Object,
-            availabilityRepository.Object,
-            assignmentRepository.Object,
+            assignments.Object,
             new Mock<INotificationService>().Object);
 
         var result = await service.RegisterAsync(eventId, profileId);
 
-        Assert.False(result.Success);
-        Assert.Contains("afternoon", result.Message, StringComparison.OrdinalIgnoreCase);
-        assignmentRepository.Verify(
-            x => x.CreateAsync(It.IsAny<EventAssignment>()),
-            Times.Never);
+        Assert.True(result.Success);
+        Assert.Equal(EventAssignmentStatuses.Pending, result.Assignment?.Status);
     }
 
     [Fact]
@@ -112,15 +85,6 @@ public class EventRegistrationServiceTests
             start,
             end,
             maxVolunteers: 1);
-
-        var availabilityRepository = new Mock<IAvailabilitySlotRepository>();
-        availabilityRepository
-            .Setup(x => x.GetForVolunteerAsync(profileId))
-            .ReturnsAsync(
-                new[]
-                {
-                    Approved(profileId, start.Date, AvailabilitySlotNames.Morning)
-                });
 
         var assignmentRepository = new Mock<IEventAssignmentRepository>();
         assignmentRepository
@@ -144,7 +108,6 @@ public class EventRegistrationServiceTests
 
         var service = new EventRegistrationService(
             eventRepository.Object,
-            availabilityRepository.Object,
             assignmentRepository.Object,
             new Mock<INotificationService>().Object);
 
@@ -178,7 +141,6 @@ public class EventRegistrationServiceTests
 
         var service = new EventRegistrationService(
             eventRepository.Object,
-            new Mock<IAvailabilitySlotRepository>().Object,
             new Mock<IEventAssignmentRepository>().Object,
             new Mock<INotificationService>().Object);
 
@@ -212,7 +174,6 @@ public class EventRegistrationServiceTests
         var notifications = new Mock<INotificationService>();
         var service = new EventRegistrationService(
             eventRepository.Object,
-            new Mock<IAvailabilitySlotRepository>().Object,
             assignments.Object,
             notifications.Object);
 
@@ -242,7 +203,6 @@ public class EventRegistrationServiceTests
         var notifications = new Mock<INotificationService>();
         var service = new EventRegistrationService(
             EventRepository(eventId, start, start.AddHours(2), 5).Object,
-            new Mock<IAvailabilitySlotRepository>().Object,
             repository.Object, notifications.Object);
 
         var result = await service.ReviewAsync(assignmentId, EventAssignmentStatuses.Confirmed);
@@ -291,14 +251,4 @@ public class EventRegistrationServiceTests
         return repository;
     }
 
-    private static AvailabilitySlot Approved(
-        Guid profileId,
-        DateTime day,
-        string slot) => new()
-    {
-        VolunteerId = profileId,
-        DayDate = day.Date,
-        Slot = slot,
-        Status = AvailabilitySlotStatuses.Approved
-    };
 }
