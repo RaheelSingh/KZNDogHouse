@@ -74,7 +74,7 @@ export function Field({
             onPress={() => setPasswordVisible((value) => !value)}
             accessibilityRole="button"
             accessibilityLabel={passwordVisible ? 'Hide password' : 'Show password'}
-            accessibilityState={{ pressed: passwordVisible }}
+            accessibilityState={{ selected: passwordVisible }}
             hitSlop={8}
             style={s.visibilityButton}
           >
