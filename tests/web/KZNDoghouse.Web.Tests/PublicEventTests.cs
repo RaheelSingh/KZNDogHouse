@@ -123,9 +123,7 @@ public class PublicEventTests
 
         repository.Setup(x => x.GetAllAsync()).ReturnsAsync(events);
 
-        return new CalendarEventService(
-            repository.Object,
-            new Mock<INotificationService>().Object);
+        return new CalendarEventService(repository.Object);
     }
 
     private static List<CalendarEvent> SampleEvents() => new()

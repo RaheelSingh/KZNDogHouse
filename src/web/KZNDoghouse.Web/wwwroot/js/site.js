@@ -1158,7 +1158,43 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         const labels = Array.from(control.labels ?? []);
-        labels.forEach((label) => label.classList.add("is-required"));
+        // Authentication forms should show required markers only after
+        // validation finds an empty field. A volunteer opt-in checkbox is
+        // always optional, even if generated metadata says otherwise.
+        if (!control.closest(".auth-form")) {
+            labels.forEach((label) => label.classList.add("is-required"));
+        }
+    });
+
+    document.querySelectorAll(".auth-form").forEach((form) => {
+        const updateFieldMarker = (control) => {
+            if (!(control instanceof HTMLInputElement)) return;
+            if (control.type === "checkbox" || control.type === "hidden") return;
+            const required = control.required || control.hasAttribute("data-val-required");
+            const hasError = control.classList.contains("input-validation-error")
+                || control.getAttribute("aria-invalid") === "true";
+            const isEmpty = !control.value.trim();
+            for (const label of Array.from(control.labels ?? [])) {
+                label.classList.toggle("auth-empty-error", required && isEmpty && hasError);
+            }
+        };
+        // Existing server-side errors are rendered as input-validation-error.
+        form.querySelectorAll("input").forEach(updateFieldMarker);
+        form.addEventListener("invalid", (event) => {
+            if (event.target instanceof HTMLInputElement) {
+                event.target.classList.add("input-validation-error");
+                updateFieldMarker(event.target);
+            }
+        }, true);
+        form.addEventListener("input", (event) => updateFieldMarker(event.target));
+        form.addEventListener("change", (event) => updateFieldMarker(event.target));
+        // ASP.NET unobtrusive validation may add its error classes on submit
+        // without firing a native invalid event.
+        form.addEventListener("submit", () => {
+            requestAnimationFrame(() => {
+                form.querySelectorAll("input").forEach(updateFieldMarker);
+            });
+        });
     });
 
     document.querySelectorAll('input[type="file"]').forEach((input) => {

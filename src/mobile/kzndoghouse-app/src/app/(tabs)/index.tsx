@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   FlatList,
   ImageBackground,
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -141,7 +142,7 @@ export default function HomeScreen() {
             .from('event_assignments')
             .select(`id, checked_in_at, calendar_events!inner(${EVENT_COLUMNS})`)
             .eq('profile_id', profileId)
-            .neq('status', 'Cancelled')
+            .in('status', ['Assigned', 'Registered', 'Confirmed'])
             .gte('calendar_events.start_at', todayIso)
             .limit(20)
         : Promise.resolve({ data: [] as MyAssignmentRow[], error: null }),
@@ -453,7 +454,7 @@ export default function HomeScreen() {
       <View style={[styles.header, { paddingTop: insets.top + 10 }]} pointerEvents="box-none">
         <View style={styles.headerRow}>
           <View style={styles.brandPill}>
-            <Ionicons name="paw" size={16} color={colors.gold} />
+            <Image source={require('../../../assets/doghouse-logo.png')} style={styles.brandLogo} resizeMode="contain" />
             <Text style={styles.brandText}>KZN Doghouse</Text>
           </View>
           <Pressable onPress={() => router.push('/(tabs)/alerts')} hitSlop={10} accessibilityLabel="Open alerts">
@@ -504,6 +505,7 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     backgroundColor: 'rgba(18,36,28,0.55)',
   },
+  brandLogo: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#fff' },
   brandText: { color: '#fff', fontWeight: '800', fontSize: 15 },
   bellBadge: {
     position: 'absolute',

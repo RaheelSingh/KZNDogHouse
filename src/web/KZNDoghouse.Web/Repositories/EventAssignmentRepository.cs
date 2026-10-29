@@ -102,6 +102,11 @@ public class EventAssignmentRepository : IEventAssignmentRepository
             });
         // A scalar boolean response is returned only after the database has
         // atomically checked capacity and changed the assignment status.
+        if (string.IsNullOrWhiteSpace(response.Content))
+        {
+            throw new InvalidOperationException("Volunteer review returned no result from the database.");
+        }
+
         return System.Text.Json.JsonSerializer.Deserialize<bool>(response.Content);
     }
 

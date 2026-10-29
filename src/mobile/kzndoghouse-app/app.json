@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "kzndoghouse-app",
+    "name": "KZN Doghouse",
     "slug": "kzndoghouse-app",
     "owner": "smart-centa",
     "version": "1.0.0",
@@ -13,7 +13,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"

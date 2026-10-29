@@ -255,6 +255,9 @@ export default function RegisterScreen() {
             onChangeText={setPassword}
             placeholder="8+ characters, A–Z, 0–9 and a symbol"
             secureTextEntry
+            autoCapitalize="none"
+            autoCorrect={false}
+            spellCheck={false}
             autoComplete="new-password"
             error={stepOneErrors.password}
           />
@@ -264,6 +267,9 @@ export default function RegisterScreen() {
             onChangeText={setConfirmPassword}
             placeholder="Re-enter password"
             secureTextEntry
+            autoCapitalize="none"
+            autoCorrect={false}
+            spellCheck={false}
             autoComplete="new-password"
             error={stepOneErrors.confirmPassword}
           />

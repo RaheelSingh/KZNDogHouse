@@ -4,6 +4,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -63,7 +64,7 @@ export default function SignInScreen() {
 
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <View style={styles.brandPill}>
-          <Ionicons name="paw" size={16} color={colors.gold} />
+          <Image source={require('../../../assets/doghouse-logo.png')} style={styles.brandLogo} resizeMode="contain" />
           <Text style={styles.brandText}>The KZN Doghouse</Text>
         </View>
 
@@ -82,8 +83,11 @@ export default function SignInScreen() {
         />
         <Field
           label="Password"
-          placeholder="••••••••"
+          placeholder="••••••••••••"
           secureTextEntry
+          autoCapitalize="none"
+          autoCorrect={false}
+          spellCheck={false}
           autoComplete="password"
           value={password}
           onChangeText={setPassword}
@@ -139,6 +143,7 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     marginBottom: 36,
   },
+  brandLogo: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#fff' },
   brandText: { color: '#fff', fontWeight: '800', fontSize: 15 },
 
   title: { color: '#fff', fontSize: 40, fontWeight: '800' },
