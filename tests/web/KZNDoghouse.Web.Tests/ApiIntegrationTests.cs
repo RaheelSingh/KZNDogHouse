@@ -28,6 +28,22 @@ public class ApiIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
+    [Theory]
+    [InlineData("/Home/Privacy")]
+    [InlineData("/Home/AccountDeletion")]
+    [InlineData("/contact?topic=account-deletion")]
+    public async Task PublicAccountPrivacyPages_AreAccessibleWithoutLogin(string path)
+    {
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            BaseAddress = new Uri("https://localhost"),
+            AllowAutoRedirect = false
+        });
+
+        var response = await client.GetAsync(path);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
     [Fact]
     public async Task Health_ReturnsHealthyApiEnvelope_AndSecurityHeaders()
     {

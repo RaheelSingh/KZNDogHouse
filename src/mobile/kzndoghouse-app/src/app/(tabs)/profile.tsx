@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
@@ -156,6 +156,20 @@ export default function ProfileScreen() {
               </View>
             ) : undefined
           }
+        />
+        <ListRow
+          icon="shield-checkmark-outline"
+          title="Privacy policy"
+          subtitle="How your information is used"
+          onPress={() => Linking.openURL('https://kzn-doghouse.onrender.com/Home/Privacy')
+            .catch(() => Alert.alert('Unable to open link', 'Visit kzn-doghouse.onrender.com/Home/Privacy'))}
+        />
+        <ListRow
+          icon="person-remove-outline"
+          title="Request account deletion"
+          subtitle="Contact the shelter to remove your account"
+          onPress={() => Linking.openURL('https://kzn-doghouse.onrender.com/Home/AccountDeletion')
+            .catch(() => Alert.alert('Unable to open link', 'Visit kzn-doghouse.onrender.com/Home/AccountDeletion'))}
         />
         <ListRow icon="log-out-outline" title="Sign out" danger onPress={handleSignOut} />
       </View>

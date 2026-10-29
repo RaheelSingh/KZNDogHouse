@@ -121,6 +121,15 @@ export default function SignInScreen() {
             <Text style={styles.footerLink}>Apply to join the team</Text>
           </Pressable>
         </View>
+        <Pressable
+          style={styles.privacyLinkRow}
+          accessibilityRole="link"
+          accessibilityLabel="Read the KZN Doghouse privacy policy"
+          onPress={() => Linking.openURL('https://kzn-doghouse.onrender.com/Home/Privacy')
+            .catch(() => Alert.alert('Unable to open link', 'Visit kzn-doghouse.onrender.com/Home/Privacy'))}
+        >
+          <Text style={styles.privacyLinkText}>Privacy policy</Text>
+        </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -168,4 +177,6 @@ const styles = StyleSheet.create({
   footerRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 22 },
   footerText: { color: colors.fgMuted, fontSize: 13 },
   footerLink: { color: '#fff', fontSize: 13, fontWeight: '800' },
+  privacyLinkRow: { alignSelf: 'center', padding: 12, marginTop: 10 },
+  privacyLinkText: { color: colors.fgMuted, fontSize: 13, textDecorationLine: 'underline' },
 });

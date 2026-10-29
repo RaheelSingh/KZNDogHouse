@@ -1,0 +1,51 @@
+@{
+    ViewData["Title"] = "Account deletion";
+    ViewData["Eyebrow"] = "Account support";
+    ViewData["Heading"] = "Request account deletion.";
+    ViewData["Subtitle"] = "Request removal of your KZN Doghouse website or mobile app account.";
+}
+
+<partial name="_PublicPageHeader" />
+
+<section class="public-section">
+    <div class="container">
+        <div class="public-policy-card">
+            <section>
+                <h2>How to request deletion</h2>
+                <p>
+                    You can request deletion even if you no longer have the mobile app installed.
+                    Use the form linked below and enter the email address associated with your
+                    account. Select "Account deletion" as the topic and tell us that you want
+                    your KZN Doghouse account and associated personal data deleted.
+                </p>
+                <a asp-controller="Contact" asp-action="Index"
+                   asp-route-topic="account-deletion"
+                   asp-route-message="Please delete my KZN Doghouse account and associated personal information."
+                   class="btn btn-kzn-primary">Request account deletion</a>
+            </section>
+            <section>
+                <h2>What happens next</h2>
+                <p>
+                    The request is sent to the KZN Doghouse team for review. We will verify
+                    that you own the account before processing deletion. Do not include your
+                    password or any authentication codes in your message.
+                </p>
+                <p>
+                    Account and related personal data will be removed after verification,
+                    except records that must be retained for legal, safeguarding, or other
+                    legitimate obligations. Deletion is not performed automatically when
+                    the form is submitted.
+                </p>
+            </section>
+            <section>
+                <h2>Need help?</h2>
+                <p>
+                    Contact <a href="mailto:@PublicSiteInfo.Email">@PublicSiteInfo.Email</a>
+                    if you have difficulty submitting your request.
+                    Read our <a asp-controller="Home" asp-action="Privacy">privacy policy</a>
+                    for information about how we handle data.
+                </p>
+            </section>
+        </div>
+    </div>
+</section>

@@ -5733,11 +5733,18 @@ label.is-required::after {
     transition: color .15s ease, background-color .15s ease, border-color .15s ease;
 }
 .volunteer-review-button:hover:not(:disabled),
-.volunteer-review-button:focus-visible:not(:disabled),
-.volunteer-review-button.is-selected {
+.volunteer-review-button:focus-visible:not(:disabled) {
     background: #143c2a; border-color: #143c2a; color: #fff;
 }
-.volunteer-review-button.is-selected:disabled { opacity: 1; cursor: default; }
+/* A previously chosen decision remains visible but is not an active action. */
+.volunteer-review-button.is-selected,
+.volunteer-review-button.is-selected:disabled {
+    background: #f3f5f3;
+    border-color: #bbc5be;
+    color: #64736b;
+    opacity: 1;
+    cursor: default;
+}
 .volunteer-review-button:disabled:not(.is-selected) { opacity: .4; cursor: not-allowed; }
 .portal-volunteer-review-link {
     display: inline-flex; align-items: center; gap: 0.35rem;
