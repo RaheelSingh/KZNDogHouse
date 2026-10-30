@@ -8,7 +8,7 @@ public interface IDogDocumentService
 {
     Task<IReadOnlyList<DogDocument>> GetForDogAsync(Guid dogId);
     Task<DogDocument?> GetAsync(Guid id);
-    Task<DocumentUploadResult> UploadAsync(Guid dogId, Guid? medicalRecordId, string category, IFormFile? file, Guid actorId, Guid? fosterApplicationId = null);
+    Task<DocumentUploadResult> UploadAsync(Guid dogId, Guid? medicalRecordId, string category, IFormFile? file, Guid actorId, Guid? fosterApplicationId = null, Guid? adoptionRecordId = null);
     Task<byte[]> DownloadAsync(DogDocument document);
 }
 
@@ -39,7 +39,7 @@ public class DogDocumentService : IDogDocumentService
         return result.Models?.FirstOrDefault();
     }
 
-    public async Task<DocumentUploadResult> UploadAsync(Guid dogId, Guid? medicalRecordId, string category, IFormFile? file, Guid actorId, Guid? fosterApplicationId = null)
+    public async Task<DocumentUploadResult> UploadAsync(Guid dogId, Guid? medicalRecordId, string category, IFormFile? file, Guid actorId, Guid? fosterApplicationId = null, Guid? adoptionRecordId = null)
     {
         if (file == null || file.Length == 0) return new(false, "Select a document to upload.");
         if (file.Length > MaxSize) return new(false, "Documents must be 10 MB or smaller.");
@@ -66,7 +66,7 @@ public class DogDocumentService : IDogDocumentService
                 var row = new DogDocument
                 {
                     Id = Guid.NewGuid(), DogId = dogId, MedicalRecordId = medicalRecordId,
-                    Category = category, FileName = cleanName, ContentType = mime, FosterApplicationId = fosterApplicationId,
+                    Category = category, FileName = cleanName, ContentType = mime, FosterApplicationId = fosterApplicationId, AdoptionRecordId = adoptionRecordId,
                     StoragePath = path, UploadedBy = actorId, CreatedAt = DateTime.UtcNow
                 };
                 await client.From<DogDocument>().Insert(row);

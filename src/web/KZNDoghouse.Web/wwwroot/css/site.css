@@ -5916,3 +5916,38 @@ label.is-required::after {
  .portal-inbox-card > p, .portal-inbox-card > .d-flex:not(:first-child) { grid-column:1; }
  .portal-inbox-card > .portal-inbox-actions { grid-column:2; grid-row:2 / span 2; align-self:center; }
 }
+
+/* Care records: contextual attachments and compact history rows */
+.foster-required { color:#c5293d; font-weight:700; }
+.foster-field-error:empty { display:none; }
+.foster-agreement-panel { border:1px solid #dce5da; border-radius:10px; padding:.6rem .75rem; max-width:480px; }
+.foster-agreement-panel summary { font-weight:600; cursor:pointer; }
+.foster-agreement-content { display:grid; gap:.65rem; margin-top:.65rem; }
+.foster-agreement-upload { display:grid; gap:.5rem; min-width:0; }
+.foster-agreement-upload input { width:100%; min-width:0; }
+.foster-agreement-upload button { justify-self:start; }
+.dog-medical-accordion { padding:.45rem 0; }
+.dog-medical-accordion-heading { align-items:center; padding:.4rem 0; }
+.dog-medical-summary-meta { display:inline-flex; align-items:center; gap:.6rem; margin-left:auto; }
+.dog-medical-accordion-heading::-webkit-details-marker { display:none; }
+.dog-medical-accordion-heading { list-style:none; }
+.dog-medical-chevron { font-size:1.2rem; display:inline-block; transition:transform .15s; }
+.dog-medical-accordion[open] .dog-medical-chevron { transform:rotate(180deg); }
+.dog-medical-accordion-body { display:grid; gap:.6rem; padding:.65rem .85rem; }
+.dog-medical-accordion-body .text-end { justify-self:end; }
+.medical-attachment-list,.record-linked-documents { display:flex; flex-wrap:wrap; gap:.5rem 1rem; align-items:center; border-top:1px solid #e2e9df; padding-top:.65rem; }
+.medical-attachment-list a,.record-linked-documents a { overflow-wrap:anywhere; }
+.adoption-record-details { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.45rem 1rem; }
+.adoption-record-details div { min-width:0; }
+.adoption-record-details dt { color:#526257; font-size:.8rem; }
+.adoption-record-details dd { overflow-wrap:anywhere; }
+.record-upload-row { display:flex; flex-wrap:wrap; gap:.5rem; }
+.record-upload-row input { flex:1 1 250px; min-width:0; }
+@media(max-width:740px) { .adoption-record-details { grid-template-columns:1fr; } .dog-medical-summary-meta { flex-wrap:wrap; justify-content:flex-end; } }
+/* Place medical status and actions together at the top right of the expanded record. */
+@media (min-width: 720px) {
+  .dog-medical-accordion-body { grid-template-columns:minmax(0,1fr) auto; align-items:start; }
+  .dog-medical-accordion-body > div:first-child { grid-column:1; grid-row:1; }
+  .dog-medical-accordion-body > div.text-end { grid-column:2; grid-row:1; }
+  .dog-medical-accordion-body > .medical-attachment-list { grid-column:1 / -1; }
+}

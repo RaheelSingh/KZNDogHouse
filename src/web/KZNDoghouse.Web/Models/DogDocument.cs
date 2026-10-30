@@ -10,6 +10,7 @@ public class DogDocument : BaseModel
     [PrimaryKey("id", false)] public Guid Id { get; set; }
     [Column("dog_id")] public Guid DogId { get; set; }
     [Column("foster_application_id")] public Guid? FosterApplicationId { get; set; }
+    [Column("adoption_record_id")] public Guid? AdoptionRecordId { get; set; }
     [Column("medical_record_id")] public Guid? MedicalRecordId { get; set; }
     [Column("category")] public string Category { get; set; } = "Medical";
     [Column("file_name")] public string FileName { get; set; } = string.Empty;

@@ -14,6 +14,8 @@ public class DogsController : Controller
     private readonly IDogService _dogService;
     private readonly IDogImageService _dogImageService;
     private readonly IDogVideoService? _videoService;
+    private readonly IAdoptionRecordRepository? _adoptions;
+    private readonly IFosterApplicationRepository? _fosterApplications;
     private readonly IUserProfileRepository _userProfileRepository;
     private readonly IDogMedicalService _dogMedicalService;
     private readonly IDogDocumentService _documents;
@@ -30,11 +32,15 @@ public class DogsController : Controller
         IMedicalAlertService medicalAlerts,
         IFosteringService fosteringService,
         ILogger<DogsController> logger,
-        IDogVideoService? videoService = null)
+        IDogVideoService? videoService = null,
+        IAdoptionRecordRepository? adoptions = null,
+        IFosterApplicationRepository? fosterApplications = null)
     {
         _dogService = dogService;
         _dogImageService = dogImageService;
         _videoService = videoService;
+        _adoptions = adoptions;
+        _fosterApplications = fosterApplications;
         _userProfileRepository = userProfileRepository;
         _dogMedicalService = dogMedicalService;
         _documents = documents;
@@ -353,6 +359,13 @@ public class DogsController : Controller
                 new { id });
         }
 
+        if (_adoptions != null && status != DogStatuses.Adopted
+            && (await _adoptions.GetForDogAsync(id)).Any(x => x.Status == "Adopted"))
+        {
+            TempData["ErrorMessage"] = "Use the Adoption tab to record a returned dog before changing its status.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
         await _dogService.ChangeStatusAsync(id, status);
         if (status == "Under Treatment")
         {
@@ -385,6 +398,9 @@ public class DogsController : Controller
         var model = new DogDetailsViewModel
         {
             Dog = dog,
+            AdoptionHistory = _adoptions == null ? Array.Empty<AdoptionRecord>() : await _adoptions.GetForDogAsync(id),
+            FosterApplications = _fosterApplications == null ? Array.Empty<FosterApplication>()
+                : (await _fosterApplications.GetAllAsync()).Where(x => x.DogId == id).ToList(),
             Videos = _videoService == null ? Array.Empty<DogVideo>() : await _videoService.GetForDogAsync(id),
             MedicalRecords = await _dogMedicalService.GetRecordsAsync(id),
             Documents = await _documents.GetForDogAsync(id),

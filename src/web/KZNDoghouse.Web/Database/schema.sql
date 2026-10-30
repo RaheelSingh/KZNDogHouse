@@ -922,11 +922,35 @@ end $$;
 create index if not exists idx_contact_messages_status_created
     on public.contact_messages(status, created_at desc);
 
+-- Staff-managed adoption records. No existing dog or account rows are modified.
+create table if not exists public.adoption_records (
+    id uuid primary key default gen_random_uuid(),
+    dog_id uuid not null references public.dogs(id) on delete cascade,
+    adopter_name text not null,
+    adopter_email text null,
+    adopter_phone text not null,
+    adopter_address text not null,
+    notes text null,
+    status text not null default 'Pending paperwork' check (status in ('Pending paperwork','Adopted','Returned')),
+    adopted_at timestamptz null,
+    returned_at timestamptz null,
+    return_notes text null,
+    created_by uuid null references public.user_profiles(id) on delete set null,
+    created_at timestamptz not null default now()
+);
+create index if not exists idx_adoption_records_dog on public.adoption_records(dog_id, created_at desc);
+create unique index if not exists idx_adoption_one_active_per_dog
+    on public.adoption_records(dog_id) where status in ('Pending paperwork','Adopted');
+alter table public.adoption_records enable row level security;
+revoke all on public.adoption_records from public, anon, authenticated;
+grant all on public.adoption_records to service_role;
+
 create table if not exists public.dog_documents (
     id uuid primary key default gen_random_uuid(),
     dog_id uuid not null references public.dogs(id) on delete cascade,
     medical_record_id uuid null references public.dog_medical_records(id) on delete set null,
     foster_application_id uuid null references public.foster_applications(id) on delete set null,
+    adoption_record_id uuid null references public.adoption_records(id) on delete set null,
     category text not null check (category in ('Medical','Foster','Adoption')),
     file_name text not null,
     content_type text not null check (content_type in (
@@ -938,6 +962,8 @@ create table if not exists public.dog_documents (
     created_at timestamptz not null default now()
 );
 alter table public.dog_documents add column if not exists foster_application_id uuid null references public.foster_applications(id) on delete set null;
+alter table public.dog_documents add column if not exists adoption_record_id uuid null references public.adoption_records(id) on delete set null;
+create index if not exists idx_dog_documents_adoption on public.dog_documents(adoption_record_id);
 
 -- Widen only the known dog-document content type constraint for DOCX and GIF.
 -- Existing files/rows are not changed. Unknown custom constraints cause a rollback.

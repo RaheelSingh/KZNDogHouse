@@ -117,13 +117,21 @@
                                 <div class="small"><a href="tel:@application.ApplicantPhone">Call @application.ApplicantPhone</a></div>
                             }
                             <a class="small" href="mailto:@application.ApplicantEmail">Email applicant</a>
-                            @if (item.Documents.Any())
+                            @if (application.DogId.HasValue && isOpen)
                             {
-                                <details class="mt-2"><summary>Signed agreement</summary>
-                                    @foreach (var doc in item.Documents)
-                                    {
-                                        <div><a class="small" asp-controller="DogDocuments" asp-action="Download" asp-route-id="@doc.Id">@doc.FileName</a></div>
-                                    }
+                                <details class="foster-agreement-panel mt-3">
+                                    <summary>Signed agreement (@item.Documents.Count)</summary>
+                                    <div class="foster-agreement-content">
+                                        @foreach (var document in item.Documents)
+                                        {
+                                            <a class="small" asp-controller="DogDocuments" asp-action="Download" asp-route-id="@document.Id">@document.FileName</a>
+                                        }
+                                        <form asp-controller="FosterApplications" asp-action="UploadAgreement" asp-route-id="@application.Id" method="post" enctype="multipart/form-data" class="foster-agreement-upload">
+                                            <label class="form-label small" for="agreement-@application.Id">Signed agreement (PDF or image)</label>
+                                            <input id="agreement-@application.Id" class="form-control form-control-sm" type="file" name="file" accept=".pdf,.docx,.jpg,.jpeg,.png,.webp,.gif" required />
+                                            <button type="submit" class="btn btn-kzn-outline btn-sm">Upload agreement</button>
+                                        </form>
+                                    </div>
                                 </details>
                             }
                             @if (!string.IsNullOrWhiteSpace(application.ApplicationDetails))
@@ -156,17 +164,7 @@
                             {
                                 @if (application.DogId.HasValue)
                                 {
-                                    <details class="mb-2 text-start">
-                                        <summary>Signed agreement (@item.Documents.Count)</summary>
-                                        @foreach (var document in item.Documents)
-                                        {
-                                            <p class="small mb-1"><a asp-controller="DogDocuments" asp-action="Download" asp-route-id="@document.Id">@document.FileName</a></p>
-                                        }
-                                        <form asp-controller="FosterApplications" asp-action="UploadAgreement" asp-route-id="@application.Id" method="post" enctype="multipart/form-data">
-                                            <input class="form-control form-control-sm mb-1" type="file" name="file" accept=".pdf,.jpg,.jpeg,.png,.webp" required />
-                                            <button class="btn btn-kzn-outline btn-sm">Upload agreement</button>
-                                        </form>
-                                    </details>
+
                                 }
                                 @if (application.Status == FosterApplicationStatuses.Submitted)
                                 {

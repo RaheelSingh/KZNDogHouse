@@ -94,7 +94,7 @@
                         <legend>Fostering preferences</legend>
 
                         <div class="public-question" role="group" aria-labelledby="q-size" id="fosterSizePreferences">
-                            <p id="q-size" class="public-question-label">What size dog could you foster? *</p>
+                            <p id="q-size" class="public-question-label">What size dog could you foster? <span class="foster-required" aria-hidden="true">*</span></p>
                             <div class="public-pill-group">
                                 @foreach (var option in FosterOptions.SizePreferences)
                                 {
@@ -107,11 +107,11 @@
                                     </label>
                                 }
                             </div>
-                            <span asp-validation-for="SizePreferences" class="text-danger"></span>
+                            <span asp-validation-for="SizePreferences" class="text-danger foster-field-error"></span>
                         </div>
 
                         <div class="public-question" role="group" aria-labelledby="q-period">
-                            <p id="q-period" class="public-question-label">How long could you foster for? *</p>
+                            <p id="q-period" class="public-question-label">How long could you foster for? <span class="foster-required" aria-hidden="true">*</span></p>
                             <div class="public-pill-group">
                                 @foreach (var option in FosterPeriods.All)
                                 {
@@ -121,7 +121,7 @@
                                     </label>
                                 }
                             </div>
-                            <span asp-validation-for="FosterPeriod" class="text-danger"></span>
+                            <span asp-validation-for="FosterPeriod" class="text-danger foster-field-error"></span>
                         </div>
 
                         <div class="public-question">
@@ -263,6 +263,19 @@
                 fallback.hidden = false;
             }
         };
+        // Keep only the red required indicator beside the question. Some versions
+        // of the client validator render a stray '*' under selected choice groups.
+        function cleanChoiceMarker(fieldName, isAnswered) {
+            if (!isAnswered) return;
+            const label = document.querySelector('[data-valmsg-for="' + fieldName + '"]');
+            if (label && label.textContent.trim() === '*') label.textContent = '';
+        }
+        document.querySelectorAll('input[name="FosterPeriod"], input[name="SizePreferences"]').forEach(input => {
+            input.addEventListener('change', () => {
+                cleanChoiceMarker('FosterPeriod', !!document.querySelector('input[name="FosterPeriod"]:checked'));
+                cleanChoiceMarker('SizePreferences', !!document.querySelector('input[name="SizePreferences"]:checked'));
+            });
+        });
         dogSelector?.addEventListener('change', updateDogSelection);
         updateDogSelection();
 

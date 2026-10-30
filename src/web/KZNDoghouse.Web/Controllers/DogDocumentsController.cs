@@ -24,7 +24,9 @@ public class DogDocumentsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Upload(Guid dogId, string category, IFormFile? file)
     {
-        if (category is not ("Medical" or "Foster" or "Adoption")) return BadRequest();
+        // Foster and adoption paperwork must be associated with a reviewed application
+        // or adoption record, not uploaded as an unlinked dog-wide file.
+        if (category != "Medical") return BadRequest();
         var authId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrWhiteSpace(authId)) return Challenge();
         var profile = await _users.GetByAuthUserIdAsync(authId);
