@@ -382,7 +382,7 @@
 
                     <form asp-controller="Dogs"
                           asp-action="AddMedicalRecord"
-                          method="post">
+                          method="post" enctype="multipart/form-data">
 
                         <input type="hidden"
                                name="dogId"
@@ -459,7 +459,10 @@
 
                         </div>
 
-                        <button type="submit"
+                        <label class="form-label mt-2">Supporting document (optional)</label>
+                      <input type="file" name="attachment" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.webp" />
+                      <small class="text-muted">PDF or image, 10 MB maximum</small>
+                      <button type="submit"
                                 class="btn btn-kzn-primary mt-3">
                             Add record
                         </button>
@@ -694,6 +697,33 @@
 
         </div>
 
+    </section>
+
+    <section class="portal-card mt-3" aria-label="Secure dog paperwork">
+        <h3 class="h5">Secure dog documents</h3>
+        <p class="text-muted small">Medical, foster and adoption paperwork is restricted to authorised staff.</p>
+        @if (Model.Documents.Any())
+        {
+            <ul class="portal-document-list">
+                @foreach (var document in Model.Documents)
+                {
+                    <li><span><strong>@document.Category:</strong> @document.FileName</span>
+                        <a asp-controller="DogDocuments" asp-action="Download" asp-route-id="@document.Id">Download securely</a></li>
+                }
+            </ul>
+        }
+        else { <p class="text-muted">No documents uploaded yet.</p> }
+        <form asp-controller="DogDocuments" asp-action="Upload" method="post" enctype="multipart/form-data">
+            <input type="hidden" name="dogId" value="@dog.Id" />
+            <div class="row g-2 align-items-end">
+                <div class="col-md-3"><label class="form-label">Document type</label>
+                    <select name="category" class="form-select"><option>Medical</option><option>Foster</option><option>Adoption</option></select></div>
+                <div class="col-md-6"><label class="form-label">PDF or image</label>
+                    <input name="file" type="file" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.webp" required /></div>
+                <div class="col-md-3"><button class="btn btn-kzn-primary w-100">Upload document</button></div>
+            </div>
+            <p class="portal-upload-help">Maximum 10 MB per file. Never publicly accessible.</p>
+        </form>
     </section>
 
 </div>

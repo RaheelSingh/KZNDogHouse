@@ -5857,3 +5857,31 @@ label.is-required::after {
 .portal-dashboard-stat-grid .portal-stat-icon svg { width:21px; height:21px; }
 @media (max-width: 991.98px) { .vet-detail-grid { grid-template-columns: 1fr; } }
 @media (max-width: 575.98px) { .vet-summary-card dl > dt { width:40%; flex-basis:40%; } .vet-summary-card dl > dd { width:60%; flex-basis:60%; } .dog-health-checks { flex-direction:column; } }
+
+/* Portal consistency: do not reserve empty list space or duplicate blank states. */
+.portal-main .portal-filter-results:empty,
+.portal-main .portal-record-scroll:empty { min-height: 0; }
+.portal-main .portal-record-scroll { min-height: 0; }
+.portal-main .portal-filter-empty[hidden] { display: none !important; }
+.portal-main .portal-card:has(> .portal-filter-empty[hidden]) { min-height: 0; }
+.portal-main .portal-filter-results-cards { min-height: 0; }
+.portal-notifications-empty { margin-top: 1rem; min-height: 110px; display:flex; align-items:center; justify-content:center; }
+.portal-notifications-results { max-height: 620px; min-height: 0; }
+.vet-detail-grid { grid-template-columns: minmax(0, 1.35fr) minmax(320px, .8fr); align-items:stretch; }
+.vet-records-card { min-height: 320px; }
+.vet-form-card { min-height: 0; }
+.portal-sidebar-brand { gap:.65rem; }
+.portal-sidebar-brand span { font-size: .95rem; line-height: 1.2; }
+.portal-quick-link::before { display: none !important; }
+.portal-quick-link { position:relative; padding-top:1rem; }
+.portal-quick-link svg { width:22px; height:22px; display:block; margin-bottom:.65rem; fill:none; stroke:#19402e; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+.portal-document-list { display:grid; gap:.6rem; padding:0; margin:1rem 0; list-style:none; }
+.portal-document-list li { display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap; padding:.75rem; border:1px solid #dce5df; border-radius:10px; }
+.portal-upload-help { font-size:.82rem; color:#53685a; margin-top:.5rem; }
+.portal-inbox-card { margin-bottom:.85rem; }
+.portal-inbox-card .portal-inbox-actions { display:flex; gap:.5rem; flex-wrap:wrap; }
+.portal-inline-datetime { display:flex; gap:.45rem; flex-wrap:wrap; }
+.portal-inline-datetime input[type=date] { min-width:165px; flex:1 1 170px; }
+.portal-inline-datetime input[type=time] { min-width:120px; flex:0 1 140px; }
+@media (max-width:991.98px){.vet-detail-grid { grid-template-columns:1fr; }}
+@media (max-width:575.98px){.portal-inline-datetime input[type=time] { flex:1 1 120px; }}

@@ -15,6 +15,8 @@ public class DogsController : Controller
     private readonly IDogImageService _dogImageService;
     private readonly IUserProfileRepository _userProfileRepository;
     private readonly IDogMedicalService _dogMedicalService;
+    private readonly IDogDocumentService _documents;
+    private readonly IMedicalAlertService _medicalAlerts;
     private readonly IFosteringService _fosteringService;
     private readonly ILogger<DogsController> _logger;
 
@@ -23,6 +25,8 @@ public class DogsController : Controller
         IDogImageService dogImageService,
         IUserProfileRepository userProfileRepository,
         IDogMedicalService dogMedicalService,
+        IDogDocumentService documents,
+        IMedicalAlertService medicalAlerts,
         IFosteringService fosteringService,
         ILogger<DogsController> logger)
     {
@@ -30,6 +34,8 @@ public class DogsController : Controller
         _dogImageService = dogImageService;
         _userProfileRepository = userProfileRepository;
         _dogMedicalService = dogMedicalService;
+        _documents = documents;
+        _medicalAlerts = medicalAlerts;
         _fosteringService = fosteringService;
         _logger = logger;
     }
@@ -332,9 +338,16 @@ public class DogsController : Controller
                 new { id });
         }
 
-        await _dogService.ChangeStatusAsync(
-            id,
-            status);
+        await _dogService.ChangeStatusAsync(id, status);
+        if (status == "Under Treatment")
+        {
+            try
+            {
+                var dog = await _dogService.GetDogAsync(id);
+                await _medicalAlerts.NotifyAssignedVetsAsync(id, dog?.Name ?? "A dog", "Care status changed to Under Treatment");
+            }
+            catch (Exception ex) { _logger.LogWarning(ex, "Dog status saved but assigned-vet alert failed."); }
+        }
 
         TempData["SuccessMessage"] =
             "Status updated.";
@@ -357,8 +370,8 @@ public class DogsController : Controller
         var model = new DogDetailsViewModel
         {
             Dog = dog,
-            MedicalRecords =
-                await _dogMedicalService.GetRecordsAsync(id),
+            MedicalRecords = await _dogMedicalService.GetRecordsAsync(id),
+            Documents = await _documents.GetForDogAsync(id),
             Notes =
                 await _dogMedicalService.GetNotesAsync(id),
             FosteringHistory =
@@ -378,7 +391,8 @@ public class DogsController : Controller
         string title,
         string? details,
         string? vetName,
-        DateTime? nextActionDate)
+        DateTime? nextActionDate,
+        IFormFile? attachment)
     {
         if (!MedicalRecordTypes.All.Contains(recordType)
             || string.IsNullOrWhiteSpace(title))
@@ -398,7 +412,7 @@ public class DogsController : Controller
             return Challenge();
         }
 
-        await _dogMedicalService.AddRecordAsync(
+        var createdRecord = await _dogMedicalService.AddRecordAsync(
             dogId,
             recordType,
             title.Trim(),
@@ -407,8 +421,18 @@ public class DogsController : Controller
             nextActionDate,
             currentProfile.Id);
 
-        TempData["SuccessMessage"] =
-            "Medical record added.";
+        TempData["SuccessMessage"] = "Medical record added.";
+        if (attachment != null && attachment.Length > 0)
+        {
+            var result = await _documents.UploadAsync(dogId, createdRecord.Id, "Medical", attachment, currentProfile.Id);
+            if (!result.Success) TempData["ErrorMessage"] = result.Message;
+        }
+        try
+        {
+            var dog = await _dogService.GetDogAsync(dogId);
+            await _medicalAlerts.NotifyAssignedVetsAsync(dogId, dog?.Name ?? "A dog", title);
+        }
+        catch (Exception ex) { _logger.LogWarning(ex, "Medical record saved but vet notification failed."); }
 
         return RedirectToAction(
             nameof(Details),
@@ -422,6 +446,12 @@ public class DogsController : Controller
         Guid recordId)
     {
         await _dogMedicalService.ResolveRecordAsync(recordId);
+        try
+        {
+            var dog = await _dogService.GetDogAsync(dogId);
+            await _medicalAlerts.NotifyAssignedVetsAsync(dogId, dog?.Name ?? "A dog", "A medical record was resolved");
+        }
+        catch (Exception ex) { _logger.LogWarning(ex, "Record resolved but vet alert failed."); }
 
         TempData["SuccessMessage"] =
             "Medical record marked as resolved.";

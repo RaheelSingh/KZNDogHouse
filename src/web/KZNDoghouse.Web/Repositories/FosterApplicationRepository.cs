@@ -15,6 +15,8 @@ public interface IFosterApplicationRepository
     Task<IReadOnlyList<FosterApplication>> GetByApplicantAsync(Guid applicantUserId);
 
     Task ApproveAsync(Guid id, Guid reviewedByStaffId, Guid fosteringRecordId);
+    Task MarkUnderReviewAsync(Guid id, Guid reviewedByStaffId);
+    Task AssignDogAsync(Guid id, Guid dogId);
 
     Task RejectAsync(Guid id, Guid reviewedByStaffId, string rejectionReason);
 }
@@ -89,6 +91,26 @@ public class FosterApplicationRepository : IFosterApplicationRepository
         return response.Models
             .OrderByDescending(x => x.SubmittedAt)
             .ToList();
+    }
+
+    public async Task AssignDogAsync(Guid id, Guid dogId)
+    {
+        var client = await _supabaseClientFactory.CreateServiceClientAsync();
+        await client.From<FosterApplication>()
+            .Where(x => x.Id == id)
+            .Set(x => x.DogId!, dogId)
+            .Update();
+    }
+
+    public async Task MarkUnderReviewAsync(Guid id, Guid reviewedByStaffId)
+    {
+        var client = await _supabaseClientFactory.CreateServiceClientAsync();
+        await client.From<FosterApplication>()
+            .Where(x => x.Id == id)
+            .Set(x => x.Status, FosterApplicationStatuses.UnderReview)
+            .Set(x => x.ReviewedByStaffId!, reviewedByStaffId)
+            .Set(x => x.ReviewedAt!, DateTime.UtcNow)
+            .Update();
     }
 
     public async Task ApproveAsync(Guid id, Guid reviewedByStaffId, Guid fosteringRecordId)

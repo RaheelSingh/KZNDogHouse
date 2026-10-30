@@ -171,6 +171,8 @@ builder.Services.AddScoped<IDogService, DogService>();
 builder.Services.AddScoped<IDogMedicalRecordRepository, DogMedicalRecordRepository>();
 builder.Services.AddScoped<IDogNoteRepository, DogNoteRepository>();
 builder.Services.AddScoped<IDogMedicalService, DogMedicalService>();
+builder.Services.AddScoped<IDogDocumentService, DogDocumentService>();
+builder.Services.AddScoped<IMedicalAlertService, MedicalAlertService>();
 builder.Services.AddScoped<IFosteringRecordRepository, FosteringRecordRepository>();
 builder.Services.AddScoped<IFosteringService, FosteringService>();
 builder.Services.AddScoped<IAvailabilitySlotRepository, AvailabilitySlotRepository>();

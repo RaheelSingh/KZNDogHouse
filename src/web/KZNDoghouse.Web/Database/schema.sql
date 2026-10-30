@@ -852,3 +852,72 @@ $kzn_rls$;
 notify pgrst, 'reload schema';
 
 commit;
+
+
+/* Private records and contact workflow (additive; safe to rerun) */
+-- Additive KZN Doghouse portal operations upgrade.
+-- Review against the live project and run once in Supabase SQL Editor after backup.
+-- No existing dogs, users, events, foster applications or notifications are deleted.
+begin;
+
+alter table public.notifications
+    add column if not exists cleared_at timestamptz null;
+create index if not exists idx_notifications_recipient_cleared
+    on public.notifications(recipient_id, cleared_at, created_at desc);
+
+alter table public.contact_messages
+    add column if not exists status text not null default 'New';
+update public.contact_messages
+    set status = 'Resolved'
+    where is_handled = true and status = 'New';
+
+-- Staff-controlled contact workflow. Database checks reject invalid statuses.
+do $$ begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'contact_messages_status_check'
+      and conrelid = 'public.contact_messages'::regclass
+  ) then
+    alter table public.contact_messages
+      add constraint contact_messages_status_check
+      check (status in ('New', 'Ongoing', 'Resolved'));
+  end if;
+end $$;
+create index if not exists idx_contact_messages_status_created
+    on public.contact_messages(status, created_at desc);
+
+create table if not exists public.dog_documents (
+    id uuid primary key default gen_random_uuid(),
+    dog_id uuid not null references public.dogs(id) on delete cascade,
+    medical_record_id uuid null references public.dog_medical_records(id) on delete set null,
+    foster_application_id uuid null references public.foster_applications(id) on delete set null,
+    category text not null check (category in ('Medical','Foster','Adoption')),
+    file_name text not null,
+    content_type text not null check (content_type in ('application/pdf','image/jpeg','image/png','image/webp')),
+    storage_path text not null unique,
+    uploaded_by uuid null references public.user_profiles(id) on delete set null,
+    created_at timestamptz not null default now()
+);
+alter table public.dog_documents add column if not exists foster_application_id uuid null references public.foster_applications(id) on delete set null;
+create index if not exists idx_dog_documents_foster on public.dog_documents(foster_application_id);
+create index if not exists idx_dog_documents_dog on public.dog_documents(dog_id, created_at desc);
+alter table public.dog_documents enable row level security;
+-- The server exclusively accesses these sensitive records using its service-role key.
+revoke all on public.dog_documents from public, anon, authenticated;
+grant select, insert, update, delete on public.dog_documents to service_role;
+
+-- Medical and signed foster/adoption files must never use public-media storage.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'dog-private-documents', 'dog-private-documents', false, 10485760,
+  array['application/pdf','image/jpeg','image/png','image/webp']::text[]
+)
+on conflict (id) do nothing;
+-- Fail rather than allow an accidentally public bucket with the same identifier.
+do $$ begin
+  if exists (select 1 from storage.buckets where id = 'dog-private-documents' and public = true) then
+    raise exception 'dog-private-documents is public; change it to private before uploading sensitive files';
+  end if;
+end $$;
+notify pgrst, 'reload schema';
+commit;

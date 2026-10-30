@@ -1150,8 +1150,9 @@ document.addEventListener("DOMContentLoaded", () => {
 document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll("input, select, textarea").forEach((control) => {
         const isRequired =
-            control.required
-            || control.hasAttribute("data-val-required");
+            control.dataset.optionalField !== "true"
+            && control.type !== "checkbox"
+            && (control.required || control.hasAttribute("data-val-required"));
 
         if (!isRequired) {
             return;
@@ -1266,3 +1267,39 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 });
+
+
+// Event scheduling: separate date and time inputs, so users can type HH:MM
+// rather than spinning through a long native combined date/time picker.
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.portal-body form input[type="datetime-local"]').forEach(original => {
+    if (!original.name || original.dataset.splitReady) return;
+    original.dataset.splitReady = 'true';
+    const wrapper = document.createElement('div');
+    wrapper.className = 'portal-inline-datetime';
+    const date = document.createElement('input');
+    date.type = 'date'; date.className = 'form-control';
+    date.setAttribute('aria-label', 'Date');
+    const time = document.createElement('input');
+    time.type = 'time'; time.step = '60'; time.className = 'form-control';
+    time.setAttribute('aria-label', 'Time (24-hour format)');
+    const [initialDate, initialTime] = (original.value || '').split('T');
+    date.value = initialDate || '';
+    time.value = (initialTime || '').slice(0, 5);
+    if (original.required) { date.required = true; time.required = true; }
+    const sync = () => { original.value = date.value && time.value ? `${date.value}T${time.value}` : ''; };
+    date.addEventListener('change', sync);
+    time.addEventListener('change', sync);
+    wrapper.append(date, time);
+    original.type = 'hidden';
+    original.insertAdjacentElement('afterend', wrapper);
+    sync();
+  });
+});
+
+// Portal routes should open at their headings, even after visiting a long
+// record list. This avoids sticky headers obscuring the title on an empty tab.
+if (document.body.classList.contains('portal-body')) {
+  try { window.history.scrollRestoration = 'manual'; } catch { /* unsupported */ }
+  window.addEventListener('load', () => window.scrollTo({ top: 0, left: 0, behavior: 'instant' }), { once: true });
+}

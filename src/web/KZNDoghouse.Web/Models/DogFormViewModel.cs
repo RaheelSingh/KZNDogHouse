@@ -90,6 +90,17 @@ public class DogFormViewModel : IValidatableObject
                 [nameof(DateOfBirth)]);
         }
 
+        if (DateOfBirth.HasValue && EstimatedAgeYears.HasValue)
+        {
+            var years = (today - DateOfBirth.Value.Date).TotalDays / 365.2425;
+            if (Math.Abs(years - EstimatedAgeYears.Value) > 1.25)
+            {
+                yield return new ValidationResult(
+                    "Estimated age does not match the date of birth. Update the age or leave it blank if unsure.",
+                    [nameof(EstimatedAgeYears), nameof(DateOfBirth)]);
+            }
+        }
+
         var selectedImages = Images
             .Where(x => x != null && x.Length > 0)
             .ToList();

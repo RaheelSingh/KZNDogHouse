@@ -18,6 +18,10 @@ public interface IAppNotificationRepository
         Guid recipientId);
 
     Task MarkAllAsReadAsync(Guid recipientId);
+
+    Task ClearAsync(Guid notificationId, Guid recipientId);
+
+    Task ClearAllAsync(Guid recipientId);
 }
 
 public class AppNotificationRepository : IAppNotificationRepository
@@ -62,6 +66,7 @@ public class AppNotificationRepository : IAppNotificationRepository
         }
 
         return response.Models
+            .Where(x => x.ClearedAt == null)
             .OrderByDescending(x => x.CreatedAt)
             .Take(take)
             .ToList();
@@ -79,7 +84,7 @@ public class AppNotificationRepository : IAppNotificationRepository
             .Where(x => x.IsRead == false)
             .Get();
 
-        return response.Models?.Count ?? 0;
+        return response.Models?.Count(x => x.ClearedAt == null) ?? 0;
     }
 
     public async Task MarkAsReadAsync(
@@ -108,6 +113,24 @@ public class AppNotificationRepository : IAppNotificationRepository
             .Where(x => x.RecipientId == recipientId)
             .Where(x => x.IsRead == false)
             .Set(x => x.IsRead, true)
+            .Update();
+    }
+    public async Task ClearAsync(Guid notificationId, Guid recipientId)
+    {
+        var client = await _supabaseClientFactory.CreateServiceClientAsync();
+        await client.From<AppNotification>()
+            .Where(x => x.Id == notificationId)
+            .Where(x => x.RecipientId == recipientId)
+            .Set(x => x.ClearedAt!, DateTime.UtcNow)
+            .Update();
+    }
+
+    public async Task ClearAllAsync(Guid recipientId)
+    {
+        var client = await _supabaseClientFactory.CreateServiceClientAsync();
+        await client.From<AppNotification>()
+            .Where(x => x.RecipientId == recipientId)
+            .Set(x => x.ClearedAt!, DateTime.UtcNow)
             .Update();
     }
 }

@@ -6,6 +6,7 @@
     ViewData["Heading"] = "Ready to open your door?";
     ViewData["Subtitle"] = "Fostering is a temporary home for a dog in need — no forever commitment, just a soft place to land while we find them one. Tell us a bit about your home and we'll take it from there.";
 
+    var choices = ViewData["FosterDogChoices"] as IReadOnlyList<PublicDogListItem> ?? Array.Empty<PublicDogListItem>();
     var selectedDogName = ViewData["SelectedDogName"] as string;
     var selectedDogPhotoUrl = ViewData["SelectedDogPhotoUrl"] as string;
     var selectedDogPhotoName = ViewData["SelectedDogPhotoName"] as string;
@@ -28,7 +29,17 @@
 
                     <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
-                    <input type="hidden" asp-for="DogId" />
+                    <div class="mb-3">
+                        <label asp-for="DogId" class="form-label">Dog you'd like to foster (optional)</label>
+                        <select asp-for="DogId" class="form-select">
+                            <option value="">No preference / general foster enquiry</option>
+                            @foreach (var option in choices)
+                            {
+                                <option value="@option.Id">@option.Name (@option.MetaText)</option>
+                            }
+                        </select>
+                        <p class="form-text">You can apply without choosing a particular dog. The team will help match you.</p>
+                    </div>
 
                     @if (Model.DogId.HasValue && !string.IsNullOrWhiteSpace(selectedDogName))
                     {

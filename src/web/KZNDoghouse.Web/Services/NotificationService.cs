@@ -34,6 +34,10 @@ public interface INotificationService
         Guid recipientId);
 
     Task MarkAllAsReadAsync(Guid recipientId);
+
+    Task ClearAsync(Guid notificationId, Guid recipientId);
+
+    Task ClearAllAsync(Guid recipientId);
 }
 
 public class NotificationService : INotificationService
@@ -135,4 +139,9 @@ public class NotificationService : INotificationService
         return _notificationRepository
             .MarkAllAsReadAsync(recipientId);
     }
+    public Task ClearAsync(Guid notificationId, Guid recipientId) =>
+        _notificationRepository.ClearAsync(notificationId, recipientId);
+
+    public Task ClearAllAsync(Guid recipientId) =>
+        _notificationRepository.ClearAllAsync(recipientId);
 }

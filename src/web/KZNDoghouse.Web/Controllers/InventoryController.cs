@@ -11,17 +11,20 @@ namespace KZNDoghouse.Web.Controllers;
 public class InventoryController : Controller
 {
     private readonly IInventoryService _inventoryService;
+    private readonly INotificationService _notificationService;
     private readonly IUserProfileRepository _userProfileRepository;
     private readonly IMediaStorageService _mediaStorageService;
     private readonly ILogger<InventoryController> _logger;
 
     public InventoryController(
         IInventoryService inventoryService,
+        INotificationService notificationService,
         IUserProfileRepository userProfileRepository,
         IMediaStorageService mediaStorageService,
         ILogger<InventoryController> logger)
     {
         _inventoryService = inventoryService;
+        _notificationService = notificationService;
         _userProfileRepository = userProfileRepository;
         _mediaStorageService = mediaStorageService;
         _logger = logger;
@@ -144,6 +147,7 @@ public class InventoryController : Controller
 
         try
         {
+            var before = await _inventoryService.GetItemAsync(itemId);
             var result = await _inventoryService.RecordTransactionAsync(
                 itemId,
                 transactionType,
@@ -153,6 +157,21 @@ public class InventoryController : Controller
                 profile.Id);
 
             TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] = result.Message;
+            if (result.Success && before != null && result.NewQuantity.HasValue
+                && before.Quantity > before.LowStockThreshold
+                && result.NewQuantity.Value <= before.LowStockThreshold)
+            {
+                try
+                {
+                    var body = $"{before.Name} has {result.NewQuantity.Value} {before.Unit ?? "units"} left (threshold: {before.LowStockThreshold}).";
+                    await _notificationService.NotifyActiveRoleAsync(UserRoles.Staff, NotificationCategories.Tasks, "Low inventory stock", body);
+                    await _notificationService.NotifyActiveRoleAsync(UserRoles.Administrator, NotificationCategories.Tasks, "Low inventory stock", body);
+                }
+                catch (Exception notifyEx)
+                {
+                    _logger.LogWarning(notifyEx, "Stock changed but the low-stock notification failed.");
+                }
+            }
         }
         catch (Exception ex)
         {

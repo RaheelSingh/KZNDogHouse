@@ -3,6 +3,7 @@
 
 @{
     ViewData["Title"] = "Foster Applications";
+    var assignableDogs = ViewData["AssignableDogs"] as IReadOnlyList<Dog> ?? Array.Empty<Dog>();
     Layout = "_PortalLayout";
 }
 
@@ -111,15 +112,70 @@
                         <td>
                             <div class="fw-semibold">@application.ApplicantName</div>
                             <div class="text-muted small">@application.ApplicantEmail</div>
+                            @if (!string.IsNullOrWhiteSpace(application.ApplicantPhone))
+                            {
+                                <div class="small"><a href="tel:@application.ApplicantPhone">Call @application.ApplicantPhone</a></div>
+                            }
+                            <a class="small" href="mailto:@application.ApplicantEmail">Email applicant</a>
+                            @if (item.Documents.Any())
+                            {
+                                <details class="mt-2"><summary>Signed agreement</summary>
+                                    @foreach (var doc in item.Documents)
+                                    {
+                                        <div><a class="small" asp-controller="DogDocuments" asp-action="Download" asp-route-id="@doc.Id">@doc.FileName</a></div>
+                                    }
+                                </details>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(application.ApplicationDetails))
+                            {
+                                <details class="mt-2"><summary>View application answers</summary>
+                                    <div class="small mt-2" style="white-space:pre-wrap">@application.ApplicationDetails</div>
+                                </details>
+                            }
                         </td>
-                        <td>@item.DogName</td>
+                        <td>
+                            @item.DogName
+                            @if (!application.DogId.HasValue && isOpen)
+                            {
+                                <form asp-controller="FosterApplications" asp-action="AssignDog" asp-route-id="@application.Id" method="post" class="mt-2">
+                                    <select name="dogId" class="form-select form-select-sm mb-1" aria-label="Select foster dog" required>
+                                        <option value="">Choose a dog</option>
+                                        @foreach (var dog in assignableDogs)
+                                        {
+                                            <option value="@dog.Id">@dog.Name</option>
+                                        }
+                                    </select>
+                                    <button class="btn btn-kzn-outline btn-sm">Assign dog</button>
+                                </form>
+                            }
+                        </td>
                         <td>@application.SubmittedAt.ToString("dd MMM yyyy")</td>
                         <td>@application.Status</td>
                         <td class="text-end">
                             @if (isOpen)
                             {
+                                @if (application.DogId.HasValue)
+                                {
+                                    <details class="mb-2 text-start">
+                                        <summary>Signed agreement (@item.Documents.Count)</summary>
+                                        @foreach (var document in item.Documents)
+                                        {
+                                            <p class="small mb-1"><a asp-controller="DogDocuments" asp-action="Download" asp-route-id="@document.Id">@document.FileName</a></p>
+                                        }
+                                        <form asp-controller="FosterApplications" asp-action="UploadAgreement" asp-route-id="@application.Id" method="post" enctype="multipart/form-data">
+                                            <input class="form-control form-control-sm mb-1" type="file" name="file" accept=".pdf,.jpg,.jpeg,.png,.webp" required />
+                                            <button class="btn btn-kzn-outline btn-sm">Upload agreement</button>
+                                        </form>
+                                    </details>
+                                }
+                                @if (application.Status == FosterApplicationStatuses.Submitted)
+                                {
+                                    <form asp-controller="FosterApplications" asp-action="StartReview" asp-route-id="@application.Id" method="post" class="d-inline">
+                                        <button type="submit" class="btn btn-kzn-outline btn-sm">Under review</button>
+                                    </form>
+                                }
                                 <form asp-controller="FosterApplications" asp-action="Approve" asp-route-id="@application.Id" method="post" class="d-inline">
-                                    <button type="submit" class="btn btn-kzn-primary btn-sm">Approve</button>
+                                    <button type="submit" class="btn btn-kzn-primary btn-sm" title="Confirm placement after signed agreement is uploaded">Confirm foster placement</button>
                                 </form>
                                 <button type="button"
                                         class="btn btn-kzn-outline btn-sm"

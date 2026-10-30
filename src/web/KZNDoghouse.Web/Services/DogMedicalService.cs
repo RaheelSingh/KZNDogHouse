@@ -10,7 +10,7 @@ public interface IDogMedicalService
 
     Task<IReadOnlyList<DogNote>> GetNotesAsync(Guid dogId);
 
-    Task AddRecordAsync(
+    Task<DogMedicalRecord> AddRecordAsync(
         Guid dogId,
         string recordType,
         string title,
@@ -43,7 +43,7 @@ public class DogMedicalService : IDogMedicalService
     public Task<IReadOnlyList<DogNote>> GetNotesAsync(Guid dogId) =>
         _noteRepository.GetByDogIdAsync(dogId);
 
-    public Task AddRecordAsync(
+    public Task<DogMedicalRecord> AddRecordAsync(
         Guid dogId,
         string recordType,
         string title,

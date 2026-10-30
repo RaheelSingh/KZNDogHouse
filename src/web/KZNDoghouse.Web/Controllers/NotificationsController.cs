@@ -99,6 +99,27 @@ public class NotificationsController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Clear(Guid id)
+    {
+        var profile = await GetCurrentProfileAsync();
+        if (profile == null) return Challenge();
+        await _notificationService.ClearAsync(id, profile.Id);
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ClearAll()
+    {
+        var profile = await GetCurrentProfileAsync();
+        if (profile == null) return Challenge();
+        await _notificationService.ClearAllAsync(profile.Id);
+        TempData["SuccessMessage"] = "Notifications cleared from your list.";
+        return RedirectToAction(nameof(Index));
+    }
+
     private async Task<UserProfile?> GetCurrentProfileAsync()
     {
         var authUserId =
