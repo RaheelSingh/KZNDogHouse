@@ -5951,3 +5951,31 @@ label.is-required::after {
   .dog-medical-accordion-body > div.text-end { grid-column:2; grid-row:1; }
   .dog-medical-accordion-body > .medical-attachment-list { grid-column:1 / -1; }
 }
+
+/* Compact, accessible care history controls. The chevron belongs to the title,
+   and each status appears only once in the row heading. */
+.dog-record-title { display:inline-flex; align-items:center; gap:.55rem; min-width:0; }
+.dog-record-title .dog-medical-chevron { font-size:1.1rem; color:#52695b; flex:0 0 auto; }
+.dog-medical-accordion-heading { align-items:center; }
+.dog-medical-summary-meta { margin-left:auto; }
+.dog-record-actions { align-self:start; }
+.adoption-record-action { display:flex; justify-content:flex-end; align-items:center; gap:.5rem; }
+.adoption-return-form { width:100%; }
+.adoption-return-form > label { display:block; }
+.adoption-upload-form .record-upload-row { align-items:center; }
+.adoption-upload-form .record-upload-row > button { white-space:nowrap; flex:0 0 auto; }
+.adoption-history-entry .dog-medical-accordion-body { display:flex; flex-direction:column; align-items:stretch; }
+.adoption-history-entry .record-linked-documents { width:100%; }
+.foster-row-controls { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:.75rem; min-width:0; }
+.foster-row-agreements { min-width:min(210px,100%); max-width:350px; text-align:left; flex:1 1 230px; }
+.foster-row-buttons { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:.4rem; min-width:0; }
+.foster-row-buttons .collapse { flex-basis:100%; }
+.foster-row-agreements .foster-agreement-panel { width:100%; min-width:0; max-width:none; }
+.foster-row-agreements .foster-agreement-content { max-width:100%; overflow-wrap:anywhere; }
+.foster-row-agreements .foster-agreement-upload input { max-width:100%; }
+.foster-row-agreements .foster-agreement-panel summary { white-space:normal; }
+@media(max-width:900px) {
+  .foster-row-controls { flex-direction:column; align-items:stretch; }
+  .foster-row-buttons { justify-content:flex-start; }
+  .dog-medical-accordion-heading { flex-direction:row; align-items:center; }
+}

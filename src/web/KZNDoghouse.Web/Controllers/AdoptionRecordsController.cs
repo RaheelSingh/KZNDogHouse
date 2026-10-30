@@ -28,8 +28,9 @@ public sealed class AdoptionRecordsController : Controller
     }
 
     [HttpPost, ValidateAntiForgeryToken]
+    [RequestSizeLimit(55L * 1024 * 1024)]
     public async Task<IActionResult> Create(Guid dogId, string adopterName, string adopterPhone,
-        string adopterAddress, string? adopterEmail, string? notes)
+        string adopterAddress, string? adopterEmail, string? notes, List<IFormFile>? agreements)
     {
         var dog = await _dogs.GetDogAsync(dogId);
         if (dog == null) return NotFound();
@@ -38,10 +39,13 @@ public sealed class AdoptionRecordsController : Controller
         if (string.IsNullOrWhiteSpace(adopterName) || adopterName.Length > 160
             || string.IsNullOrWhiteSpace(adopterPhone) || adopterPhone.Length > 30
             || string.IsNullOrWhiteSpace(adopterAddress) || adopterAddress.Length > 400
-            || (adopterEmail?.Length ?? 0) > 180 || (notes?.Length ?? 0) > 2000)
+            || (notes?.Length ?? 0) > 2000)
             return await Back(dogId, "Enter a valid adopter name, phone number, and address.");
-        if (!string.IsNullOrWhiteSpace(adopterEmail) && !new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(adopterEmail))
-            return await Back(dogId, "Enter a valid email address.");
+        if (string.IsNullOrWhiteSpace(adopterEmail) || adopterEmail.Length > 180
+            || !new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(adopterEmail.Trim()))
+            return await Back(dogId, "A valid adopter email address is required.");
+        if (agreements is { Count: > 5 } || (agreements?.Any(f => f.Length == 0 || f.Length > 10 * 1024 * 1024) ?? false))
+            return await Back(dogId, "Upload at most five non-empty documents of 10 MB or less each.");
         if ((await _adoptions.GetForDogAsync(dogId)).Any(x => x.Status is "Pending paperwork" or "Adopted"))
             return await Back(dogId, "This dog already has an open adoption record.");
         var authId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -50,12 +54,21 @@ public sealed class AdoptionRecordsController : Controller
         var record = new AdoptionRecord
         {
             Id = Guid.NewGuid(), DogId = dogId, AdopterName = adopterName.Trim(),
-            AdopterPhone = adopterPhone.Trim(), AdopterEmail = adopterEmail?.Trim(),
+            AdopterPhone = adopterPhone.Trim(), AdopterEmail = adopterEmail.Trim(),
             AdopterAddress = adopterAddress.Trim(), Notes = notes?.Trim(),
             CreatedBy = profile.Id, CreatedAt = DateTime.UtcNow, Status = "Pending paperwork"
         };
         await _adoptions.CreateAsync(record);
-        return await Back(dogId, "Adoption record created. Upload signed paperwork before confirming.", true);
+        var failedUploads = 0;
+        foreach (var agreement in agreements ?? [])
+        {
+            var result = await _documents.UploadAsync(dogId, null, "Adoption", agreement, profile.Id,
+                adoptionRecordId: record.Id);
+            if (!result.Success) failedUploads++;
+        }
+        if (failedUploads > 0)
+            return await Back(dogId, $"Adoption record saved, but {failedUploads} document(s) could not be uploaded. Please retry from the adoption record.");
+        return await Back(dogId, "Adoption record created. Confirm after signed paperwork is attached.", true);
     }
 
     [HttpPost, ValidateAntiForgeryToken]
@@ -63,7 +76,7 @@ public sealed class AdoptionRecordsController : Controller
     {
         var record = await _adoptions.GetAsync(recordId);
         if (record == null || record.DogId != dogId) return NotFound();
-        if (record.Status != "Pending paperwork") return await Back(dogId, "Paperwork cannot be changed after completion.");
+        // Keep records complete through adoption and after a return; never expose these documents publicly.
         var authId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         var profile = string.IsNullOrEmpty(authId) ? null : await _profiles.GetByAuthUserIdAsync(authId);
         if (profile == null) return Challenge();
@@ -91,8 +104,10 @@ public sealed class AdoptionRecordsController : Controller
     public async Task<IActionResult> Return(Guid dogId, Guid recordId, string? returnNotes)
     {
         var record = await _adoptions.GetAsync(recordId);
-        if (record == null || record.DogId != dogId) return NotFound();
-        if (record.Status != "Adopted") return await Back(dogId, "Only an active adoption can be returned.");
+        var dog = await _dogs.GetDogAsync(dogId);
+        if (record == null || dog == null || record.DogId != dogId) return NotFound();
+        if (record.Status != "Adopted" || dog.Status != DogStatuses.Adopted)
+            return await Back(dogId, "Only an active adoption can be returned.");
         if ((returnNotes?.Length ?? 0) > 2000) return await Back(dogId, "Return notes are too long.");
         await _adoptions.SetReturnedAsync(recordId, returnNotes?.Trim());
         await _dogs.ChangeStatusAsync(dogId, DogStatuses.Available);
