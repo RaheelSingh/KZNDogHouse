@@ -1074,7 +1074,191 @@ set allowed_mime_types = case
 end
 where id = 'dog-private-documents' and public = false;
 
--- Refresh API schema metadata after all changes have succeeded.
+
+/* Confidential dog-care information.
+   This section is designed for the six EXISTING policies verified in the
+   KZN Doghouse database on 30 October 2026. It does not assume that all
+   signed-in users are permitted to see private medical/fostering data.
+   Unexpected or modified policies cause the WHOLE transaction to roll back. */
+DO $kzn_check_care_policies$
+DECLARE
+    v_unexpected text;
+    v_modified text;
+BEGIN
+    SELECT string_agg(tablename || '.' || policyname, ', ' ORDER BY tablename, policyname)
+      INTO v_unexpected
+    FROM pg_catalog.pg_policies
+    WHERE schemaname = 'public'
+      AND tablename IN ('dog_medical_records', 'fostering_records', 'dog_notes')
+      AND policyname NOT IN (
+        'mobile_medical_insert_staff', 'mobile_medical_select',
+        'mobile_medical_update_staff', 'mobile_notes_insert_staff',
+        'mobile_notes_select', 'mobile_fostering_select',
+        'kzn_care_medical_read', 'kzn_care_medical_add',
+        'kzn_care_notes_read', 'kzn_care_notes_add',
+        'kzn_care_fostering_read'
+      );
+    IF v_unexpected IS NOT NULL THEN
+        RAISE EXCEPTION 'Unknown existing dog-care policies: %. Review them before running this schema. No changes committed.', v_unexpected;
+    END IF;
+
+    -- The original mobile SELECT policies must be precisely the broad
+    -- kzn_is_member() rules that were inspected, not customised policies.
+    SELECT string_agg(tablename || '.' || policyname, ', ' ORDER BY tablename, policyname)
+      INTO v_modified
+    FROM pg_catalog.pg_policies
+    WHERE schemaname = 'public'
+      AND policyname IN ('mobile_medical_select', 'mobile_notes_select', 'mobile_fostering_select')
+      AND (tablename NOT IN ('dog_medical_records', 'dog_notes', 'fostering_records')
+           OR cmd <> 'SELECT'
+           OR permissive <> 'PERMISSIVE'
+           OR roles::text <> '{authenticated}'
+           OR btrim(qual) <> 'kzn_is_member()');
+    IF v_modified IS NOT NULL THEN
+        RAISE EXCEPTION 'Modified legacy dog-care read policies: %. Review before replacing. No changes committed.', v_modified;
+    END IF;
+END;
+$kzn_check_care_policies$;
+
+CREATE SCHEMA IF NOT EXISTS kzn_private;
+REVOKE ALL ON SCHEMA kzn_private FROM PUBLIC;
+GRANT USAGE ON SCHEMA kzn_private TO authenticated;
+
+-- Check the authenticated user's server-managed profile rather than
+-- client-editable JWT user_metadata. Function deliberately lives in a
+-- non-API-exposed schema and has an empty search_path.
+CREATE OR REPLACE FUNCTION kzn_private.staff_profile_id()
+RETURNS uuid
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = ''
+AS $function$
+  SELECT p.id
+  FROM public.user_profiles p
+  WHERE p.auth_user_id = (SELECT auth.uid())
+    AND p.is_active = true
+    AND p.role IN ('Staff', 'Administrator')
+  LIMIT 1;
+$function$;
+REVOKE ALL ON FUNCTION kzn_private.staff_profile_id() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION kzn_private.staff_profile_id() TO authenticated;
+
+-- Staff/admin can view medical records for all dogs. Vets can view
+-- ONLY records of dogs explicitly assigned to them in vet_dog_authorizations.
+CREATE OR REPLACE FUNCTION kzn_private.can_read_dog_medical(p_dog_id uuid)
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = ''
+AS $function$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.user_profiles p
+    WHERE p.auth_user_id = (SELECT auth.uid())
+      AND p.is_active = true
+      AND (
+        p.role IN ('Staff', 'Administrator')
+        OR (
+          p.role = 'Vet'
+          AND EXISTS (
+            SELECT 1
+            FROM public.vet_profiles vp
+            JOIN public.vet_dog_authorizations vda
+              ON vda.vet_profile_id = vp.id
+            WHERE vp.user_profile_id = p.id
+              AND vda.dog_id = p_dog_id
+          )
+        )
+      )
+  );
+$function$;
+REVOKE ALL ON FUNCTION kzn_private.can_read_dog_medical(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION kzn_private.can_read_dog_medical(uuid) TO authenticated;
+
+ALTER TABLE public.dog_medical_records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.dog_notes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.fostering_records ENABLE ROW LEVEL SECURITY;
+
+-- Remove anonymous access without removing the existing staff mobile
+-- INSERT/UPDATE permissions. PostgreSQL also enforces RLS on all grants.
+REVOKE ALL ON public.dog_medical_records, public.dog_notes,
+              public.fostering_records FROM PUBLIC, anon;
+GRANT SELECT, INSERT, UPDATE ON public.dog_medical_records TO authenticated;
+GRANT SELECT, INSERT ON public.dog_notes TO authenticated;
+GRANT SELECT ON public.fostering_records TO authenticated;
+
+-- Remove ONLY the three permissive SELECT policies that used
+-- kzn_is_member(), which included volunteers. Leave the existing
+-- medical INSERT/UPDATE and notes INSERT policies unchanged.
+DROP POLICY IF EXISTS mobile_medical_select ON public.dog_medical_records;
+DROP POLICY IF EXISTS mobile_notes_select ON public.dog_notes;
+DROP POLICY IF EXISTS mobile_fostering_select ON public.fostering_records;
+
+DROP POLICY IF EXISTS kzn_care_medical_read ON public.dog_medical_records;
+CREATE POLICY kzn_care_medical_read ON public.dog_medical_records
+  FOR SELECT TO authenticated
+  USING (kzn_private.can_read_dog_medical(dog_id));
+
+DROP POLICY IF EXISTS kzn_care_notes_read ON public.dog_notes;
+CREATE POLICY kzn_care_notes_read ON public.dog_notes
+  FOR SELECT TO authenticated
+  USING ((SELECT kzn_private.staff_profile_id()) IS NOT NULL);
+
+DROP POLICY IF EXISTS kzn_care_fostering_read ON public.fostering_records;
+CREATE POLICY kzn_care_fostering_read ON public.fostering_records
+  FOR SELECT TO authenticated
+  USING ((SELECT kzn_private.staff_profile_id()) IS NOT NULL);
+
+-- If installing into a fresh project with no legacy mobile INSERT
+-- policies, add equivalent staff-only INSERT policies. Re-running an
+-- existing project does not replace or broaden its write policies.
+DO $kzn_care_insert_policies$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_catalog.pg_policies
+    WHERE schemaname = 'public' AND tablename = 'dog_medical_records'
+      AND policyname = 'mobile_medical_insert_staff'
+  ) THEN
+    DROP POLICY IF EXISTS kzn_care_medical_add ON public.dog_medical_records;
+    CREATE POLICY kzn_care_medical_add ON public.dog_medical_records
+      FOR INSERT TO authenticated
+      WITH CHECK (created_by = (SELECT kzn_private.staff_profile_id()));
+  ELSE
+    DROP POLICY IF EXISTS kzn_care_medical_add ON public.dog_medical_records;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_catalog.pg_policies
+    WHERE schemaname = 'public' AND tablename = 'dog_notes'
+      AND policyname = 'mobile_notes_insert_staff'
+  ) THEN
+    DROP POLICY IF EXISTS kzn_care_notes_add ON public.dog_notes;
+    CREATE POLICY kzn_care_notes_add ON public.dog_notes
+      FOR INSERT TO authenticated
+      WITH CHECK (author_id = (SELECT kzn_private.staff_profile_id()));
+  ELSE
+    DROP POLICY IF EXISTS kzn_care_notes_add ON public.dog_notes;
+  END IF;
+END;
+$kzn_care_insert_policies$;
+
+-- Final transaction-level assertions. Existing record rows are untouched.
+DO $kzn_verify_care$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_catalog.pg_policies
+    WHERE schemaname = 'public'
+      AND policyname IN ('mobile_medical_select','mobile_notes_select','mobile_fostering_select')
+      AND tablename IN ('dog_medical_records','dog_notes','fostering_records')
+  ) THEN
+    RAISE EXCEPTION 'Insecure legacy dog-care SELECT policies remain; transaction cancelled';
+  END IF;
+  IF (SELECT count(*) FROM pg_catalog.pg_policies
+      WHERE schemaname='public'
+        AND policyname IN ('kzn_care_medical_read','kzn_care_notes_read','kzn_care_fostering_read')
+        AND tablename IN ('dog_medical_records','dog_notes','fostering_records')) <> 3 THEN
+    RAISE EXCEPTION 'Dog-care SELECT policy verification failed; transaction cancelled';
+  END IF;
+END;
+$kzn_verify_care$;
+
+-- Refresh API schema metadata only after all changes succeed.
 notify pgrst, 'reload schema';
 
 commit;

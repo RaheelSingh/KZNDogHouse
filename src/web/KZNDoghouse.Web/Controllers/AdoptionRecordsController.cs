@@ -24,7 +24,7 @@ public sealed class AdoptionRecordsController : Controller
     private Task<IActionResult> Back(Guid dogId, string message, bool success = false)
     {
         TempData[success ? "SuccessMessage" : "ErrorMessage"] = message;
-        return Task.FromResult<IActionResult>(RedirectToAction("Details", "Dogs", new { id = dogId }));
+        return Task.FromResult<IActionResult>(RedirectToAction("Details", "Dogs", new { id = dogId, tab = "adoption" }));
     }
 
     [HttpPost, ValidateAntiForgeryToken]
@@ -82,6 +82,22 @@ public sealed class AdoptionRecordsController : Controller
         if (profile == null) return Challenge();
         var result = await _documents.UploadAsync(dogId, null, "Adoption", file, profile.Id,
             adoptionRecordId: recordId);
+        // JavaScript-enhanced uploads update the open adoption record without leaving the tab.
+        // The ordinary form redirect remains available when JavaScript is disabled.
+        if (Request.Headers.Accept.Any(value => value?.Contains("application/json", StringComparison.OrdinalIgnoreCase) == true))
+        {
+            if (!result.Success)
+                return BadRequest(new { success = false, message = result.Message });
+
+            var documents = (await _documents.GetForDogAsync(dogId))
+                .Where(d => d.AdoptionRecordId == recordId && d.Category == "Adoption")
+                .Select(d => new
+                {
+                    name = d.FileName,
+                    url = Url.Action("Download", "DogDocuments", new { id = d.Id })
+                }).ToList();
+            return Json(new { success = true, message = result.Message, documents });
+        }
         return await Back(dogId, result.Message, result.Success);
     }
 

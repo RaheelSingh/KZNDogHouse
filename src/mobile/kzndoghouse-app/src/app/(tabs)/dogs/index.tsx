@@ -51,16 +51,16 @@ export default function DogsScreen() {
         )
         .neq('status', 'Adopted')
         .order('created_at', { ascending: false }),
-      supabase
+      staff ? supabase
         .from('dog_medical_records')
         .select('dog_id')
         .eq('status', 'Active')
-        .lte('next_action_date', todayDateOnly),
+        .lte('next_action_date', todayDateOnly) : Promise.resolve({ data: [] }),
     ]);
 
     setDogs((dogsRes.data as Dog[]) ?? []);
     setMedsDueIds(new Set(((medsRes.data as { dog_id: string }[]) ?? []).map((r) => r.dog_id)));
-  }, []);
+  }, [staff]);
 
   useEffect(() => {
     setIsLoading(true);
@@ -92,8 +92,8 @@ export default function DogsScreen() {
   }, [dogs, filter, search, sort]);
 
   const attention = useMemo(
-    () => (filter === 'All' && !search.trim() ? dogs.filter((d) => medsDueIds.has(d.id)) : []),
-    [dogs, medsDueIds, filter, search]
+    () => (staff && filter === 'All' && !search.trim() ? dogs.filter((d) => medsDueIds.has(d.id)) : []),
+    [dogs, medsDueIds, filter, search, staff]
   );
 
   const isNewIntake = (dog: Dog) => (Date.now() - new Date(dog.intake_date).getTime()) / 86_400_000 <= 7;

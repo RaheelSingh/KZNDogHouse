@@ -30,7 +30,7 @@ const STATUS_OPTIONS: readonly DogStatus[] = ['Available', 'In Care', 'Under Tre
 const RECORD_TYPES: readonly MedicalRecordType[] = ['Vaccination', 'Condition', 'Medication', 'Treatment note'];
 
 type Tab = 'About' | 'Medical' | 'Fostering';
-const TABS: { key: Tab; label: string }[] = [
+const STAFF_TABS: { key: Tab; label: string }[] = [
   { key: 'About', label: 'About' },
   { key: 'Medical', label: 'Medical' },
   { key: 'Fostering', label: 'Fostering' },
@@ -116,16 +116,22 @@ export default function DogDetailScreen() {
 
   const load = useCallback(async () => {
     if (!id) return;
-    const [dogRes, medsRes, fosterRes, notesRes, imagesList] = await Promise.all([
+    // Volunteers must never request confidential medical, fostering or staff notes.
+    // Authorization must also be enforced by the Supabase RLS policies.
+    const [dogRes, imagesList] = await Promise.all([
       supabase.from('dogs').select('*').eq('id', id).single(),
-      supabase.from('dog_medical_records').select('*').eq('dog_id', id).order('created_at', { ascending: false }),
-      supabase.from('fostering_records').select('*').eq('dog_id', id).order('start_date', { ascending: false }),
-      supabase.from('dog_notes').select('*').eq('dog_id', id).order('created_at', { ascending: false }),
       fetchDogImages(id).catch((err) => {
         console.warn('[dog-detail] could not load photos:', err);
         return [] as DogImage[];
       }),
     ]);
+    const [medsRes, fosterRes, notesRes] = staff
+      ? await Promise.all([
+          supabase.from('dog_medical_records').select('*').eq('dog_id', id).order('created_at', { ascending: false }),
+          supabase.from('fostering_records').select('*').eq('dog_id', id).order('start_date', { ascending: false }),
+          supabase.from('dog_notes').select('*').eq('dog_id', id).order('created_at', { ascending: false }),
+        ])
+      : [{ data: [] }, { data: [] }, { data: [] }];
 
     const dogData = dogRes.data as Dog | null;
     setDog(dogData);
@@ -140,7 +146,7 @@ export default function DogDetailScreen() {
       setEditTemperament(dogData.temperament ?? '');
       setEditAbout(dogData.about ?? '');
     }
-  }, [id]);
+  }, [id, staff]);
 
   useEffect(() => {
     setIsLoading(true);
@@ -326,7 +332,7 @@ export default function DogDetailScreen() {
       >
         <View style={styles.tagRow}>
           <Tag label={dog.status.toUpperCase()} bg={statusColor.bg} fg={statusColor.text} />
-          {medsDueToday ? <Tag label="MEDS DUE TODAY" bg="#f4d3cf" fg="#b3261e" /> : null}
+          {staff && medsDueToday ? <Tag label="MEDS DUE TODAY" bg="#f4d3cf" fg="#b3261e" /> : null}
         </View>
       </HeroHeader>
 
@@ -364,7 +370,7 @@ export default function DogDetailScreen() {
           </View>
         </View>
 
-        <UnderlineTabs tabs={TABS} active={tab} onChange={setTab} style={{ marginTop: 22 }} />
+        {staff ? <UnderlineTabs tabs={STAFF_TABS} active={tab} onChange={setTab} style={{ marginTop: 22 }} /> : null}
 
         {tab === 'About' ? (
           <View>
@@ -424,22 +430,22 @@ export default function DogDetailScreen() {
               </View>
             ) : null}
 
-            <SectionTitle title="Medical flags" />
-            {activeFlags.length === 0 ? (
+            {staff ? <SectionTitle title="Medical flags" /> : null}
+            {staff ? (activeFlags.length === 0 ? (
               <Text style={styles.empty}>No active medical flags.</Text>
             ) : (
               activeFlags.map((r) => <MedicalCard key={r.id} record={r} />)
-            )}
+            )) : null}
 
-            <SectionTitle title="Fostering history" />
-            {fosteringRecords.length === 0 ? (
+            {staff ? <SectionTitle title="Fostering history" /> : null}
+            {staff ? (fosteringRecords.length === 0 ? (
               <Text style={styles.empty}>No fostering history yet.</Text>
             ) : (
               fosteringRecords.slice(0, 2).map((r) => <FosterCard key={r.id} record={r} />)
-            )}
+            )) : null}
 
-            <SectionTitle title="Notes" />
-            {notes.length === 0 ? (
+            {staff ? <SectionTitle title="Notes" /> : null}
+            {staff ? (notes.length === 0 ? (
               <Text style={styles.empty}>No notes logged yet.</Text>
             ) : (
               notes.map((n) => (
@@ -448,7 +454,7 @@ export default function DogDetailScreen() {
                   <Text style={styles.cardSub}>{formatDate(n.created_at)}</Text>
                 </View>
               ))
-            )}
+            )) : null}
 
             {staff && showNoteForm ? (
               <View>
@@ -468,7 +474,7 @@ export default function DogDetailScreen() {
           </View>
         ) : null}
 
-        {tab === 'Medical' ? (
+        {staff && tab === 'Medical' ? (
           <View style={{ marginTop: 18 }}>
             {medicalRecords.length === 0 ? (
               <Text style={styles.empty}>No medical records yet.</Text>
@@ -510,7 +516,7 @@ export default function DogDetailScreen() {
           </View>
         ) : null}
 
-        {tab === 'Fostering' ? (
+        {staff && tab === 'Fostering' ? (
           <View style={{ marginTop: 18 }}>
             {fosteringRecords.length === 0 ? (
               <Text style={styles.empty}>No fostering history yet.</Text>

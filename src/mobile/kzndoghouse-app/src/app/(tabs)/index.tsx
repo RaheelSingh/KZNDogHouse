@@ -18,6 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/context/AuthContext';
+import { isStaff } from '@/lib/roles';
 import { useNotifications } from '@/context/NotificationsContext';
 import { supabase } from '@/lib/supabase';
 import { getCurrentProfileId } from '@/lib/profile';
@@ -93,6 +94,7 @@ function SlideBackground({ index, uri }: { index: number; uri?: string }) {
 
 export default function HomeScreen() {
   const { session } = useAuth();
+  const staff = isStaff(session?.role);
   const { unreadCount } = useNotifications();
   const insets = useSafeAreaInsets();
   const listRef = useRef<FlatList<Section>>(null);
@@ -130,20 +132,20 @@ export default function HomeScreen() {
 
     const [dogsCountRes, fostersCountRes, scheduleRes, attentionRes, photosRes, myRes] = await Promise.all([
       supabase.from('dogs').select('id', { count: 'exact', head: true }).neq('status', 'Adopted'),
-      supabase.from('fostering_records').select('id', { count: 'exact', head: true }).eq('status', 'Active'),
+      staff ? supabase.from('fostering_records').select('id', { count: 'exact', head: true }).eq('status', 'Active') : Promise.resolve({ count: 0 }),
       supabase
         .from('calendar_events')
         .select(EVENT_COLUMNS)
         .gte('start_at', todayIso)
         .lte('start_at', todayEndIso)
         .order('start_at', { ascending: true }),
-      supabase
+      (staff ? supabase
         .from('dog_medical_records')
         .select('dog_id, next_action_date, title, dogs(id, name, status)')
         .eq('status', 'Active')
         .lte('next_action_date', todayDateOnly)
         .order('next_action_date', { ascending: true })
-        .limit(6),
+        .limit(6) : Promise.resolve({ data: [] })),
       supabase.from('dogs').select('photo_url').not('photo_url', 'is', null).neq('status', 'Adopted').limit(5),
       profileId
         ? supabase
@@ -178,7 +180,7 @@ export default function HomeScreen() {
       dogs.push({ id: dog.id, name: dog.name, status: dog.status, reason: row.title });
     }
     setAttentionDogs(dogs);
-  }, []);
+  }, [staff]);
 
   // Reload whenever Home comes into view; only the very first load shows a spinner.
   useFocusEffect(
@@ -280,10 +282,10 @@ export default function HomeScreen() {
                 <Text style={styles.statNumber}>{todaysSchedule.length}</Text>
                 <Text style={styles.statLabel}>Events today</Text>
               </View>
-              <View style={styles.statTile}>
+              {staff ? <View style={styles.statTile}>
                 <Text style={styles.statNumber}>{fostersOutCount}</Text>
                 <Text style={styles.statLabel}>Fosters out</Text>
-              </View>
+              </View> : null}
             </View>
           </View>
         );
@@ -292,12 +294,14 @@ export default function HomeScreen() {
         return (
           <View>
             <View style={styles.rowBetween}>
-              <Text style={styles.bigText}>Needing attention</Text>
+              <Text style={styles.bigText}>{staff ? 'Needing attention' : 'Our dogs'}</Text>
               <Pressable style={styles.outlinePill} onPress={() => router.push('/(tabs)/dogs')}>
                 <Text style={styles.outlinePillText}>View all</Text>
               </Pressable>
             </View>
-            {attentionDogs.length === 0 ? (
+            {!staff ? (
+              <Text style={[styles.subText, { marginTop: 10 }]}>Explore the dogs at the shelter.</Text>
+            ) : attentionDogs.length === 0 ? (
               <Text style={[styles.subText, { marginTop: 10 }]}>No flagged dogs right now.</Text>
             ) : (
               <FlatList

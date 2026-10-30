@@ -61,27 +61,31 @@ public class DogDocumentService : IDogDocumentService
         {
             await client.Storage.From(Bucket).Upload(bytes, path,
                 new Supabase.Storage.FileOptions { ContentType = mime, Upsert = false, CacheControl = "60" });
-            try
-            {
-                var row = new DogDocument
-                {
-                    Id = Guid.NewGuid(), DogId = dogId, MedicalRecordId = medicalRecordId,
-                    Category = category, FileName = cleanName, ContentType = mime, FosterApplicationId = fosterApplicationId, AdoptionRecordId = adoptionRecordId,
-                    StoragePath = path, UploadedBy = actorId, CreatedAt = DateTime.UtcNow
-                };
-                await client.From<DogDocument>().Insert(row);
-                return new(true, "Document uploaded securely.");
-            }
-            catch
-            {
-                await client.Storage.From(Bucket).Remove(new List<string> { path });
-                throw;
-            }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Private dog document upload failed for {DogId}.", dogId);
-            return new(false, "The document couldn't be saved. Please try again.");
+            _logger.LogError(ex, "Private document storage upload failed for dog {DogId}, category {Category}, MIME {ContentType}.", dogId, category, mime);
+            return new(false, "The file could not be uploaded to secure storage. Check the private document bucket's permitted file types and try again.");
+        }
+
+        try
+        {
+            var row = new DogDocument
+            {
+                Id = Guid.NewGuid(), DogId = dogId, MedicalRecordId = medicalRecordId,
+                Category = category, FileName = cleanName, ContentType = mime,
+                FosterApplicationId = fosterApplicationId, AdoptionRecordId = adoptionRecordId,
+                StoragePath = path, UploadedBy = actorId, CreatedAt = DateTime.UtcNow
+            };
+            await client.From<DogDocument>().Insert(row);
+            return new(true, "Document uploaded securely.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Private document metadata save failed for dog {DogId}, category {Category}, adoption {AdoptionRecordId}.", dogId, category, adoptionRecordId);
+            try { await client.Storage.From(Bucket).Remove(new List<string> { path }); }
+            catch (Exception cleanupEx) { _logger.LogWarning(cleanupEx, "Failed to clean up an unlinked private document."); }
+            return new(false, "The document reached storage but could not be linked to the record. Check the database schema and try again.");
         }
     }
 

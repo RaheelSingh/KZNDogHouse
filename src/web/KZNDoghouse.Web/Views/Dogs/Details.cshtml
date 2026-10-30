@@ -405,7 +405,7 @@
                             {
                                 <details class="dog-medical-accordion">
                                     <summary class="dog-medical-accordion-heading">
-                                        <span class="dog-record-title"><span class="fw-semibold">@record.Title</span><span class="dog-medical-chevron" aria-hidden="true">⌄</span></span>
+                                        <span class="dog-record-title"><span class="fw-semibold">@record.Title</span><span class="dog-medical-chevron" aria-hidden="true">▸</span></span>
                                         <span class="dog-medical-summary-meta"><span class="text-muted small">@record.RecordType · @record.CreatedAt.ToString("dd MMM yyyy")</span><span class="kzn-status-badge @(record.Status == MedicalRecordStatuses.Active ? "kzn-status-under-treatment" : "kzn-status-available")">@record.Status</span></span>
                                     </summary>
                                     <div class="dog-medical-accordion-body">
@@ -625,7 +625,7 @@
                         {
                             <details class="dog-medical-accordion adoption-history-entry">
                                 <summary class="dog-medical-accordion-heading">
-                                    <span class="dog-record-title"><span class="fw-semibold">@record.AdopterName</span><span class="dog-medical-chevron" aria-hidden="true">⌄</span></span>
+                                    <span class="dog-record-title"><span class="fw-semibold">@record.AdopterName</span><span class="dog-medical-chevron" aria-hidden="true">▸</span></span>
                                     <span class="dog-medical-summary-meta">
                                         <span class="text-muted small">@record.CreatedAt.ToString("dd MMM yyyy")</span>
                                         <span class="kzn-status-badge">@record.Status</span>
@@ -642,12 +642,12 @@
                                     @if (!string.IsNullOrWhiteSpace(record.Notes)) { <p>@record.Notes</p> }
                                     @if (!string.IsNullOrWhiteSpace(record.ReturnNotes)) { <p><strong>Return notes:</strong> @record.ReturnNotes</p> }
                                     @{ var papers = Model.Documents.Where(d => d.AdoptionRecordId == record.Id && d.Category == "Adoption").ToList(); }
-                                    <div class="record-linked-documents">
+                                    <div class="record-linked-documents" data-adoption-files="@record.Id">
                                         <strong>Signed adoption documents:</strong>
                                         @if (papers.Count == 0) { <span class="text-muted small">No paperwork uploaded.</span> }
                                         @foreach (var paper in papers) { <a asp-controller="DogDocuments" asp-action="Download" asp-route-id="@paper.Id">@paper.FileName</a> }
                                     </div>
-                                    <form asp-controller="AdoptionRecords" asp-action="UploadAgreement" method="post" enctype="multipart/form-data" class="adoption-upload-form mt-3">
+                                    <form asp-controller="AdoptionRecords" asp-action="UploadAgreement" method="post" enctype="multipart/form-data" class="adoption-upload-form mt-3" data-adoption-upload="@record.Id">
                                         <input type="hidden" name="dogId" value="@dog.Id" />
                                         <input type="hidden" name="recordId" value="@record.Id" />
                                         <label class="form-label" for="adoption-upload-@record.Id">Additional signed documents (PDF, DOCX or image)</label>
@@ -660,12 +660,12 @@
                                     {
                                         @if (papers.Count == 0)
                                         {
-                                            <p class="text-muted small mb-1 text-end">Add signed paperwork to enable confirmation.</p>
+                                            <p class="text-muted small mb-1 text-end" data-adoption-paperwork-hint="@record.Id">Add signed paperwork to enable confirmation.</p>
                                         }
                                         <form asp-controller="AdoptionRecords" asp-action="Confirm" method="post" class="adoption-record-action mt-3">
                                             <input type="hidden" name="dogId" value="@dog.Id" />
                                             <input type="hidden" name="recordId" value="@record.Id" />
-                                            <button type="submit" class="btn btn-kzn-primary btn-sm" disabled="@(papers.Count == 0)">Confirm adoption</button>
+                                            <button type="submit" class="btn btn-kzn-primary btn-sm" data-adoption-confirm="@record.Id" disabled="@(papers.Count == 0)">Confirm adoption</button>
                                         </form>
                                     }
                                     else if (record.Status == "Adopted")
@@ -881,3 +881,75 @@
 
 
 </div>
+
+<script>
+// Keep the user in the Adoption tab after server redirects and progressively enhance uploads.
+document.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('tab') === 'adoption') {
+    const target = document.getElementById('adoption-tab-button');
+    if (target && window.bootstrap?.Tab) window.bootstrap.Tab.getOrCreateInstance(target).show();
+  }
+  document.querySelectorAll('form[data-adoption-upload]').forEach(form => {
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      if (!form.reportValidity()) return;
+      const recordId = form.dataset.adoptionUpload;
+      const button = form.querySelector('button[type="submit"]');
+      const previousLabel = button?.textContent;
+      if (button) { button.disabled = true; button.textContent = 'Uploading…'; }
+      try {
+        const response = await fetch(form.action, {
+          method: 'POST',
+          body: new FormData(form),
+          headers: { 'Accept': 'application/json' },
+          credentials: 'same-origin'
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.message || 'Upload failed.');
+        const attachments = document.querySelector(`[data-adoption-files="${recordId}"]`);
+        if (attachments) {
+          attachments.replaceChildren();
+          const label = document.createElement('strong');
+          label.textContent = 'Signed adoption documents:';
+          attachments.appendChild(label);
+          (data.documents || []).forEach(file => {
+            if (!file.url || !file.name) return;
+            const link = document.createElement('a');
+            link.href = file.url;
+            link.textContent = file.name;
+            attachments.appendChild(link);
+          });
+          const confirm = document.querySelector(`[data-adoption-confirm="${recordId}"]`);
+          if (confirm && data.documents?.length) confirm.disabled = false;
+          const hint = document.querySelector(`[data-adoption-paperwork-hint="${recordId}"]`);
+          if (hint && data.documents?.length) hint.remove();
+        }
+        form.reset();
+        // Announce success without moving from the expanded record.
+        let status = form.querySelector('[data-upload-status]');
+        if (!status) {
+          status = document.createElement('span');
+          status.dataset.uploadStatus = 'true';
+          status.setAttribute('role', 'status');
+          status.className = 'small ms-2';
+          form.appendChild(status);
+        }
+        status.textContent = 'Document uploaded.';
+      } catch (error) {
+        let status = form.querySelector('[data-upload-status]');
+        if (!status) {
+          status = document.createElement('span');
+          status.dataset.uploadStatus = 'true';
+          status.setAttribute('role', 'alert');
+          status.className = 'small text-danger ms-2';
+          form.appendChild(status);
+        }
+        status.textContent = error.message || 'Upload failed. Please try again.';
+      } finally {
+        if (button) { button.disabled = false; button.textContent = previousLabel; }
+      }
+    });
+  });
+});
+</script>

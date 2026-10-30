@@ -98,6 +98,40 @@ public class AdoptionWorkflowControllerTests
     }
 
     [Fact]
+    public async Task AdoptionDocumentUpload_AjaxResponseKeepsLinkedDownloadAvailable()
+    {
+        var dogId = Guid.NewGuid();
+        var recordId = Guid.NewGuid();
+        var profileId = Guid.NewGuid();
+        var documentId = Guid.NewGuid();
+        var adoptions = new Mock<IAdoptionRecordRepository>();
+        adoptions.Setup(x => x.GetAsync(recordId)).ReturnsAsync(new AdoptionRecord { Id = recordId, DogId = dogId, Status = "Pending paperwork" });
+        var profiles = new Mock<IUserProfileRepository>();
+        profiles.Setup(x => x.GetByAuthUserIdAsync("test-auth")).ReturnsAsync(new UserProfile { Id = profileId });
+        var documents = new Mock<IDogDocumentService>();
+        documents.Setup(x => x.UploadAsync(dogId, null, "Adoption", It.IsAny<IFormFile?>(), profileId, null, recordId))
+            .ReturnsAsync(new DocumentUploadResult(true, "Document uploaded securely."));
+        documents.Setup(x => x.GetForDogAsync(dogId)).ReturnsAsync((IReadOnlyList<DogDocument>)new[]
+        {
+            new DogDocument { Id = documentId, DogId = dogId, Category = "Adoption", AdoptionRecordId = recordId, FileName = "agreement.pdf" }
+        });
+        var controller = Build(adoptions, new Mock<IDogService>(), documents, profiles);
+        controller.ControllerContext.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity(new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, "test-auth")
+        }, "test"));
+        controller.Request.Headers.Accept = "application/json";
+        controller.Url = new Mock<Microsoft.AspNetCore.Mvc.IUrlHelper>().Object;
+
+        var response = await controller.UploadAgreement(dogId, recordId, new Mock<IFormFile>().Object);
+
+        var json = Assert.IsType<JsonResult>(response);
+        var value = System.Text.Json.JsonSerializer.Serialize(json.Value);
+        Assert.Contains("agreement.pdf", value);
+        Assert.Contains("\"success\":true", value);
+    }
+
+    [Fact]
     public async Task ReturningRecord_RequiresDogToStillBeAdopted()
     {
         var dogId = Guid.NewGuid();
