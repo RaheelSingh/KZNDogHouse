@@ -1,7 +1,15 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/lib/supabase';
 import { unregisterPushNotifications } from '@/lib/pushNotifications';
+import {
+  RECOVERY_PENDING_KEY,
+  RESET_COOLDOWN_SECONDS,
+  getResetCooldownRemaining,
+  normaliseEmail,
+  startResetCooldown,
+} from '@/lib/passwordReset';
 
 /** 'pending' = signed in but not yet approved as a volunteer (DB role 'Public' or unknown). */
 export type UserRole = 'volunteer' | 'staff' | 'pending';
@@ -26,6 +34,9 @@ export type RegisterDetails = {
 
 export type RegisterResult = { needsEmailConfirmation: boolean };
 
+/** sent = false means a code was already sent recently and the 5-minute wait is still running. */
+export type PasswordResetRequestResult = { sent: boolean; retryAfterSeconds: number };
+
 type AuthContextValue = {
   session: AppUser | null;
   isLoading: boolean;
@@ -33,6 +44,10 @@ type AuthContextValue = {
   register: (details: RegisterDetails) => Promise<RegisterResult>;
   refreshProfile: () => Promise<void>;
   signOut: () => Promise<void>;
+  requestPasswordReset: (email: string) => Promise<PasswordResetRequestResult>;
+  verifyPasswordResetCode: (email: string, code: string) => Promise<void>;
+  completePasswordReset: (newPassword: string) => Promise<void>;
+  cancelPasswordReset: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -86,6 +101,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<AppUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // True between "code accepted" and "new password saved". While true, the
+  // sign-in that verifyOtp performs is NOT treated as a normal sign-in, so the
+  // app stays on the reset screens instead of jumping to the tabs.
+  const recoveringRef = useRef(false);
+
   // Refresh tokens only while the app is in the foreground (Supabase React Native guidance).
   useEffect(() => {
     supabase.auth.startAutoRefresh();
@@ -110,6 +130,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setIsLoading(false);
           return;
         }
+
+        // The app was closed half-way through a password reset. That session only
+        // exists because a code was checked - it must not count as a real sign-in.
+        if (event === 'INITIAL_SESSION') {
+          const pending = await AsyncStorage.getItem(RECOVERY_PENDING_KEY).catch(() => null);
+          if (pending) {
+            await AsyncStorage.removeItem(RECOVERY_PENDING_KEY).catch(() => undefined);
+            await supabase.auth.signOut({ scope: 'local' }).catch(() => undefined);
+            if (!active) return;
+            setSession(null);
+            setIsLoading(false);
+            return;
+          }
+        }
+
+        // Mid-reset: stay on the reset screens.
+        if (recoveringRef.current) {
+          setIsLoading(false);
+          return;
+        }
+
         if (event === 'TOKEN_REFRESHED') return; // same user, profile unchanged
 
         const profile = await fetchProfile(supaSession.access_token, {
@@ -129,6 +170,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
+    // If someone backed out of a reset and signs in normally, leave recovery mode.
+    recoveringRef.current = false;
+    await AsyncStorage.removeItem(RECOVERY_PENDING_KEY).catch(() => undefined);
+
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
     // session state updates via onAuthStateChange
@@ -180,8 +225,83 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setSession(null);
   };
 
+  // ---- Forgot password ----------------------------------------------------
+
+  const requestPasswordReset = async (email: string): Promise<PasswordResetRequestResult> => {
+    const cleanEmail = normaliseEmail(email);
+
+    // Rule: only one code per email every 5 minutes (survives closing the app).
+    const remaining = await getResetCooldownRemaining(cleanEmail);
+    if (remaining > 0) return { sent: false, retryAfterSeconds: remaining };
+
+    // Supabase replies "OK" even if no account uses this email, so nothing is revealed.
+    const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail);
+    if (error) {
+      // Supabase's own 5-minute rule (Minimum interval per user = 300 seconds).
+      const alreadySent = error.status === 429 && /for security purposes/i.test(error.message);
+      if (!alreadySent) throw error;
+    }
+
+    await startResetCooldown(cleanEmail);
+    return { sent: true, retryAfterSeconds: RESET_COOLDOWN_SECONDS };
+  };
+
+  const verifyPasswordResetCode = async (email: string, code: string) => {
+    // Turn recovery mode on BEFORE verifying, because verifyOtp signs the user in.
+    recoveringRef.current = true;
+    await AsyncStorage.setItem(RECOVERY_PENDING_KEY, '1').catch(() => undefined);
+
+    const { data, error } = await supabase.auth.verifyOtp({
+      email: normaliseEmail(email),
+      token: code.trim(),
+      type: 'recovery',
+    });
+
+    if (error || !data.session) {
+      recoveringRef.current = false;
+      await AsyncStorage.removeItem(RECOVERY_PENDING_KEY).catch(() => undefined);
+      throw error ?? new Error('That code is incorrect or has expired.');
+    }
+  };
+
+  const completePasswordReset = async (newPassword: string) => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    // Stay in recovery mode on failure so the user can try a different password.
+    if (error) throw error;
+
+    // Sign out every OTHER phone or browser that was using the old password.
+    await supabase.auth.signOut({ scope: 'others' }).catch(() => undefined);
+
+    recoveringRef.current = false;
+    await AsyncStorage.removeItem(RECOVERY_PENDING_KEY).catch(() => undefined);
+
+    // Load the profile - this sets the session and the app opens normally.
+    await refreshProfile();
+  };
+
+  const cancelPasswordReset = async () => {
+    // Throw away the half-finished reset session on this phone.
+    await supabase.auth.signOut({ scope: 'local' }).catch(() => undefined);
+    recoveringRef.current = false;
+    await AsyncStorage.removeItem(RECOVERY_PENDING_KEY).catch(() => undefined);
+    setSession(null);
+  };
+
   return (
-    <AuthContext.Provider value={{ session, isLoading, signIn, register, refreshProfile, signOut }}>
+    <AuthContext.Provider
+      value={{
+        session,
+        isLoading,
+        signIn,
+        register,
+        refreshProfile,
+        signOut,
+        requestPasswordReset,
+        verifyPasswordResetCode,
+        completePasswordReset,
+        cancelPasswordReset,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

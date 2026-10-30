@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import * as Linking from 'expo-linking';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
@@ -54,6 +55,14 @@ export default function SignInScreen() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleForgotPassword = () => {
+    const typedEmail = email.trim();
+    router.push({
+      pathname: '/(auth)/forgot-password',
+      params: typedEmail ? { email: typedEmail } : {},
+    });
   };
 
   return (
@@ -102,7 +111,12 @@ export default function SignInScreen() {
             <Text style={styles.checkLabel}>Stay signed in</Text>
           </Pressable>
 
-          <Pressable onPress={() => Alert.alert('Forgot password', 'Password reset is not implemented yet.')}>
+          <Pressable
+            onPress={handleForgotPassword}
+            accessibilityRole="link"
+            accessibilityLabel="Forgot your password? Reset it"
+            hitSlop={8}
+          >
             <Text style={styles.forgot}>Forgot?</Text>
           </Pressable>
         </View>
