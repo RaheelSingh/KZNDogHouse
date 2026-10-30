@@ -28,6 +28,10 @@
                       novalidate
                       data-submit-once="true">
 
+                    @if (Model.Topic == KZNDoghouse.Web.Constants.ContactTopics.Adoption)
+                    {
+                        <div class="alert alert-info" role="note">An adoption enquiry starts a personal conversation with our team. We'll contact you about the assessment, home check and necessary paperwork; this form is not a completed adoption application.</div>
+                    }
                     <h2 class="public-form-title">Send us a message</h2>
                     <p class="public-form-hint">Fill out the form and our team will follow up.</p>
 

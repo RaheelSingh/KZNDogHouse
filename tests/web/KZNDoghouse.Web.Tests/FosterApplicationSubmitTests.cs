@@ -43,13 +43,7 @@ public class FosterApplicationSubmitTests
         var text = FosterApplicationDetailsBuilder.Build(ValidForm());
 
         Assert.Contains("Home address: 1 Main Road, Durban", text);
-        Assert.Contains("Type of home: House with garden", text);
-        Assert.Contains("Garden fully fenced: Yes", text);
-        Assert.Contains("Grass or daily walks on grass: Yes", text);
-        Assert.Contains("Someone home day and night: Yes", text);
-        Assert.Contains("Indoor sleeping area: Yes", text);
-        Assert.Contains("Other pets: No", text);
-        Assert.Contains("Children in the household: Yes", text);
+        Assert.DoesNotContain("Garden fully fenced", text);
         Assert.Contains("Dog sizes: Small, Medium", text);
         Assert.Contains("Foster period: 2–4 weeks", text);
         Assert.EndsWith("I love dogs.", text);
@@ -91,7 +85,7 @@ public class FosterApplicationSubmitTests
         Assert.True((DateTime.UtcNow - saved.SubmittedAt).TotalSeconds < 5);
         Assert.Null(saved.ReviewedByStaffId);
         Assert.Null(saved.RejectionReason);
-        Assert.Contains("Garden fully fenced: Yes", saved.ApplicationDetails);
+        Assert.Contains("Home address: 1 Main Road, Durban", saved.ApplicationDetails);
     }
 
     [Fact]

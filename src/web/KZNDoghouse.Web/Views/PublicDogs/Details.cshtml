@@ -30,6 +30,7 @@
                              DogName = dog.Name,
                              Initial = dog.Initial,
                              ImageUrls = dog.ImageUrls,
+                             VideoUrls = Model.Videos.Select(x => x.PublicUrl).ToList(),
                              Variant = "detail",
                              AutoPlay = false
                          })" />
@@ -105,7 +106,7 @@
                        asp-route-topic="adoption"
                        asp-route-message="@($"I would like to adopt {dog.Name}.")"
                        class="btn btn-kzn-primary">
-                        Start adoption
+                        Enquire about adoption
                     </a>
 
                     @if (!dog.IsFostered)

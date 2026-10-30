@@ -144,6 +144,11 @@
                 <div class="form-text">JPG, PNG or WebP. Up to 5 MB per image and 10 images per dog. The first uploaded image becomes the profile image.</div>
                 <span asp-validation-for="Images" class="text-danger small"></span>
             </div>
+            <div class="col-12">
+                <label for="dogVideoUpload" class="form-label">Dog video (optional)</label>
+                <input id="dogVideoUpload" name="video" type="file" class="form-control" accept="video/mp4,video/webm,.mp4,.webm" data-max-file-bytes="26214400" />
+                <div class="form-text">MP4 or WebM, maximum 25 MB. Videos play only on the individual dog's page; they do not load in the full dogs listing.</div>
+            </div>
 
 
         </div>

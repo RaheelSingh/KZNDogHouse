@@ -107,8 +107,16 @@ export default function HomeScreen() {
   const [myEvents, setMyEvents] = useState<MyEvent[]>([]);
   const [attentionDogs, setAttentionDogs] = useState<AttentionDog[]>([]);
   const [photos, setPhotos] = useState<string[]>([]);
+  const [photoIndex, setPhotoIndex] = useState(0);
   const [isCheckingIn, setIsCheckingIn] = useState(false);
   const [checkInError, setCheckInError] = useState<string | null>(null);
+
+  // Cycle through the existing dog photographs without refetching or changing slides.
+  useFocusEffect(useCallback(() => {
+    if (photos.length < 2) return;
+    const interval = setInterval(() => setPhotoIndex(current => (current + 1) % photos.length), 9000);
+    return () => clearInterval(interval);
+  }, [photos.length]));
 
   const loadHome = useCallback(async () => {
     const { start, end } = startEndOfToday();
@@ -438,7 +446,7 @@ export default function HomeScreen() {
           getItemLayout={(_, index) => ({ length: pageHeight, offset: pageHeight * index, index })}
           renderItem={({ item, index }) => (
             <View style={{ height: pageHeight }}>
-              <SlideBackground index={index} uri={photos.length > 0 ? photos[index % photos.length] : undefined} />
+              <SlideBackground index={index} uri={photos.length > 0 ? photos[(photoIndex + index) % photos.length] : undefined} />
               {/* Dark at the top for the titles, dark at the bottom for the cards */}
               <LinearGradient
                 colors={['rgba(9,19,15,0.85)', 'rgba(9,19,15,0.15)', 'rgba(9,19,15,0.9)']}

@@ -9,6 +9,8 @@ public class DogGalleryViewModel
     public IReadOnlyList<string> ImageUrls { get; set; } =
         Array.Empty<string>();
 
+    public IReadOnlyList<string> VideoUrls { get; set; } = Array.Empty<string>();
+
     public string Variant { get; set; } = "detail";
 
     public bool AutoPlay { get; set; }

@@ -33,32 +33,18 @@ public class FosterApplicationFormViewModel : IValidatableObject
     [Display(Name = "Home address")]
     [StringLength(200)]
     public string HomeAddress { get; set; } = string.Empty;
-
-    [Required(ErrorMessage = "Please choose your type of home.")]
     [Display(Name = "Type of home")]
     public string HomeType { get; set; } = string.Empty;
-
-    [Required(ErrorMessage = "Please tell us whether your garden is fully fenced.")]
     [Display(Name = "Garden fully fenced")]
     public string GardenFenced { get; set; } = string.Empty;
-
-    [Required(ErrorMessage = "Please tell us whether the dog would have grass or daily walks on grass.")]
     [Display(Name = "Grass or daily walks")]
     public bool? HasGrassOrDailyWalks { get; set; }
-
-    [Required(ErrorMessage = "Please tell us whether someone is home day and night.")]
     [Display(Name = "Someone home day and night")]
     public bool? SomeoneHomeDayAndNight { get; set; }
-
-    [Required(ErrorMessage = "Please tell us whether there is an indoor sleeping area.")]
     [Display(Name = "Indoor sleeping area")]
     public bool? HasIndoorSleepingArea { get; set; }
-
-    [Required(ErrorMessage = "Please tell us whether you have other pets.")]
     [Display(Name = "Other pets")]
     public bool? HasOtherPets { get; set; }
-
-    [Required(ErrorMessage = "Please tell us whether there are children in the household.")]
     [Display(Name = "Children in the household")]
     public bool? HasChildren { get; set; }
 
@@ -87,31 +73,15 @@ public class FosterApplicationFormViewModel : IValidatableObject
                 [nameof(AgreeToTerms)]);
         }
 
-        if (!string.IsNullOrWhiteSpace(HomeType)
-            && !FosterOptions.HomeTypes.Contains(HomeType))
-        {
-            yield return new ValidationResult(
-                "Please choose one of the listed home types.",
-                [nameof(HomeType)]);
-        }
-
-        if (!string.IsNullOrWhiteSpace(GardenFenced)
-            && !FosterOptions.FencedAnswers.Contains(GardenFenced))
-        {
-            yield return new ValidationResult(
-                "Please choose Yes, No or N/A.",
-                [nameof(GardenFenced)]);
-        }
-
-        if (SizePreferences == null || SizePreferences.Count == 0)
+        if (!DogId.HasValue && (SizePreferences == null || SizePreferences.Count == 0))
         {
             yield return new ValidationResult(
                 "Please choose at least one dog size.",
                 [nameof(SizePreferences)]);
         }
-        else if (SizePreferences.Count > FosterOptions.SizePreferences.Length
+        else if (SizePreferences != null && (SizePreferences.Count > FosterOptions.SizePreferences.Length
             || SizePreferences.Distinct().Count() != SizePreferences.Count
-            || SizePreferences.Any(x => !FosterOptions.SizePreferences.Contains(x)))
+            || SizePreferences.Any(x => !FosterOptions.SizePreferences.Contains(x))))
         {
             yield return new ValidationResult(
                 "Please choose from the listed dog sizes.",

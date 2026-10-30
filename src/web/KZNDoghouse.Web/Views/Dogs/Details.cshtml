@@ -285,98 +285,6 @@
                 <div class="portal-card mb-3">
 
                     <h5 class="kzn-card-title">
-                        Medical records
-                    </h5>
-
-                    @if (!Model.MedicalRecords.Any())
-                    {
-                        <p class="text-muted mb-0">
-                            No medical records yet.
-                        </p>
-                    }
-                    else
-                    {
-                        <div class="dog-detail-record-list">
-
-                            @foreach (var record in Model.MedicalRecords)
-                            {
-                                <div class="dog-detail-record dog-detail-medical-record">
-
-                                    <div>
-
-                                        <div class="fw-semibold">
-                                            @record.Title
-                                        </div>
-
-                                        <div class="text-muted small">
-
-                                            @record.RecordType
-
-                                            @if (!string.IsNullOrWhiteSpace(record.VetName))
-                                            {
-                                                <text> · @record.VetName</text>
-                                            }
-
-                                            @if (record.NextActionDate.HasValue)
-                                            {
-                                                <text>
-                                                    · due @record.NextActionDate.Value.ToString("dd MMM")
-                                                </text>
-                                            }
-
-                                        </div>
-
-                                        @if (!string.IsNullOrWhiteSpace(record.Details))
-                                        {
-                                            <div class="small mt-1">
-                                                @record.Details
-                                            </div>
-                                        }
-
-                                    </div>
-
-                                    <div class="text-end">
-
-                                        <span class="kzn-status-badge @(record.Status == MedicalRecordStatuses.Active ? "kzn-status-under-treatment" : "kzn-status-available")">
-                                            @record.Status
-                                        </span>
-
-                                        @if (record.Status == MedicalRecordStatuses.Active)
-                                        {
-                                            <form asp-controller="Dogs"
-                                                  asp-action="ResolveMedicalRecord"
-                                                  method="post"
-                                                  class="mt-2">
-
-                                                <input type="hidden"
-                                                       name="dogId"
-                                                       value="@dog.Id" />
-
-                                                <input type="hidden"
-                                                       name="recordId"
-                                                       value="@record.Id" />
-
-                                                <button type="submit"
-                                                        class="btn btn-kzn-outline btn-sm">
-                                                    Mark resolved
-                                                </button>
-
-                                            </form>
-                                        }
-
-                                    </div>
-
-                                </div>
-                            }
-
-                        </div>
-                    }
-
-                </div>
-
-                <div class="portal-card">
-
-                    <h5 class="kzn-card-title">
                         Log a new medical record
                     </h5>
 
@@ -460,7 +368,7 @@
                         </div>
 
                         <label class="form-label mt-2">Supporting document (optional)</label>
-                      <input type="file" name="attachment" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.webp" />
+                      <input type="file" name="attachment" class="form-control" accept=".pdf,.docx,.jpg,.jpeg,.png,.webp,.gif" />
                       <small class="text-muted">PDF or image, 10 MB maximum</small>
                       <button type="submit"
                                 class="btn btn-kzn-primary mt-3">
@@ -468,6 +376,108 @@
                         </button>
 
                     </form>
+
+                </div>
+
+                <div class="portal-card">
+
+                    <h5 class="kzn-card-title">
+                        Medical records
+                    </h5>
+
+                    @if (!Model.MedicalRecords.Any())
+                    {
+                        <p class="text-muted mb-0">
+                            No medical records yet.
+                        </p>
+                    }
+                    else
+                    {
+                        <div class="dog-detail-record-list">
+
+                            @foreach (var record in Model.MedicalRecords)
+                            {
+                                <details class="dog-medical-accordion">
+                                    <summary class="dog-medical-accordion-heading">
+                                        <span class="fw-semibold">@record.Title</span>
+                                        <span class="text-muted small">@record.RecordType · @record.CreatedAt.ToString("dd MMM yyyy") · @record.Status</span>
+                                    </summary>
+                                    <div class="dog-medical-accordion-body">
+
+                                    <div>
+
+                                        <div class="fw-semibold">
+                                            @record.Title
+                                        </div>
+
+                                        <div class="text-muted small">
+
+                                            @record.RecordType
+
+                                            @if (!string.IsNullOrWhiteSpace(record.VetName))
+                                            {
+                                                <text> · @record.VetName</text>
+                                            }
+
+                                            @if (record.NextActionDate.HasValue)
+                                            {
+                                                <text>
+                                                    · due @record.NextActionDate.Value.ToString("dd MMM")
+                                                </text>
+                                            }
+
+                                        </div>
+
+                                        @if (!string.IsNullOrWhiteSpace(record.Details))
+                                        {
+                                            <div class="small mt-1">
+                                                @record.Details
+                                            </div>
+                                        }
+
+                                    </div>
+
+                                    <div class="text-end">
+
+                                        <span class="kzn-status-badge @(record.Status == MedicalRecordStatuses.Active ? "kzn-status-under-treatment" : "kzn-status-available")">
+                                            @record.Status
+                                        </span>
+
+                                        @if (record.Status == MedicalRecordStatuses.Active)
+                                        {
+                                            <form asp-controller="Dogs"
+                                                  asp-action="ResolveMedicalRecord"
+                                                  method="post"
+                                                  class="mt-2">
+
+                                                <input type="hidden"
+                                                       name="dogId"
+                                                       value="@dog.Id" />
+
+                                                <input type="hidden"
+                                                       name="recordId"
+                                                       value="@record.Id" />
+
+                                                <button type="submit"
+                                                        class="btn btn-kzn-outline btn-sm">
+                                                    Mark resolved
+                                                </button>
+
+                                            </form>
+                                        }
+
+                                    </div>
+
+                                        @foreach (var document in Model.Documents.Where(x => x.MedicalRecordId == record.Id))
+                                        {
+                                            <div class="mt-2"><a asp-controller="DogDocuments" asp-action="Download" asp-route-id="@document.Id">Download @document.FileName securely</a></div>
+                                        }
+                                    </div>
+                                </details>
+                            }
+
+                        </div>
+                    }
 
                 </div>
 
@@ -699,7 +709,21 @@
 
     </section>
 
-    <section class="portal-card mt-3" aria-label="Secure dog paperwork">
+    @if (Model.Videos.Count > 0)
+    {
+        <section class="portal-card mt-3 dog-detail-documents" aria-label="Uploaded dog videos">
+            <h3 class="h5">Dog videos</h3>
+            <p class="text-muted small">These videos appear only on the public detail page, not in the dog list.</p>
+            <div class="d-flex flex-wrap gap-3">
+                @foreach (var video in Model.Videos)
+                {
+                    <video controls preload="none" playsinline style="width:min(100%,380px);max-height:280px;border-radius:12px" src="@video.PublicUrl"></video>
+                }
+            </div>
+        </section>
+    }
+
+    <section class="portal-card mt-3 dog-detail-documents" aria-label="Secure dog paperwork">
         <h3 class="h5">Secure dog documents</h3>
         <p class="text-muted small">Medical, foster and adoption paperwork is restricted to authorised staff.</p>
         @if (Model.Documents.Any())
@@ -715,12 +739,12 @@
         else { <p class="text-muted">No documents uploaded yet.</p> }
         <form asp-controller="DogDocuments" asp-action="Upload" method="post" enctype="multipart/form-data">
             <input type="hidden" name="dogId" value="@dog.Id" />
-            <div class="row g-2 align-items-end">
-                <div class="col-md-3"><label class="form-label">Document type</label>
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4"><label class="form-label">Document type</label>
                     <select name="category" class="form-select"><option>Medical</option><option>Foster</option><option>Adoption</option></select></div>
-                <div class="col-md-6"><label class="form-label">PDF or image</label>
-                    <input name="file" type="file" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.webp" required /></div>
-                <div class="col-md-3"><button class="btn btn-kzn-primary w-100">Upload document</button></div>
+                <div class="col-md-8"><label class="form-label">PDF, DOCX or image</label>
+                    <input name="file" type="file" class="form-control" accept=".pdf,.docx,.jpg,.jpeg,.png,.webp,.gif" required /></div>
+                <div class="col-12"><button class="btn btn-kzn-primary">Upload document</button></div>
             </div>
             <p class="portal-upload-help">Maximum 10 MB per file. Never publicly accessible.</p>
         </form>

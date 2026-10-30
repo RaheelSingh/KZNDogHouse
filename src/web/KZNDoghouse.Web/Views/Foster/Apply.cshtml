@@ -4,7 +4,7 @@
     ViewData["Title"] = "Apply to Foster";
     ViewData["Eyebrow"] = "Foster a Dog";
     ViewData["Heading"] = "Ready to open your door?";
-    ViewData["Subtitle"] = "Fostering is a temporary home for a dog in need — no forever commitment, just a soft place to land while we find them one. Tell us a bit about your home and we'll take it from there.";
+    ViewData["Subtitle"] = "Fostering is a temporary home for a dog in need — no forever commitment, just a soft place to land while we find them one. Tell us how to reach you and what kind of fostering would suit you.";
 
     var choices = ViewData["FosterDogChoices"] as IReadOnlyList<PublicDogListItem> ?? Array.Empty<PublicDogListItem>();
     var selectedDogName = ViewData["SelectedDogName"] as string;
@@ -35,18 +35,15 @@
                             <option value="">No preference / general foster enquiry</option>
                             @foreach (var option in choices)
                             {
-                                <option value="@option.Id">@option.Name (@option.MetaText)</option>
+                                <option value="@option.Id" data-dog-name="@option.Name" data-dog-photo="@option.PhotoUrl">@option.Name (@option.MetaText)</option>
                             }
                         </select>
                         <p class="form-text">You can apply without choosing a particular dog. The team will help match you.</p>
                     </div>
 
-                    @if (Model.DogId.HasValue && !string.IsNullOrWhiteSpace(selectedDogName))
-                    {
-                        <p class="public-dog-note">
-                            You are applying to foster <strong>@selectedDogName</strong>.
-                        </p>
-                    }
+                    <p id="selectedFosterDogNote" class="public-dog-note" hidden>
+                        You are applying to foster <strong id="selectedFosterDogName"></strong>.
+                    </p>
 
                     <fieldset class="public-form-section">
 
@@ -94,98 +91,9 @@
 
                     <fieldset class="public-form-section">
 
-                        <legend>Your home</legend>
-
-                        <p class="public-form-hint">
-                            Helps us match the right dog to your space.
-                        </p>
-
-                        <div class="public-question">
-                            <label asp-for="HomeType" class="form-label"></label>
-
-                            <select asp-for="HomeType" class="form-select">
-
-                                <option value="">Choose your type of home</option>
-
-                                @foreach (var option in FosterOptions.HomeTypes)
-                                {
-                                    <option value="@option"
-                                            selected="@(Model.HomeType == option)">
-                                        @option
-                                    </option>
-                                }
-
-                            </select>
-
-                            <span asp-validation-for="HomeType" class="text-danger"></span>
-                        </div>
-
-                        <div class="public-question" role="group" aria-labelledby="q-fenced">
-                            <p id="q-fenced" class="public-question-label">Is your garden fully fenced? *</p>
-                            <div class="public-pill-group">
-                                @foreach (var option in FosterOptions.FencedAnswers)
-                                {
-                                    <label class="public-pill">
-                                        <input type="radio" asp-for="GardenFenced" value="@option" />
-                                        <span>@option</span>
-                                    </label>
-                                }
-                            </div>
-                            <span asp-validation-for="GardenFenced" class="text-danger"></span>
-                        </div>
-
-                        <div class="public-question" role="group" aria-labelledby="q-grass">
-                            <p id="q-grass" class="public-question-label">Is there grass, or could the dog be walked on grass every day? *</p>
-                            <div class="public-pill-group">
-                                <label class="public-pill"><input type="radio" asp-for="HasGrassOrDailyWalks" value="true" /><span>Yes</span></label>
-                                <label class="public-pill"><input type="radio" asp-for="HasGrassOrDailyWalks" value="false" /><span>No</span></label>
-                            </div>
-                            <span asp-validation-for="HasGrassOrDailyWalks" class="text-danger"></span>
-                        </div>
-
-                        <div class="public-question" role="group" aria-labelledby="q-home">
-                            <p id="q-home" class="public-question-label">Will someone be home during the day and night? *</p>
-                            <div class="public-pill-group">
-                                <label class="public-pill"><input type="radio" asp-for="SomeoneHomeDayAndNight" value="true" /><span>Yes</span></label>
-                                <label class="public-pill"><input type="radio" asp-for="SomeoneHomeDayAndNight" value="false" /><span>No</span></label>
-                            </div>
-                            <span asp-validation-for="SomeoneHomeDayAndNight" class="text-danger"></span>
-                        </div>
-
-                        <div class="public-question" role="group" aria-labelledby="q-indoor">
-                            <p id="q-indoor" class="public-question-label">Does the dog have an indoor place to sleep? *</p>
-                            <div class="public-pill-group">
-                                <label class="public-pill"><input type="radio" asp-for="HasIndoorSleepingArea" value="true" /><span>Yes</span></label>
-                                <label class="public-pill"><input type="radio" asp-for="HasIndoorSleepingArea" value="false" /><span>No</span></label>
-                            </div>
-                            <span asp-validation-for="HasIndoorSleepingArea" class="text-danger"></span>
-                        </div>
-
-                        <div class="public-question" role="group" aria-labelledby="q-pets">
-                            <p id="q-pets" class="public-question-label">Do you have other pets? *</p>
-                            <div class="public-pill-group">
-                                <label class="public-pill"><input type="radio" asp-for="HasOtherPets" value="true" /><span>Yes</span></label>
-                                <label class="public-pill"><input type="radio" asp-for="HasOtherPets" value="false" /><span>No</span></label>
-                            </div>
-                            <span asp-validation-for="HasOtherPets" class="text-danger"></span>
-                        </div>
-
-                        <div class="public-question" role="group" aria-labelledby="q-children">
-                            <p id="q-children" class="public-question-label">Are there children in the household? *</p>
-                            <div class="public-pill-group">
-                                <label class="public-pill"><input type="radio" asp-for="HasChildren" value="true" /><span>Yes</span></label>
-                                <label class="public-pill"><input type="radio" asp-for="HasChildren" value="false" /><span>No</span></label>
-                            </div>
-                            <span asp-validation-for="HasChildren" class="text-danger"></span>
-                        </div>
-
-                    </fieldset>
-
-                    <fieldset class="public-form-section">
-
                         <legend>Fostering preferences</legend>
 
-                        <div class="public-question" role="group" aria-labelledby="q-size">
+                        <div class="public-question" role="group" aria-labelledby="q-size" id="fosterSizePreferences">
                             <p id="q-size" class="public-question-label">What size dog could you foster? *</p>
                             <div class="public-pill-group">
                                 @foreach (var option in FosterOptions.SizePreferences)
@@ -267,7 +175,7 @@
                             <span>1</span>
                             <div>
                                 <strong>Apply</strong>
-                                <p>Fill out this form &mdash; takes about 5 minutes.</p>
+                                <p>Send a short enquiry and we'll contact you.</p>
                             </div>
                         </li>
 
@@ -299,31 +207,14 @@
 
                 </div>
 
-                @if (!string.IsNullOrWhiteSpace(selectedDogPhotoUrl))
-                {
-                    <figure class="public-side-photo-card">
-                        <img src="@selectedDogPhotoUrl"
-                             alt="Photo of @(selectedDogPhotoName ?? "a KZN Doghouse rescue dog")"
-                             class="public-side-photo-image"
-                             loading="lazy" />
-                        <figcaption>
-                            @(selectedDogName != null
-                                ? $"{selectedDogName} could be your next foster."
-                                : "A temporary home can change a rescue dog's whole journey.")
-                        </figcaption>
-                    </figure>
-                }
-                else
-                {
-                    <div class="public-side-photo-fallback">
-                        <span class="public-icon-box"><partial name="_PublicIcon" model="@("home")" /></span>
-                        <strong>A safe home changes everything.</strong>
-                        <p>
-                            Foster carers give dogs time to settle, recover and get ready for
-                            their permanent families.
-                        </p>
-                    </div>
-                }
+                <figure id="selectedFosterDogPhoto" class="public-side-photo-card" hidden>
+                    <img id="selectedFosterDogImage" src="" alt="Selected foster dog" class="public-side-photo-image" loading="lazy" />
+                    <figcaption id="selectedFosterDogCaption"></figcaption>
+                </figure>
+                <div id="generalFosterDogMessage" class="public-side-photo-fallback">
+                    <strong>A safe home changes everything.</strong>
+                    <p>Choose a dog above, or submit a general enquiry and our team will help you find a match.</p>
+                </div>
 
             </div>
 
@@ -345,6 +236,35 @@
                 }
             });
         });
+
+        const dogSelector = document.getElementById('DogId');
+        const updateDogSelection = () => {
+            const option = dogSelector?.selectedOptions?.[0];
+            const hasDog = !!dogSelector?.value;
+            const name = option?.dataset?.dogName || '';
+            const photo = option?.dataset?.dogPhoto || '';
+            const note = document.getElementById('selectedFosterDogNote');
+            const photoCard = document.getElementById('selectedFosterDogPhoto');
+            const fallback = document.getElementById('generalFosterDogMessage');
+            const image = document.getElementById('selectedFosterDogImage');
+            const size = document.getElementById('fosterSizePreferences');
+            note.hidden = !hasDog;
+            document.getElementById('selectedFosterDogName').textContent = name;
+            size.hidden = hasDog;
+            if (hasDog && photo) {
+                image.src = photo;
+                image.alt = 'Photo of ' + name;
+                document.getElementById('selectedFosterDogCaption').textContent = name + ' could be your next foster.';
+                photoCard.hidden = false;
+                fallback.hidden = true;
+            } else {
+                image.removeAttribute('src');
+                photoCard.hidden = true;
+                fallback.hidden = false;
+            }
+        };
+        dogSelector?.addEventListener('change', updateDogSelection);
+        updateDogSelection();
 
         $("form.public-form-card").on("submit", function () {
             var form = $(this);

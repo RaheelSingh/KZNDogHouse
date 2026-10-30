@@ -1,6 +1,9 @@
 -- KZN Doghouse database schema.
--- Can be applied to the existing database without deleting application records.
--- Existing RLS policies, table permissions, storage settings and auth triggers are preserved.
+-- Consolidated and rerunnable schema for the existing KZN Doghouse database.
+-- Existing application rows are preserved. Run this single file after taking a backup.
+-- Existing application RLS policies and authentication triggers are retained.
+-- Known volunteer functions, private-document permissions, and media bucket settings
+-- are managed below; inspect live customisations before applying.
 -- Review any schema conflicts shown by PostgreSQL before proceeding.
 
 begin;
@@ -591,8 +594,15 @@ alter table public.event_assignments
 create index if not exists idx_event_assignments_event_status
     on public.event_assignments (event_id, status);
 
+
+-- Only install baseline volunteer routines if missing. Never replace working live
+-- function bodies during a schema refresh (for example, site-specific changes).
 -- Every event approval is serialized on the event row. The lock protects against
 -- concurrent reviewers filling the last vacancy at the same time.
+do $kzn_existing_review_volunteer_application$
+begin
+    if to_regprocedure('public.review_volunteer_application(uuid, text)') is null then
+        execute $kzn_ddl_review_volunteer_application$
 create or replace function public.review_volunteer_application(
     p_assignment_id uuid,
     p_status text
@@ -658,6 +668,10 @@ begin
     return true;
 end;
 $$;
+$kzn_ddl_review_volunteer_application$;
+    end if;
+end;
+$kzn_existing_review_volunteer_application$;
 
 -- Only trusted API requests using the service-role key may review volunteers.
 revoke all on function public.review_volunteer_application(uuid, text) from public, anon, authenticated;
@@ -665,6 +679,10 @@ grant execute on function public.review_volunteer_application(uuid, text) to ser
 
 -- Mobile volunteers submit applications themselves. The function resolves the
 -- profile from the authenticated JWT, never from a caller-controlled profile ID.
+do $kzn_existing_request_volunteer_place$
+begin
+    if to_regprocedure('public.request_volunteer_place(uuid)') is null then
+        execute $kzn_ddl_request_volunteer_place$
 create or replace function public.request_volunteer_place(p_event_id uuid)
 returns public.event_assignments
 language plpgsql
@@ -714,9 +732,17 @@ begin
     return v_assignment;
 end;
 $$;
+$kzn_ddl_request_volunteer_place$;
+    end if;
+end;
+$kzn_existing_request_volunteer_place$;
 revoke all on function public.request_volunteer_place(uuid) from public, anon;
 grant execute on function public.request_volunteer_place(uuid) to authenticated;
 
+do $kzn_existing_cancel_volunteer_application$
+begin
+    if to_regprocedure('public.cancel_volunteer_application(uuid)') is null then
+        execute $kzn_ddl_cancel_volunteer_application$
 create or replace function public.cancel_volunteer_application(p_event_id uuid)
 returns boolean
 language plpgsql
@@ -743,9 +769,17 @@ begin
     return true;
 end;
 $$;
+$kzn_ddl_cancel_volunteer_application$;
+    end if;
+end;
+$kzn_existing_cancel_volunteer_application$;
 revoke all on function public.cancel_volunteer_application(uuid) from public, anon;
 grant execute on function public.cancel_volunteer_application(uuid) to authenticated;
 
+do $kzn_existing_get_confirmed_volunteer_counts$
+begin
+    if to_regprocedure('public.get_confirmed_volunteer_counts(uuid[])') is null then
+        execute $kzn_ddl_get_confirmed_volunteer_counts$
 create or replace function public.get_confirmed_volunteer_counts(p_event_ids uuid[])
 returns table(event_id uuid, signed_up bigint)
 language sql
@@ -760,11 +794,19 @@ as $$
       and (select auth.uid()) is not null
     group by a.event_id;
 $$;
+$kzn_ddl_get_confirmed_volunteer_counts$;
+    end if;
+end;
+$kzn_existing_get_confirmed_volunteer_counts$;
 revoke all on function public.get_confirmed_volunteer_counts(uuid[]) from public, anon;
 grant execute on function public.get_confirmed_volunteer_counts(uuid[]) to authenticated;
 
 -- Protect capacity even when older clients write legacy Registered/Assigned
 -- statuses instead of using the staff review function.
+do $kzn_existing_enforce_volunteer_event_capacity$
+begin
+    if to_regprocedure('public.enforce_volunteer_event_capacity()') is null then
+        execute $kzn_ddl_enforce_volunteer_event_capacity$
 create or replace function public.enforce_volunteer_event_capacity()
 returns trigger
 language plpgsql
@@ -801,6 +843,10 @@ begin
     return new;
 end;
 $$;
+$kzn_ddl_enforce_volunteer_event_capacity$;
+    end if;
+end;
+$kzn_existing_enforce_volunteer_event_capacity$;
 do $$
 begin
     if exists (
@@ -848,17 +894,7 @@ begin
 end;
 $kzn_rls$;
 
--- Refresh PostgREST metadata after schema changes.
-notify pgrst, 'reload schema';
-
-commit;
-
-
-/* Private records and contact workflow (additive; safe to rerun) */
--- Additive KZN Doghouse portal operations upgrade.
--- Review against the live project and run once in Supabase SQL Editor after backup.
--- No existing dogs, users, events, foster applications or notifications are deleted.
-begin;
+/* Private medical/foster/adoption documents and contact workflow */
 
 alter table public.notifications
     add column if not exists cleared_at timestamptz null;
@@ -893,12 +929,51 @@ create table if not exists public.dog_documents (
     foster_application_id uuid null references public.foster_applications(id) on delete set null,
     category text not null check (category in ('Medical','Foster','Adoption')),
     file_name text not null,
-    content_type text not null check (content_type in ('application/pdf','image/jpeg','image/png','image/webp')),
+    content_type text not null check (content_type in (
+        'application/pdf',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'image/jpeg', 'image/png', 'image/webp', 'image/gif')),
     storage_path text not null unique,
     uploaded_by uuid null references public.user_profiles(id) on delete set null,
     created_at timestamptz not null default now()
 );
 alter table public.dog_documents add column if not exists foster_application_id uuid null references public.foster_applications(id) on delete set null;
+
+-- Widen only the known dog-document content type constraint for DOCX and GIF.
+-- Existing files/rows are not changed. Unknown custom constraints cause a rollback.
+do $kzn_document_types$
+declare
+    v_definition text;
+begin
+    select pg_get_constraintdef(oid) into v_definition
+    from pg_catalog.pg_constraint
+    where conrelid = 'public.dog_documents'::regclass
+      and conname = 'dog_documents_content_type_check';
+
+    if v_definition is not null
+       and (v_definition not ilike '%application/pdf%'
+         or v_definition not ilike '%image/jpeg%'
+         or v_definition not ilike '%image/png%'
+         or v_definition not ilike '%image/webp%') then
+        raise exception 'Existing dog document content-type constraint is customised. Review before updating.';
+    end if;
+
+    if v_definition is null
+        or v_definition not ilike '%image/gif%'
+        or v_definition not ilike '%application/vnd.openxmlformats-officedocument.wordprocessingml.document%' then
+        if v_definition is not null then
+            alter table public.dog_documents drop constraint dog_documents_content_type_check;
+        end if;
+        alter table public.dog_documents
+          add constraint dog_documents_content_type_check
+          check (content_type in (
+            'application/pdf',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'image/jpeg', 'image/png', 'image/webp', 'image/gif'));
+    end if;
+end;
+$kzn_document_types$;
+
 create index if not exists idx_dog_documents_foster on public.dog_documents(foster_application_id);
 create index if not exists idx_dog_documents_dog on public.dog_documents(dog_id, created_at desc);
 alter table public.dog_documents enable row level security;
@@ -919,5 +994,61 @@ do $$ begin
     raise exception 'dog-private-documents is public; change it to private before uploading sensitive files';
   end if;
 end $$;
+
+/* Individual-dog video metadata and public media bucket.
+   Videos are only requested from individual public dog pages by application code.
+   Public storage means the video URL itself is public; this does not grant access
+   to private medical or agreement files. */
+create table if not exists public.dog_videos (
+    id uuid primary key default gen_random_uuid(),
+    dog_id uuid not null references public.dogs(id) on delete cascade,
+    storage_path text not null unique,
+    public_url text not null,
+    content_type text not null check (content_type in ('video/mp4','video/webm')),
+    created_at timestamptz not null default now()
+);
+create index if not exists idx_dog_videos_dog on public.dog_videos(dog_id);
+alter table public.dog_videos enable row level security;
+revoke all on public.dog_videos from public, anon, authenticated;
+grant all on public.dog_videos to service_role;
+
+
+-- The default public video bucket is created without modifying any pre-existing bucket.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('dog-videos', 'dog-videos', true, 26214400,
+        array['video/mp4','video/webm']::text[])
+on conflict (id) do nothing;
+
+-- A pre-existing bucket with different visibility would break public video URLs.
+-- Never silently make an existing private bucket public.
+do $kzn_video_bucket$
+begin
+    if exists (
+       select 1 from storage.buckets
+       where id = 'dog-videos' and public = false
+    ) then
+       raise exception 'Existing dog-videos bucket is private. Review its contents before using public video URLs.';
+    end if;
+end;
+$kzn_video_bucket$;
+
+-- Extend formats in the existing *private* document bucket, leaving its contents
+-- and its public/private status unchanged.
+update storage.buckets
+set allowed_mime_types = case
+    when allowed_mime_types is null then null
+    else ARRAY(
+        select distinct format_type
+        from unnest(allowed_mime_types || ARRAY[
+            'application/pdf',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'image/jpeg', 'image/png', 'image/webp', 'image/gif'
+        ]::text[]) as format_type
+    )
+end
+where id = 'dog-private-documents' and public = false;
+
+-- Refresh API schema metadata after all changes have succeeded.
 notify pgrst, 'reload schema';
+
 commit;

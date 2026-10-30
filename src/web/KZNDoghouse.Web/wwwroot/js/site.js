@@ -416,9 +416,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 % frames.length;
 
             frames.forEach((frame, frameIndex) => {
-                frame.classList.toggle(
-                    "is-active",
-                    frameIndex === index);
+                const active = frameIndex === index;
+                frame.classList.toggle("is-active", active);
+                if (!active && frame.tagName === "VIDEO") frame.pause();
             });
 
             indicators.forEach((indicator, indicatorIndex) => {

@@ -128,7 +128,12 @@
             {
                 @foreach (var record in Model.MedicalRecords)
                 {
-                    <div class="vet-medical-record">
+                    <details class="dog-medical-accordion">
+                        <summary class="dog-medical-accordion-heading">
+                            <span class="fw-semibold">@record.Title</span>
+                            <span class="text-muted small">@record.RecordType · @record.CreatedAt.ToString("dd MMM yyyy")</span>
+                        </summary>
+                        <div class="dog-medical-accordion-body">
 
                         <div>
 
@@ -170,15 +175,20 @@
                             @record.CreatedAt.ToString("dd MMM yyyy")
                         </time>
 
-                    </div>
+                            @foreach (var document in Model.Documents.Where(x => x.MedicalRecordId == record.Id))
+                            {
+                                <div class="mt-2"><a asp-controller="DogDocuments" asp-action="Download" asp-route-id="@document.Id">Download @document.FileName securely</a></div>
+                            }
+                        </div>
+                    </details>
                 }
             }
 
-            @if (Model.Documents.Any(x => x.Category == "Medical"))
+            @if (Model.Documents.Any(x => x.Category == "Medical" && !x.MedicalRecordId.HasValue))
             {
                 <h6 class="mt-4">Supporting documents</h6>
                 <ul class="portal-document-list">
-                    @foreach (var document in Model.Documents.Where(x => x.Category == "Medical"))
+                    @foreach (var document in Model.Documents.Where(x => x.Category == "Medical" && !x.MedicalRecordId.HasValue))
                     {
                         <li><span>@document.FileName</span><a asp-controller="DogDocuments" asp-action="Download" asp-route-id="@document.Id">Download securely</a></li>
                     }
@@ -265,7 +275,7 @@
 
                 <div class="mt-3">
                     <label for="vetMedicalAttachment" class="form-label">Supporting document (optional)</label>
-                    <input id="vetMedicalAttachment" type="file" name="attachment" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.webp" />
+                    <input id="vetMedicalAttachment" type="file" name="attachment" class="form-control" accept=".pdf,.docx,.jpg,.jpeg,.png,.webp,.gif" />
                     <div class="portal-upload-help">PDF or image, up to 10 MB. Visible only to authorised staff and vets.</div>
                 </div>
                 <button type="submit" class="btn btn-kzn-primary mt-3">

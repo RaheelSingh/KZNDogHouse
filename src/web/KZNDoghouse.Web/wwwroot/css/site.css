@@ -5885,3 +5885,34 @@ label.is-required::after {
 .portal-inline-datetime input[type=time] { min-width:120px; flex:0 1 140px; }
 @media (max-width:991.98px){.vet-detail-grid { grid-template-columns:1fr; }}
 @media (max-width:575.98px){.portal-inline-datetime input[type=time] { flex:1 1 120px; }}
+
+/* Portal usability refinements */
+.portal-notification-item-dismissible { position: relative; padding-right: 3.25rem; }
+.portal-notification-dismiss { position: absolute; top: .9rem; right: .95rem; z-index: 2; }
+.portal-notification-dismiss button { border: 0; background: transparent; color: #728078; font-size: 15px; font-weight: 400; line-height: 1.4; padding: .1rem .35rem; border-radius: .4rem; cursor: pointer; }
+.portal-notification-dismiss button:hover, .portal-notification-dismiss button:focus-visible { background: #ecf1eb; color: #123827; }
+.portal-notification-actions { padding-right: .15rem; }
+.portal-inbox-card .portal-inbox-actions { justify-content: flex-end; margin-left: auto; }
+.portal-inbox-card .portal-inbox-actions form { display: inline-flex; }
+.portal-inbox-card [hidden], .public-side-photo-card[hidden], .public-side-photo-fallback[hidden], #fosterSizePreferences[hidden], #selectedFosterDogNote[hidden] { display: none !important; }
+.portal-workspace-form-card .row > [class*="col-"] { min-width: 0; }
+.portal-workspace-form-card input[type="datetime-local"], .portal-event-volunteer-config input[type="datetime-local"] { box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; font-size: .95rem; }
+.dog-medical-accordion { border-top: 1px solid #dce3da; padding: .7rem 0; }
+.dog-medical-accordion-heading { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem 1rem; align-items: baseline; cursor: pointer; padding: .2rem 0; }
+.dog-medical-accordion-heading:hover { color: #19412e; }
+.dog-medical-accordion-body { padding: .75rem 1rem; border-left: 3px solid #d4dfd1; overflow-wrap: anywhere; }
+.dog-detail-documents { min-width: 0; }
+.dog-detail-documents .portal-document-list li { display:flex; flex-wrap:wrap; gap:.5rem; justify-content:space-between; overflow-wrap:anywhere; }
+.dog-detail-documents .row > div { min-width: 0; }
+@media (max-width: 767.98px) { .portal-inbox-card .portal-inbox-actions { justify-content: flex-start; } .dog-medical-accordion-heading { flex-direction: column; } }
+
+.dog-detail-layout > .dog-detail-documents { grid-column: 1 / -1; width: 100%; }
+
+.dog-gallery-frame:is(video) { object-fit: contain; background:#10241a; width:100%; height:100%; }
+
+@media (min-width: 768px) {
+ .portal-inbox-card { display:grid; grid-template-columns:minmax(0,1fr) max-content; column-gap:1rem; }
+ .portal-inbox-card > .d-flex:first-child { grid-column:1 / -1; }
+ .portal-inbox-card > p, .portal-inbox-card > .d-flex:not(:first-child) { grid-column:1; }
+ .portal-inbox-card > .portal-inbox-actions { grid-column:2; grid-row:2 / span 2; align-self:center; }
+}

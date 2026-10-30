@@ -13,6 +13,7 @@ public class DogsController : Controller
 {
     private readonly IDogService _dogService;
     private readonly IDogImageService _dogImageService;
+    private readonly IDogVideoService? _videoService;
     private readonly IUserProfileRepository _userProfileRepository;
     private readonly IDogMedicalService _dogMedicalService;
     private readonly IDogDocumentService _documents;
@@ -28,10 +29,12 @@ public class DogsController : Controller
         IDogDocumentService documents,
         IMedicalAlertService medicalAlerts,
         IFosteringService fosteringService,
-        ILogger<DogsController> logger)
+        ILogger<DogsController> logger,
+        IDogVideoService? videoService = null)
     {
         _dogService = dogService;
         _dogImageService = dogImageService;
+        _videoService = videoService;
         _userProfileRepository = userProfileRepository;
         _dogMedicalService = dogMedicalService;
         _documents = documents;
@@ -67,7 +70,7 @@ public class DogsController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(
-        DogFormViewModel model)
+        DogFormViewModel model, IFormFile? video = null)
     {
         if (!ModelState.IsValid)
         {
@@ -128,6 +131,12 @@ public class DogsController : Controller
                 TempData["ErrorMessage"] = upload.Message;
             }
 
+            if (video != null && _videoService != null)
+            {
+                var videoResult = await _videoService.UploadAsync(createdDog.Id, video);
+                if (!videoResult.Success) TempData["ErrorMessage"] = videoResult.Message;
+            }
+
             return RedirectToAction(
                 nameof(Details),
                 new { id = createdDog.Id });
@@ -181,7 +190,7 @@ public class DogsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(
         Guid id,
-        DogFormViewModel model)
+        DogFormViewModel model, IFormFile? video = null)
     {
         if (!ModelState.IsValid)
         {
@@ -232,6 +241,12 @@ public class DogsController : Controller
                 {
                     TempData["ErrorMessage"] = upload.Message;
                 }
+            }
+
+            if (video != null && _videoService != null)
+            {
+                var videoResult = await _videoService.UploadAsync(dog.Id, video);
+                if (!videoResult.Success) TempData["ErrorMessage"] = videoResult.Message;
             }
 
             TempData["SuccessMessage"] =
@@ -370,6 +385,7 @@ public class DogsController : Controller
         var model = new DogDetailsViewModel
         {
             Dog = dog,
+            Videos = _videoService == null ? Array.Empty<DogVideo>() : await _videoService.GetForDogAsync(id),
             MedicalRecords = await _dogMedicalService.GetRecordsAsync(id),
             Documents = await _documents.GetForDogAsync(id),
             Notes =

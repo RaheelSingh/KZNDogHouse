@@ -128,13 +128,16 @@
             {
                 var readState = notification.IsRead ? "Read" : "Unread";
 
-                <div class="portal-card portal-notification-item @(notification.IsRead ? "" : "portal-notification-unread") mb-2"
+                <div class="portal-card portal-notification-item portal-notification-item-dismissible @(notification.IsRead ? "" : "portal-notification-unread") mb-2"
                      data-portal-row
                      data-search="@notification.Title @notification.Body @notification.Category"
                      data-category="@notification.Category"
                      data-read="@readState"
                      data-date="@notification.CreatedAt.ToString("yyyy-MM-dd")">
 
+                    <form asp-controller="Notifications" asp-action="Clear" asp-route-id="@notification.Id" method="post" class="portal-notification-dismiss">
+                        <button type="submit" aria-label="Remove notification" title="Remove notification">&times;</button>
+                    </form>
                     <div class="portal-notification-content">
 
                         <div>
@@ -187,9 +190,7 @@
                                 </form>
                             }
 
-                            <form asp-controller="Notifications" asp-action="Clear" asp-route-id="@notification.Id" method="post">
-                                <button type="submit" class="btn btn-kzn-outline btn-sm" aria-label="Remove notification">&times;</button>
-                            </form>
+
                         </div>
 
                     </div>

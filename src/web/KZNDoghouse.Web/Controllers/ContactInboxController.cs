@@ -23,6 +23,25 @@ public class ContactInboxController : Controller
             TempData["ErrorMessage"] = "Choose a valid contact status.";
             return RedirectToAction(nameof(Index));
         }
+        var current = (await _messages.GetAllAsync()).FirstOrDefault(x => x.Id == id);
+        if (current == null) return NotFound();
+        if (current.Status == "Resolved"
+            && (!User.IsInRole("Administrator") || status != "Ongoing"))
+        {
+            TempData["ErrorMessage"] = "Only administrators can reopen resolved enquiries.";
+            return RedirectToAction(nameof(Index));
+        }
+        if (current.Status != "Resolved" && status == "New")
+        {
+            TempData["ErrorMessage"] = "An enquiry cannot be moved back to New.";
+            return RedirectToAction(nameof(Index));
+        }
+        if (current.Status == "New" && status == "Resolved")
+        {
+            TempData["ErrorMessage"] = "Mark the enquiry as ongoing before resolving it.";
+            return RedirectToAction(nameof(Index));
+        }
+        if (current.Status == status) return RedirectToAction(nameof(Index));
         await _messages.UpdateStatusAsync(id, status);
         TempData["SuccessMessage"] = "Message status updated.";
         return RedirectToAction(nameof(Index));

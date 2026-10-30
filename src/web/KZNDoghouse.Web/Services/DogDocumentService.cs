@@ -50,7 +50,7 @@ public class DogDocumentService : IDogDocumentService
         var bytes = buffer.ToArray();
         // Validate the file contents, not its extension or the browser-supplied MIME type.
         var kind = DetectType(bytes);
-        if (kind == null) return new(false, "Only PDF, JPG, PNG and WebP documents are permitted.");
+        if (kind == null) return new(false, "Only PDF, DOCX, JPG, PNG, GIF and WebP documents are permitted.");
         var (mime, extension) = kind.Value;
         var cleanName = Path.GetFileName(file.FileName);
         if (string.IsNullOrWhiteSpace(cleanName)) cleanName = $"document{extension}";
@@ -98,6 +98,22 @@ public class DogDocumentService : IDogDocumentService
         if (b.Length >= 3 && b[0] == 0xff && b[1] == 0xd8 && b[2] == 0xff) return ("image/jpeg", ".jpg");
         if (b.Length >= 8 && b.AsSpan(0, 8).SequenceEqual(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 })) return ("image/png", ".png");
         if (b.Length >= 12 && b[0] == 'R' && b[1] == 'I' && b[2] == 'F' && b[3] == 'F' && b[8] == 'W' && b[9] == 'E' && b[10] == 'B' && b[11] == 'P') return ("image/webp", ".webp");
+        if (b.Length >= 6 && b[0] == 'G' && b[1] == 'I' && b[2] == 'F' && b[3] == '8'
+            && (b[4] == '7' || b[4] == '9') && b[5] == 'a') return ("image/gif", ".gif");
+        // DOCX is an Open XML ZIP package, not an arbitrary uploaded ZIP archive.
+        if (b.Length >= 4 && b[0] == 'P' && b[1] == 'K' && b[2] == 3 && b[3] == 4)
+        {
+            try
+            {
+                using var stream = new MemoryStream(b);
+                using var archive = new System.IO.Compression.ZipArchive(stream, System.IO.Compression.ZipArchiveMode.Read);
+                if (archive.Entries.Count <= 500
+                    && archive.GetEntry("[Content_Types].xml") != null
+                    && archive.GetEntry("word/document.xml") != null)
+                    return ("application/vnd.openxmlformats-officedocument.wordprocessingml.document", ".docx");
+            }
+            catch (System.IO.InvalidDataException) { }
+        }
         return null;
     }
 }
