@@ -31,10 +31,6 @@ public class DogFormViewModel : IValidatableObject
     [Range(0, 120, ErrorMessage = "Weight must be between 0 and 120 kg.")]
     public decimal? WeightKg { get; set; }
 
-    [Display(Name = "Eye colour")]
-    [StringLength(80)]
-    public string? EyeColour { get; set; }
-
     [StringLength(300)]
     public string? Temperament { get; set; }
 
@@ -62,6 +58,9 @@ public class DogFormViewModel : IValidatableObject
 
     [Display(Name = "Vaccinated")]
     public bool IsVaccinated { get; set; }
+
+    [Display(Name = "Spayed / neutered")]
+    public bool? IsSpayedNeutered { get; set; }
 
     [Display(Name = "Dog images")]
     public List<IFormFile> Images { get; set; } = [];

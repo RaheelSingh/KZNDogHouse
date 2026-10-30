@@ -167,11 +167,15 @@ create table if not exists public.dogs (
     status text not null default 'In Care'
         check (status in ('Available', 'In Care', 'Under Treatment', 'Fostered', 'Reserved', 'Adopted')),
     is_vaccinated boolean not null default false,
+    is_spayed_neutered boolean null,
     photo_url text null,
     created_by uuid null references public.user_profiles(id) on delete set null,
     created_at timestamptz not null default now(),
     updated_at timestamptz null
 );
+
+-- Existing dogs remain intact; a NULL value means sterilisation status is not recorded.
+alter table public.dogs add column if not exists is_spayed_neutered boolean null;
 
 create index if not exists idx_dogs_name
     on public.dogs(name);

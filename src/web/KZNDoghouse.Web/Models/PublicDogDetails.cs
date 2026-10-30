@@ -26,6 +26,8 @@ public class PublicDogDetails
 
     public bool IsVaccinated { get; set; }
 
+    public bool? IsSpayedNeutered { get; set; }
+
     public IReadOnlyList<string> ImageUrls { get; set; } =
         Array.Empty<string>();
 
@@ -101,6 +103,7 @@ public class PublicDogDetails
             Temperament = dog.Temperament,
             About = dog.About,
             IsVaccinated = dog.IsVaccinated,
+            IsSpayedNeutered = dog.IsSpayedNeutered,
             ImageUrls = urls,
             Status = dog.Status,
             IntakeDate = dog.IntakeDate

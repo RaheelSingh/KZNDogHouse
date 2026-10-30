@@ -230,7 +230,6 @@
                                 <select name="transactionType" class="form-select" required>
                                     <option value="@InventoryTransactionTypes.Delivery">Stock received</option>
                                     <option value="@InventoryTransactionTypes.Usage">Stock used</option>
-                                    <option value="@InventoryTransactionTypes.Adjustment">Manual adjustment</option>
                                 </select>
                             </div>
 
@@ -242,7 +241,7 @@
                                         <span class="portal-field-unit">(@item.Unit)</span>
                                     }
                                 </label>
-                                <input type="number" name="quantityChange" class="form-control" required />
+                                <input type="number" name="quantityChange" min="1" step="1" class="form-control" required />
                             </div>
 
                             <div>
@@ -256,7 +255,7 @@
                             </div>
 
                             <div class="portal-inventory-stock-submit">
-                                <div class="form-text">Enter the amount in the item’s chosen unit or measure. Received/used amounts are positive numbers; manual adjustments may be positive or negative.</div>
+                                <div class="form-text">Enter a positive amount in the item’s chosen unit or measure.</div>
                                 <button type="submit" class="btn btn-kzn-primary btn-sm">Update stock</button>
                             </div>
                         </form>

@@ -455,7 +455,7 @@ export default function HomeScreen() {
         <View style={styles.headerRow}>
           <View style={styles.brandPill}>
             <Image source={require('../../../assets/doghouse-logo.png')} style={styles.brandLogo} resizeMode="contain" />
-            <Text style={styles.brandText}>KZN Doghouse</Text>
+            <Text style={styles.brandText}>The KZN Doghouse</Text>
           </View>
           <Pressable onPress={() => router.push('/(tabs)/alerts')} hitSlop={10} accessibilityLabel="Open alerts">
             <Ionicons name="notifications-outline" size={27} color="#fff" />

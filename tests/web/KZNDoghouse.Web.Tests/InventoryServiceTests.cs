@@ -10,6 +10,21 @@ namespace KZNDoghouse.Web.Tests;
 public class InventoryServiceTests
 {
     [Fact]
+    public async Task RecordTransactionAsync_DoesNotAllowNewManualAdjustments()
+    {
+        var repository = new Mock<IInventoryRepository>();
+        var service = new InventoryService(repository.Object);
+
+        var result = await service.RecordTransactionAsync(
+            Guid.NewGuid(), InventoryTransactionTypes.Adjustment,
+            quantityChange: 2, expiryDate: null, notes: null,
+            updatedByProfileId: Guid.NewGuid());
+
+        Assert.False(result.Success);
+        repository.Verify(x => x.CreateTransactionAsync(It.IsAny<InventoryTransaction>()), Times.Never);
+    }
+
+    [Fact]
     public async Task RecordTransactionAsync_UsageAlwaysReducesStock_EvenIfPositiveValueEntered()
     {
         var itemId = Guid.NewGuid();

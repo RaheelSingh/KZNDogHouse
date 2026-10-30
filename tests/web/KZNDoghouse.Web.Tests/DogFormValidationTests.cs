@@ -46,6 +46,15 @@ public class DogFormValidationTests
             x => x.MemberNames.Contains(nameof(DogFormViewModel.IntakeType)));
     }
 
+    [Fact]
+    public void SterilisationStatus_CanBeRecordedWithoutEyeColour()
+    {
+        var model = ValidModel();
+        model.IsSpayedNeutered = true;
+
+        Assert.DoesNotContain(Validate(model), x => x.MemberNames.Contains(nameof(DogFormViewModel.IsSpayedNeutered)));
+    }
+
     private static DogFormViewModel ValidModel() => new()
     {
         Name = "Rosie",

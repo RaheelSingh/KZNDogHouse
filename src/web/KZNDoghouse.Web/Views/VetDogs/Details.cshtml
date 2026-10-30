@@ -41,11 +41,9 @@
     </div>
 }
 
-<div class="row g-3">
+<div class="vet-workspace">
 
-    <div class="col-lg-4">
-
-        <div class="portal-card">
+    <section class="portal-card vet-summary-card" aria-label="Dog summary">
 
             <h5 class="mb-3">
                 Dog Summary
@@ -97,6 +95,9 @@
                     @(dog.IsVaccinated ? "Yes" : "No")
                 </dd>
 
+                <dt class="col-5">Spayed / neutered</dt>
+                <dd class="col-7">@(dog.IsSpayedNeutered.HasValue ? (dog.IsSpayedNeutered.Value ? "Yes" : "No") : "Not recorded")</dd>
+
                 <dt class="col-5">
                     Status
                 </dt>
@@ -107,13 +108,11 @@
 
             </dl>
 
-        </div>
+    </section>
 
-    </div>
+    <div class="vet-detail-grid">
 
-    <div class="col-lg-8">
-
-        <div class="portal-card mb-3">
+        <section class="portal-card vet-records-card">
 
             <h5 class="mb-3">
                 Medical Records
@@ -175,9 +174,9 @@
                 }
             }
 
-        </div>
+        </section>
 
-        <div class="portal-card">
+        <section class="portal-card vet-form-card">
 
             <h5 class="mb-3">
                 Add Medical Record
@@ -261,8 +260,6 @@
 
             </form>
 
-        </div>
-
+        </section>
     </div>
-
 </div>

@@ -5837,3 +5837,23 @@ label.is-required::after {
     .portal-dashboard-heading { align-items: flex-start; flex-direction: column; }
     .portal-dashboard-board .portal-quick-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
 }
+
+
+/* Dog care profile and veterinary workspace */
+.dog-health-checks { display:flex; flex-wrap:wrap; gap: .85rem 1.5rem; padding: .75rem 1rem; border: 1px solid #d8e3d8; border-radius: 10px; background: #f5f8f2; }
+.dog-health-check { display:inline-flex; align-items:center; gap: .6rem; cursor:pointer; font-weight:600; color:#183525; }
+.dog-health-check .form-check-input { margin: 0; float:none; flex:0 0 auto; }
+.vet-workspace { display:grid; gap:1rem; }
+.vet-summary-card { min-height:0; }
+.vet-summary-card dl { display:flex; flex-wrap:wrap; gap:0; margin:0; }
+.vet-summary-card dl > dt { width:16.6667%; flex:0 0 16.6667%; font-weight:600; color:#41594a; margin-bottom:.65rem; }
+.vet-summary-card dl > dd { width:16.6667%; flex:0 0 16.6667%; margin:0 0 .65rem; }
+.vet-detail-grid { display:grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items:start; gap:1rem; }
+.vet-detail-grid .portal-card { min-width:0; margin:0; }
+.vet-records-card { min-height:360px; }
+.vet-form-card { min-height:360px; }
+.portal-dashboard-stat-grid .portal-stat-card::before { display:none; }
+.portal-dashboard-stat-grid .portal-stat-icon { width:34px; height:34px; display:inline-flex; align-items:center; justify-content:center; border-radius:10px; background:#edf3e9; color:#234c33; margin-bottom:.75rem; }
+.portal-dashboard-stat-grid .portal-stat-icon svg { width:21px; height:21px; }
+@media (max-width: 991.98px) { .vet-detail-grid { grid-template-columns: 1fr; } }
+@media (max-width: 575.98px) { .vet-summary-card dl > dt { width:40%; flex-basis:40%; } .vet-summary-card dl > dd { width:60%; flex-basis:60%; } .dog-health-checks { flex-direction:column; } }

@@ -90,14 +90,14 @@ public class DogsController : Controller
                 Gender = model.Gender,
                 Size = model.Size,
                 WeightKg = model.WeightKg,
-                EyeColour = model.EyeColour?.Trim(),
                 Temperament = model.Temperament?.Trim(),
                 About = model.About?.Trim(),
                 KennelLocation = model.KennelLocation?.Trim(),
                 IntakeDate = model.IntakeDate,
                 IntakeType = model.IntakeType,
                 Status = model.Status,
-                IsVaccinated = model.IsVaccinated
+                IsVaccinated = model.IsVaccinated,
+                IsSpayedNeutered = model.IsSpayedNeutered
             };
 
             var createdDog =
@@ -155,14 +155,14 @@ public class DogsController : Controller
             Gender = dog.Gender,
             Size = dog.Size,
             WeightKg = dog.WeightKg,
-            EyeColour = dog.EyeColour,
             Temperament = dog.Temperament,
             About = dog.About,
             KennelLocation = dog.KennelLocation,
             IntakeDate = dog.IntakeDate,
             IntakeType = dog.IntakeType,
             Status = dog.Status,
-            IsVaccinated = dog.IsVaccinated
+            IsVaccinated = dog.IsVaccinated,
+            IsSpayedNeutered = dog.IsSpayedNeutered
         };
 
         ViewData["DogId"] = dog.Id;
@@ -199,7 +199,6 @@ public class DogsController : Controller
             dog.Gender = model.Gender;
             dog.Size = model.Size;
             dog.WeightKg = model.WeightKg;
-            dog.EyeColour = model.EyeColour?.Trim();
             dog.Temperament = model.Temperament?.Trim();
             dog.About = model.About?.Trim();
             dog.KennelLocation = model.KennelLocation?.Trim();
@@ -207,6 +206,7 @@ public class DogsController : Controller
             dog.IntakeType = model.IntakeType;
             dog.Status = model.Status;
             dog.IsVaccinated = model.IsVaccinated;
+            dog.IsSpayedNeutered = model.IsSpayedNeutered;
             dog.UpdatedAt = DateTime.UtcNow;
 
             await _dogService.UpdateDogAsync(dog);

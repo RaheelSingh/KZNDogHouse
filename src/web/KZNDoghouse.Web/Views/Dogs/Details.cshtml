@@ -114,6 +114,10 @@
                     <dt>Vaccinated</dt>
                     <dd>@(dog.IsVaccinated ? "Yes" : "No")</dd>
                 </div>
+                <div>
+                    <dt>Spayed / neutered</dt>
+                    <dd>@(dog.IsSpayedNeutered.HasValue ? (dog.IsSpayedNeutered.Value ? "Yes" : "No") : "Not recorded")</dd>
+                </div>
 
             </dl>
 

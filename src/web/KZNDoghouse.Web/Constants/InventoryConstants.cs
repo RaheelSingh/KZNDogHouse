@@ -6,5 +6,6 @@ public static class InventoryTransactionTypes
     public const string Usage = "Usage";
     public const string Adjustment = "Adjustment";
 
-    public static readonly string[] All = [Delivery, Usage, Adjustment];
+    // Historical adjustments stay readable, but new transactions are only received or used.
+    public static readonly string[] All = [Delivery, Usage];
 }

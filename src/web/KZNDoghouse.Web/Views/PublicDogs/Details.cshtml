@@ -83,6 +83,10 @@
                         <dt>Vaccinated</dt>
                         <dd>@(dog.IsVaccinated ? "Yes" : "Not yet")</dd>
                     </div>
+                    <div>
+                        <dt>Spayed / neutered</dt>
+                        <dd>@(dog.IsSpayedNeutered.HasValue ? (dog.IsSpayedNeutered.Value ? "Yes" : "No") : "Not recorded")</dd>
+                    </div>
 
                     @if (!string.IsNullOrWhiteSpace(dog.Temperament))
                     {
