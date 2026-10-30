@@ -29,6 +29,8 @@ builder.Services.AddResponseCompression(options =>
     options.EnableForHttps = true;
 });
 
+builder.Services.AddMemoryCache();
+
 builder.Services.AddScoped<
     ISupabaseClientFactory,
     SupabaseClientFactory>();
@@ -36,6 +38,10 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     IAuthService,
     AuthService>();
+
+builder.Services.AddSingleton<
+    IPasswordResetStateService,
+    PasswordResetStateService>();
 
 builder.Services.AddScoped<
     IApiAuthenticationService,
@@ -120,6 +126,19 @@ builder.Services.AddRateLimiter(options =>
                 }));
 
     options.AddPolicy(
+        RateLimitPolicies.PasswordReset,
+        context =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: GetClientKey(context),
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 10,
+                    Window = TimeSpan.FromMinutes(15),
+                    QueueLimit = 0,
+                    AutoReplenishment = true
+                }));
+
+    options.AddPolicy(
         RateLimitPolicies.Api,
         context =>
             RateLimitPartition.GetFixedWindowLimiter(
@@ -150,13 +169,15 @@ builder.Services.AddRateLimiter(options =>
             return;
         }
 
-        var isRegister =
-            context.HttpContext.Request.Path
-                .StartsWithSegments(
-                    "/Auth/Register");
+        var path = context.HttpContext.Request.Path;
 
-        var target = isRegister
-            ? "/Auth/Register?rateLimited=true"
+        var target =
+            path.StartsWithSegments("/Auth/Register")
+                ? "/Auth/Register?rateLimited=true"
+            : path.StartsWithSegments("/Auth/ForgotPassword")
+                ? "/Auth/ForgotPassword?rateLimited=true"
+            : path.StartsWithSegments("/Auth/ResetCode")
+                ? "/Auth/ResetCode?rateLimited=true"
             : "/Auth/Login?rateLimited=true";
 
         context.HttpContext.Response.Redirect(target);
