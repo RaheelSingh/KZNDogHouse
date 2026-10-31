@@ -931,13 +931,30 @@ create table if not exists public.adoption_records (
     adopter_phone text not null,
     adopter_address text not null,
     notes text null,
-    status text not null default 'Pending paperwork' check (status in ('Pending paperwork','Adopted','Returned')),
+    status text not null default 'Pending paperwork' check (status in ('Pending paperwork','Adopted','Returned','Cancelled')),
     adopted_at timestamptz null,
     returned_at timestamptz null,
     return_notes text null,
     created_by uuid null references public.user_profiles(id) on delete set null,
     created_at timestamptz not null default now()
 );
+-- Extend only the expected adoption status constraint; retain every existing record.
+DO $kzn_adoption_status$
+DECLARE v_definition text;
+BEGIN
+  SELECT pg_get_constraintdef(oid) INTO v_definition
+  FROM pg_constraint WHERE conrelid='public.adoption_records'::regclass
+    AND conname='adoption_records_status_check';
+  IF v_definition IS NOT NULL AND v_definition NOT LIKE '%Cancelled%' THEN
+    IF v_definition NOT LIKE '%Pending paperwork%' OR v_definition NOT LIKE '%Returned%'
+       OR v_definition NOT LIKE '%Adopted%' THEN
+      RAISE EXCEPTION 'Unexpected adoption status constraint; manual review required';
+    END IF;
+    ALTER TABLE public.adoption_records DROP CONSTRAINT adoption_records_status_check;
+    ALTER TABLE public.adoption_records ADD CONSTRAINT adoption_records_status_check
+      CHECK (status IN ('Pending paperwork','Adopted','Returned','Cancelled'));
+  END IF;
+END $kzn_adoption_status$;
 create index if not exists idx_adoption_records_dog on public.adoption_records(dog_id, created_at desc);
 create unique index if not exists idx_adoption_one_active_per_dog
     on public.adoption_records(dog_id) where status in ('Pending paperwork','Adopted');

@@ -65,7 +65,65 @@ public class AdoptionWorkflowControllerTests
             record.AdopterEmail == "person@example.com" && record.Status == "Pending paperwork")), Times.Once);
         documents.Verify(x => x.UploadAsync(dogId, null, "Adoption", It.IsAny<IFormFile?>(), profileId,
             null, It.IsAny<Guid?>()), Times.Exactly(2));
+        adoptions.Verify(x => x.SetAdoptedAsync(It.IsAny<Guid>()), Times.Once);
+        dogs.Verify(x => x.ChangeStatusAsync(dogId, DogStatuses.Adopted), Times.Once);
         Assert.NotNull(controller.TempData["SuccessMessage"]);
+    }
+
+    [Fact]
+    public async Task CreatingWithoutAgreement_RemainsPendingAndDoesNotChangeDogStatus()
+    {
+        var dogId = Guid.NewGuid();
+        var profileId = Guid.NewGuid();
+        var dogs = new Mock<IDogService>();
+        dogs.Setup(x => x.GetDogAsync(dogId)).ReturnsAsync(new Dog { Id = dogId, Status = DogStatuses.Available });
+        var adoptions = new Mock<IAdoptionRecordRepository>();
+        adoptions.Setup(x => x.GetForDogAsync(dogId)).ReturnsAsync((IReadOnlyList<AdoptionRecord>)Array.Empty<AdoptionRecord>());
+        adoptions.Setup(x => x.CreateAsync(It.IsAny<AdoptionRecord>())).ReturnsAsync((AdoptionRecord record) => record);
+        var profiles = new Mock<IUserProfileRepository>();
+        profiles.Setup(x => x.GetByAuthUserIdAsync("test-auth")).ReturnsAsync(new UserProfile { Id = profileId });
+        var controller = Build(adoptions, dogs, new Mock<IDogDocumentService>(), profiles);
+        controller.ControllerContext.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity(new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, "test-auth")
+        }, "test"));
+
+        await controller.Create(dogId, "Person", "071 234 5678", "Street", "person@example.com", null, null);
+
+        adoptions.Verify(x => x.CreateAsync(It.Is<AdoptionRecord>(r => r.Status == "Pending paperwork")), Times.Once);
+        adoptions.Verify(x => x.SetAdoptedAsync(It.IsAny<Guid>()), Times.Never);
+        dogs.Verify(x => x.ChangeStatusAsync(It.IsAny<Guid>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task PendingAdoption_CanBeCancelledWithoutChangingTheDog()
+    {
+        var dogId = Guid.NewGuid();
+        var recordId = Guid.NewGuid();
+        var repo = new Mock<IAdoptionRecordRepository>();
+        repo.Setup(x => x.GetAsync(recordId)).ReturnsAsync(new AdoptionRecord
+        { Id = recordId, DogId = dogId, Status = "Pending paperwork" });
+        var dogs = new Mock<IDogService>();
+        dogs.Setup(x => x.GetDogAsync(dogId)).ReturnsAsync(new Dog { Id = dogId, Status = DogStatuses.Available });
+        var controller = Build(repo, dogs, new Mock<IDogDocumentService>(), new Mock<IUserProfileRepository>());
+        await controller.Cancel(dogId, recordId, "Arrangement did not proceed");
+        repo.Verify(x => x.SetCancelledAsync(recordId, "Arrangement did not proceed"), Times.Once);
+        dogs.Verify(x => x.ChangeStatusAsync(It.IsAny<Guid>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task PendingAdoption_CannotBeCancelledIfDogIsAlreadyAdopted()
+    {
+        var dogId = Guid.NewGuid();
+        var recordId = Guid.NewGuid();
+        var repo = new Mock<IAdoptionRecordRepository>();
+        repo.Setup(x => x.GetAsync(recordId)).ReturnsAsync(new AdoptionRecord
+        { Id = recordId, DogId = dogId, Status = "Pending paperwork" });
+        var dogs = new Mock<IDogService>();
+        dogs.Setup(x => x.GetDogAsync(dogId)).ReturnsAsync(new Dog { Id = dogId, Status = DogStatuses.Adopted });
+        var controller = Build(repo, dogs, new Mock<IDogDocumentService>(), new Mock<IUserProfileRepository>());
+        await controller.Cancel(dogId, recordId, null);
+        repo.Verify(x => x.SetCancelledAsync(It.IsAny<Guid>(), It.IsAny<string?>()), Times.Never);
     }
 
     [Fact]

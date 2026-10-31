@@ -662,11 +662,18 @@
                                         {
                                             <p class="text-muted small mb-1 text-end" data-adoption-paperwork-hint="@record.Id">Add signed paperwork to enable confirmation.</p>
                                         }
-                                        <form asp-controller="AdoptionRecords" asp-action="Confirm" method="post" class="adoption-record-action mt-3">
-                                            <input type="hidden" name="dogId" value="@dog.Id" />
-                                            <input type="hidden" name="recordId" value="@record.Id" />
-                                            <button type="submit" class="btn btn-kzn-primary btn-sm" data-adoption-confirm="@record.Id" disabled="@(papers.Count == 0)">Confirm adoption</button>
-                                        </form>
+                                        <div class="adoption-record-action mt-3">
+                                            <form asp-controller="AdoptionRecords" asp-action="Cancel" method="post" onsubmit="return confirm('Cancel this pending adoption? This cannot be undone.');">
+                                                <input type="hidden" name="dogId" value="@dog.Id" />
+                                                <input type="hidden" name="recordId" value="@record.Id" />
+                                                <button type="submit" class="btn btn-kzn-outline btn-sm">Cancel adoption</button>
+                                            </form>
+                                            <form asp-controller="AdoptionRecords" asp-action="Confirm" method="post">
+                                                <input type="hidden" name="dogId" value="@dog.Id" />
+                                                <input type="hidden" name="recordId" value="@record.Id" />
+                                                <button type="submit" class="btn btn-kzn-primary btn-sm" data-adoption-confirm="@record.Id" disabled="@(papers.Count == 0)">Confirm adoption</button>
+                                            </form>
+                                        </div>
                                     }
                                     else if (record.Status == "Adopted")
                                     {

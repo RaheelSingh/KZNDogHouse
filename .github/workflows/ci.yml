@@ -6,11 +6,13 @@ on:
       - develop
       - test
       - main
+      - web-foundation
   pull_request:
     branches:
       - develop
       - test
       - main
+      - web-foundation
 
 permissions:
   contents: read

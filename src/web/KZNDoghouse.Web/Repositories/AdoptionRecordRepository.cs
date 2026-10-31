@@ -10,6 +10,7 @@ public interface IAdoptionRecordRepository
     Task<AdoptionRecord> CreateAsync(AdoptionRecord record);
     Task SetAdoptedAsync(Guid id);
     Task SetReturnedAsync(Guid id, string? notes);
+    Task SetCancelledAsync(Guid id, string? reason);
 }
 
 public sealed class AdoptionRecordRepository : IAdoptionRecordRepository
@@ -40,6 +41,12 @@ public sealed class AdoptionRecordRepository : IAdoptionRecordRepository
         var client = await _clients.CreateServiceClientAsync();
         await client.From<AdoptionRecord>().Where(x => x.Id == id)
             .Set(x => x.Status, "Adopted").Set(x => x.AdoptedAt!, DateTime.UtcNow).Update();
+    }
+    public async Task SetCancelledAsync(Guid id, string? reason)
+    {
+        var client = await _clients.CreateServiceClientAsync();
+        await client.From<AdoptionRecord>().Where(x => x.Id == id)
+            .Set(x => x.Status, "Cancelled").Set(x => x.ReturnNotes!, reason).Update();
     }
     public async Task SetReturnedAsync(Guid id, string? notes)
     {

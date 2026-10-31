@@ -5984,3 +5984,8 @@ label.is-required::after {
 .dog-medical-chevron { display:inline-block; font-size:1.05rem; font-weight:700; color:#1b402d; transform:rotate(0deg); transition:transform .15s ease; }
 .dog-medical-accordion[open] .dog-medical-chevron { transform:rotate(90deg); }
 .dog-medical-accordion-heading { cursor:pointer; }
+
+/* Keep medical forms' primary action consistently aligned. */
+.vet-form-card form > button[type="submit"] { display:block; margin-left:auto; }
+.vet-records-card .dog-record-title { display:inline-flex; align-items:center; gap:.45rem; }
+@media (max-width: 620px) { .adoption-record-action { flex-wrap:wrap; } }

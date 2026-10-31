@@ -59,16 +59,41 @@ public sealed class AdoptionRecordsController : Controller
             CreatedBy = profile.Id, CreatedAt = DateTime.UtcNow, Status = "Pending paperwork"
         };
         await _adoptions.CreateAsync(record);
-        var failedUploads = 0;
-        foreach (var agreement in agreements ?? [])
+        // The record is created pending first, so a failed upload never incorrectly marks a dog Adopted.
+        // Staff only submit documents that have already been signed and checked by the shelter.
+        var requestedFiles = agreements?.Where(f => f.Length > 0).ToList() ?? [];
+        var failedUploads = new List<string>();
+        foreach (var agreement in requestedFiles)
         {
-            var result = await _documents.UploadAsync(dogId, null, "Adoption", agreement, profile.Id,
-                adoptionRecordId: record.Id);
-            if (!result.Success) failedUploads++;
+            try
+            {
+                var result = await _documents.UploadAsync(dogId, null, "Adoption", agreement, profile.Id,
+                    adoptionRecordId: record.Id);
+                if (!result.Success) failedUploads.Add(result.Message);
+            }
+            catch (Exception)
+            {
+                failedUploads.Add("Secure document upload failed unexpectedly. Check the Render application logs.");
+            }
         }
-        if (failedUploads > 0)
-            return await Back(dogId, $"Adoption record saved, but {failedUploads} document(s) could not be uploaded. Please retry from the adoption record.");
-        return await Back(dogId, "Adoption record created. Confirm after signed paperwork is attached.", true);
+        if (failedUploads.Count > 0)
+            return await Back(dogId,
+                $"Adoption saved as Pending paperwork. {failedUploads.Count} document(s) failed: {string.Join(" ", failedUploads.Distinct())} Retry from this record; do not create a duplicate.");
+
+        // No initial paperwork: remain Pending. A successfully saved initial agreement:
+        // transition both the adoption record and the dog to Adopted.
+        if (requestedFiles.Count == 0)
+            return await Back(dogId, "Adoption record created as Pending paperwork. Upload the signed agreement to continue.", true);
+        try
+        {
+            await _adoptions.SetAdoptedAsync(record.Id);
+            await _dogs.ChangeStatusAsync(dogId, DogStatuses.Adopted);
+        }
+        catch (Exception)
+        {
+            return await Back(dogId, "Document uploaded but adoption status could not be completed. Review the record and dog status before retrying; do not create another record.");
+        }
+        return await Back(dogId, "Signed paperwork saved. Adoption confirmed and dog marked Adopted.", true);
     }
 
     [HttpPost, ValidateAntiForgeryToken]
@@ -114,6 +139,20 @@ public sealed class AdoptionRecordsController : Controller
         await _adoptions.SetAdoptedAsync(recordId);
         await _dogs.ChangeStatusAsync(dogId, DogStatuses.Adopted);
         return await Back(dogId, "Adoption confirmed.", true);
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Cancel(Guid dogId, Guid recordId, string? reason)
+    {
+        var record = await _adoptions.GetAsync(recordId);
+        var dog = await _dogs.GetDogAsync(dogId);
+        if (record == null || dog == null || record.DogId != dogId) return NotFound();
+        if (record.Status != "Pending paperwork" || dog.Status is DogStatuses.Adopted or DogStatuses.Fostered)
+            return await Back(dogId, "Only a pending adoption can be cancelled.");
+        if ((reason?.Length ?? 0) > 2000)
+            return await Back(dogId, "Cancellation reason is too long.");
+        await _adoptions.SetCancelledAsync(recordId, reason?.Trim());
+        return await Back(dogId, "Pending adoption cancelled. The record remains in history.", true);
     }
 
     [HttpPost, ValidateAntiForgeryToken]
