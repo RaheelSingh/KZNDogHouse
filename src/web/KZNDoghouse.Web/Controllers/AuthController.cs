@@ -31,6 +31,12 @@ public class AuthController : Controller
         _passwordResetState = passwordResetState;
     }
 
+    // Portal pages use this to detect role changes without waiting for a click.
+    // The cookie is revalidated against the current database profile first.
+    [Authorize]
+    [HttpGet]
+    public IActionResult SessionStatus() => Ok(new { authorised = true });
+
     [AllowAnonymous]
     [HttpGet]
     public IActionResult Login(

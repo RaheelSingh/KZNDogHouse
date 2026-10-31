@@ -95,6 +95,16 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     };
   }, [profileId, refresh]);
 
+  // Fallback when realtime events are unavailable or the table isn't in the
+  // Supabase realtime publication. Paused by OS timer throttling in background.
+  useEffect(() => {
+    if (!profileId) return;
+    const timer = setInterval(() => {
+      if (AppState.currentState === 'active') void refresh();
+    }, 30000);
+    return () => clearInterval(timer);
+  }, [profileId, refresh]);
+
   // Register this phone for push once we know who is signed in.
   useEffect(() => {
     if (!profileId) return;

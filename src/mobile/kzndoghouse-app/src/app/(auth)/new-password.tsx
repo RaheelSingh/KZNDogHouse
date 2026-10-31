@@ -55,7 +55,9 @@ export default function NewPasswordScreen() {
     completedRef.current = true;
     try {
       await completePasswordReset(password);
-      Alert.alert('Password updated', 'Your password has been changed and you are now signed in.');
+      setIsSaving(false);
+      router.replace('/(auth)/sign-in');
+      Alert.alert('Password updated', 'Your password has been changed. Please sign in with your new password.');
     } catch (err) {
       completedRef.current = false;
       setFormError(getPasswordResetErrorMessage(err, "We couldn't change your password. Please try again."));

@@ -36,7 +36,8 @@
           "color": "#16302a",
           "defaultChannel": "default"
         }
-      ]
+      ],
+      "expo-font"
     ],
     "extra": {
       "router": {},

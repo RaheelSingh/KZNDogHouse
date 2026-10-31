@@ -1303,3 +1303,95 @@ if (document.body.classList.contains('portal-body')) {
   try { window.history.scrollRestoration = 'manual'; } catch { /* unsupported */ }
   window.addEventListener('load', () => window.scrollTo({ top: 0, left: 0, behavior: 'instant' }), { once: true });
 }
+
+// Keep open pages current without reloading active forms or undoing staff input.
+// HTML snapshots are compared, rather than reloading on a blind timer. Only
+// visible, idle pages are refreshed; a pending edit shows a refresh prompt.
+(() => {
+    const portal = document.getElementById('portal-main-content');
+    const publicPage = !portal && document.querySelector('main');
+    if (!portal && !publicPage) return;
+    const content = portal || publicPage;
+    let changedByUser = false;
+    let checking = false;
+    let notice = null;
+    let lastSnapshot = null;
+    const secured = !!portal || document.body.dataset.authSession?.toLowerCase() === 'true';
+
+    document.addEventListener('input', (e) => {
+        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement ||
+            e.target instanceof HTMLSelectElement || e.target?.isContentEditable) changedByUser = true;
+    }, { capture: true });
+    document.addEventListener('change', (e) => {
+        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement ||
+            e.target instanceof HTMLSelectElement) changedByUser = true;
+    }, { capture: true });
+
+    const hasActiveEditing = () => changedByUser ||
+        !!document.querySelector('.modal.show, .offcanvas.show') ||
+        (document.activeElement instanceof HTMLElement &&
+          !!document.activeElement.closest('form') &&
+          document.activeElement.matches('input,textarea,select,[contenteditable]'));
+
+    function showUpdates() {
+        if (notice) return;
+        notice = document.createElement('button');
+        notice.type = 'button';
+        notice.className = 'btn btn-sm btn-success';
+        notice.textContent = 'New updates available - refresh';
+        notice.setAttribute('aria-label', 'Refresh to view updated information');
+        Object.assign(notice.style, { position: 'fixed', bottom: '24px', right: '20px', zIndex: '1055' });
+        notice.addEventListener('click', () => window.location.reload());
+        document.body.appendChild(notice);
+    }
+
+    async function sync() {
+        if (checking || document.visibilityState !== 'visible') return;
+        checking = true;
+        try {
+            if (secured) {
+                const status = await fetch('/Auth/SessionStatus', {
+                    credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' }
+                });
+                if (!status.ok || !status.headers.get('content-type')?.includes('application/json')) {
+                    window.location.replace('/Auth/Login');
+                    return;
+                }
+                // Update notification badge without requiring a full reload.
+                const badge = document.getElementById('portalNotificationBadge');
+                if (badge?.dataset.unreadUrl) {
+                    const countRes = await fetch(badge.dataset.unreadUrl, { credentials: 'same-origin', cache: 'no-store' });
+                    if (countRes.ok) {
+                        const { count } = await countRes.json();
+                        const number = Number(count ?? 0);
+                        badge.hidden = number === 0;
+                        badge.textContent = number > 99 ? '99+' : String(number);
+                    }
+                }
+            }
+            const response = await fetch(window.location.href, {
+                credentials: 'same-origin', cache: 'no-store', headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if (!response.ok || response.redirected && response.url.includes('/Auth/Login')) return;
+            const other = new DOMParser().parseFromString(await response.text(), 'text/html');
+            const fresh = portal ? other.getElementById('portal-main-content') : other.querySelector('main');
+            if (!fresh) return;
+            // Compare successive *server* snapshots, not client DOM: carousels,
+            // dropdowns and JS widgets legitimately mutate the local page.
+            const snapshot = fresh.innerHTML.trim().replace(
+                /(name="__RequestVerificationToken"[^>]*value=")[^"]+/g, '$1[csrf]');
+            if (lastSnapshot === null) { lastSnapshot = snapshot; return; }
+            if (lastSnapshot === snapshot) return;
+            lastSnapshot = snapshot;
+            if (hasActiveEditing() || document.hidden) showUpdates();
+            else window.location.reload();
+        } catch (err) { console.debug('[updates] will retry:', err); }
+        finally { checking = false; }
+    }
+    void sync();
+    const timer = window.setInterval(sync, 45000);
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') void sync();
+    });
+    window.addEventListener('pagehide', () => window.clearInterval(timer), { once: true });
+})();

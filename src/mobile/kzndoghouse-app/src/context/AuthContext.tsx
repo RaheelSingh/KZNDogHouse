@@ -19,6 +19,8 @@ export type AppUser = {
   name: string;
   email: string;
   role: UserRole;
+  /** Exact server-verified role. Used to detect any access change, including Staff <-> Administrator. */
+  roleCode: string;
 };
 
 export type RegisterDetails = {
@@ -65,13 +67,13 @@ function mapRole(raw: unknown): UserRole {
 async function resolveProfileFromSupabase(fallback: { id: string; email: string }): Promise<AppUser> {
   const { data, error } = await supabase.rpc('current_profile_info');
   const row = Array.isArray(data) ? data[0] : data;
-  if (error || !row) {
-    console.warn('[auth] Could not resolve current_profile_info:', error);
+  if (error || !row || row.is_active === false) {
+    console.warn('[auth] Could not resolve an active current_profile_info:', error);
     // Fail closed: an unknown profile never gets volunteer or staff access.
-    return { id: fallback.id, name: fallback.email, email: fallback.email, role: 'pending' };
+    return { id: fallback.id, name: fallback.email, email: fallback.email, role: 'pending', roleCode: 'unknown' };
   }
   const name = `${row.first_name ?? ''} ${row.last_name ?? ''}`.trim() || fallback.email;
-  return { id: row.id ?? fallback.id, name, email: row.email ?? fallback.email, role: mapRole(row.role) };
+  return { id: row.id ?? fallback.id, name, email: row.email ?? fallback.email, role: mapRole(row.role), roleCode: String(row.role ?? '').toLowerCase() };
 }
 
 async function fetchProfile(accessToken: string, fallback: { id: string; email: string }): Promise<AppUser> {
@@ -81,15 +83,24 @@ async function fetchProfile(accessToken: string, fallback: { id: string; email: 
     const res = await fetch(`${API_BASE_URL}/api/me`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
+    // The API explicitly rejected this account. Never fall back to a looser
+    // client-side profile lookup after 401/403 (e.g. for a deactivated account).
+    if (res.status === 401 || res.status === 403) {
+      return { id: fallback.id, name: fallback.email, email: fallback.email, role: 'pending', roleCode: 'unknown' };
+    }
     if (!res.ok) throw new Error(`/api/me returned ${res.status}`);
 
     const body = await res.json();
+    if (body?.success === false) {
+      return { id: fallback.id, name: fallback.email, email: fallback.email, role: 'pending', roleCode: 'unknown' };
+    }
     const data = body?.data ?? body; // the API wraps results in { success, message, data }
     return {
       id: data.id ?? fallback.id,
       name: data.name ?? fallback.email,
       email: fallback.email,
       role: mapRole(data.role),
+      roleCode: String(data.role ?? '').toLowerCase(),
     };
   } catch (err) {
     console.warn('[auth] /api/me unavailable, using Supabase profile lookup:', err);
@@ -105,6 +116,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // sign-in that verifyOtp performs is NOT treated as a normal sign-in, so the
   // app stays on the reset screens instead of jumping to the tabs.
   const recoveringRef = useRef(false);
+  const latestSessionRef = useRef<AppUser | null>(null);
+  latestSessionRef.current = session;
 
   // Refresh tokens only while the app is in the foreground (Supabase React Native guidance).
   useEffect(() => {
@@ -113,7 +126,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (state === 'active') supabase.auth.startAutoRefresh();
       else supabase.auth.stopAutoRefresh();
     });
-    return () => sub.remove();
+    return () => {
+      sub.remove();
+      supabase.auth.stopAutoRefresh();
+    };
   }, []);
 
   useEffect(() => {
@@ -160,7 +176,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!active) return;
         // Public accounts, unapproved volunteers and Vets are not allowed in
         // the mobile app. Keep the password-recovery session guard above intact.
-        if (profile.role === 'pending') {
+        if (profile.role === 'pending' || (latestSessionRef.current && profile.roleCode !== latestSessionRef.current.roleCode)) {
           setSession(null);
           await supabase.auth.signOut({ scope: 'local' });
         } else {
@@ -195,7 +211,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Only remove THIS phone's session: do not log the user out of the website.
       await supabase.auth.signOut({ scope: 'local' });
       setSession(null);
-      throw new Error('The mobile app is for approved volunteers, staff and administrators only. Public and vet accounts should use the website.');
+      throw new Error('This account is not authorised to use the mobile app. Please contact The KZN Doghouse for assistance.');
     }
     setSession(profile);
   };
@@ -235,13 +251,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       id: supaSession.user.id,
       email: supaSession.user.email ?? '',
     });
-    if (profile.role === 'pending') {
-      await supabase.auth.signOut({ scope: 'local' });
+    // Revoke this device's application access on any role/status change, even
+    // Staff -> Administrator where the displayed mobile permissions are identical.
+    if (profile.role === 'pending' || (session && profile.roleCode !== session.roleCode)) {
       setSession(null);
+      await supabase.auth.signOut({ scope: 'local' });
     } else {
       setSession(profile);
     }
-  }, []);
+  }, [session]);
+
+  // Supabase access tokens may remain valid after a role update. Re-check the
+  // authoritative database/API while foregrounded, instead of relying on
+  // TOKEN_REFRESHED or a manual app restart to remove access.
+  useEffect(() => {
+    if (!session || recoveringRef.current) return;
+    let checking = false;
+    const check = async () => {
+      if (checking || recoveringRef.current || AppState.currentState !== 'active') return;
+      checking = true;
+      try { await refreshProfile(); }
+      catch (error) { console.warn('[auth] account recheck failed:', error); }
+      finally { checking = false; }
+    };
+    const timer = setInterval(check, 20000);
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void check();
+    });
+    return () => { clearInterval(timer); subscription.remove(); };
+  }, [session?.id, session?.roleCode, refreshProfile]);
+
+  // Best-effort immediate role-change delivery. The 20-second foreground
+  // recheck above remains authoritative if Realtime isn't configured.
+  const profileRefreshRef = useRef(refreshProfile);
+  profileRefreshRef.current = refreshProfile;
+  useEffect(() => {
+    if (!session?.id) return;
+    const channel = supabase.channel(`profile-access-${session.id}`)
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'public', table: 'user_profiles',
+        filter: `id=eq.${session.id}`,
+      }, () => { void profileRefreshRef.current().catch(err => console.warn('[auth] access sync failed:', err)); })
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [session?.id]);
 
   const signOut = async () => {
     // Stop pushes to this phone first - the RPC needs the user to still be signed in.
@@ -298,11 +351,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Sign out every OTHER phone or browser that was using the old password.
     await supabase.auth.signOut({ scope: 'others' }).catch(() => undefined);
 
-    recoveringRef.current = false;
+    // A verified recovery code establishes a temporary Supabase session.
+    // Never turn that recovery session into an application login, regardless
+    // of the user's role. Send every account back to the normal sign-in form.
+    await supabase.auth.signOut({ scope: 'local' });
+    setSession(null);
     await AsyncStorage.removeItem(RECOVERY_PENDING_KEY).catch(() => undefined);
-
-    // Load the profile - this sets the session and the app opens normally.
-    await refreshProfile();
+    recoveringRef.current = false;
+    setIsLoading(false);
   };
 
   const cancelPasswordReset = async () => {

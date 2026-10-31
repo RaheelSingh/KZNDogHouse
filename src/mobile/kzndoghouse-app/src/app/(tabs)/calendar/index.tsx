@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
+import { useLiveScreen } from '@/lib/useLiveScreen';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -140,12 +141,8 @@ export default function CalendarScreen() {
     }
   }, [weekStart]);
 
-  // Runs when the tab gains focus AND whenever the week changes.
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load])
-  );
+  // Follow event creation, changes to capacity and volunteer assignments.
+  useLiveScreen(load, ['calendar_events', 'event_assignments']);
 
   const onRefresh = useCallback(async () => {
     setIsRefreshing(true);

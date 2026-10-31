@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -14,6 +14,7 @@ import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { isStaff } from '@/lib/roles';
 import { getStatusColor } from '@/lib/dogStatus';
+import { useLiveScreen } from '@/lib/useLiveScreen';
 import { colors, radius } from '@/theme';
 import { IconBtn, ImageCard, PageHeader, SectionTitle, Tag, UnderlineTabs } from '@/components/ui';
 import type { Dog } from '@/types/models';
@@ -62,12 +63,10 @@ export default function DogsScreen() {
     setMedsDueIds(new Set(((medsRes.data as { dog_id: string }[]) ?? []).map((r) => r.dog_id)));
   }, [staff]);
 
-  useEffect(() => {
-    setIsLoading(true);
-    load()
-      .catch((err) => console.warn('[dogs] failed to load:', err))
-      .finally(() => setIsLoading(false));
-  }, [load]);
+  useLiveScreen(async () => {
+    await load();
+    setIsLoading(false);
+  }, staff ? ['dogs', 'dog_medical_records'] : ['dogs']);
 
   const onRefresh = useCallback(async () => {
     setIsRefreshing(true);

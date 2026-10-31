@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { getCurrentProfileId } from '@/lib/profile';
 import { isStaff } from '@/lib/roles';
 import { getStatusColor } from '@/lib/dogStatus';
+import { useLiveScreen } from '@/lib/useLiveScreen';
 import {
   deleteDogImage,
   fetchDogImages,
@@ -148,12 +149,13 @@ export default function DogDetailScreen() {
     }
   }, [id, staff]);
 
-  useEffect(() => {
-    setIsLoading(true);
-    load()
-      .catch((err) => console.warn('[dog-detail] failed to load:', err))
-      .finally(() => setIsLoading(false));
-  }, [load]);
+  // Stop background refreshes while staff are editing a dog or medical form.
+  const safeLoad = useCallback(async () => {
+    if (isEditing || showRecordForm || showNoteForm) return;
+    await load();
+    setIsLoading(false);
+  }, [load, isEditing, showRecordForm, showNoteForm]);
+  useLiveScreen(safeLoad, staff ? ['dogs', 'dog_images', 'dog_medical_records', 'dog_notes', 'fostering_records'] : ['dogs', 'dog_images']);
 
   const onRefresh = useCallback(async () => {
     setIsRefreshing(true);

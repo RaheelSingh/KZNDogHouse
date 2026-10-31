@@ -13,6 +13,7 @@ import {
   type NativeSyntheticEvent,
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
+import { useLiveScreen } from '@/lib/useLiveScreen';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
@@ -182,14 +183,11 @@ export default function HomeScreen() {
     setAttentionDogs(dogs);
   }, [staff]);
 
-  // Reload whenever Home comes into view; only the very first load shows a spinner.
-  useFocusEffect(
-    useCallback(() => {
-      loadHome()
-        .catch((err) => console.warn('[home] failed to load:', err))
-        .finally(() => setIsLoading(false));
-    }, [loadHome])
-  );
+  // Live Supabase changes with a foreground-only polling fallback.
+  useLiveScreen(async () => {
+    try { await loadHome(); }
+    finally { setIsLoading(false); }
+  }, staff ? ['dogs', 'calendar_events', 'event_assignments', 'fostering_records', 'dog_medical_records'] : ['dogs', 'calendar_events', 'event_assignments']);
 
   // Today's event I'm signed up for that hasn't finished yet.
   const { end: todayEnd } = startEndOfToday();

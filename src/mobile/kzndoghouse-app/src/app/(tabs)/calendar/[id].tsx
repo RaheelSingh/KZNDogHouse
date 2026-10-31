@@ -10,7 +10,8 @@ import {
   Text,
   View,
 } from 'react-native';
-import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useLiveScreen } from '@/lib/useLiveScreen';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -152,12 +153,11 @@ export default function EventDetailScreen() {
     }
   }, [load]);
 
-  // Reload every time the screen comes into focus (e.g. coming back from the calendar).
-  useFocusEffect(
-    useCallback(() => {
-      reload().finally(() => setIsLoading(false));
-    }, [reload])
-  );
+  useLiveScreen(async () => {
+    // Avoid replacing unsaved staff edits while another user updates the event.
+    if (isEditing) return;
+    try { await reload(); } finally { setIsLoading(false); }
+  }, ['calendar_events', 'event_assignments']);
 
   const onRefresh = useCallback(async () => {
     setIsRefreshing(true);

@@ -10,7 +10,7 @@ public class AuthCookieEvents : CookieAuthenticationEvents
     public const string LastValidatedKey = "kzn:last-validated";
 
     private static readonly TimeSpan ValidationInterval =
-        TimeSpan.FromMinutes(10);
+        TimeSpan.Zero; // Every authenticated request verifies current account access.
 
     private readonly IUserProfileRepository _userProfileRepository;
     private readonly ILogger<AuthCookieEvents> _logger;
@@ -62,56 +62,31 @@ public class AuthCookieEvents : CookieAuthenticationEvents
                 return;
             }
 
-            var currentRole =
-                context.Principal.FindFirstValue(
-                    ClaimTypes.Role);
+            // Role changes invalidate the existing web session. Don't silently
+            // promote or demote a signed-in cookie based on stale credentials.
+            var currentRole = context.Principal.FindFirstValue(ClaimTypes.Role);
+            if (!string.Equals(currentRole, profile.Role, StringComparison.Ordinal))
+            {
+                await RejectPrincipalAsync(context);
+                return;
+            }
 
-            var currentName =
-                context.Principal.FindFirstValue(
-                    ClaimTypes.Name);
-
-            var currentEmail =
-                context.Principal.FindFirstValue(
-                    ClaimTypes.Email);
-
-            if (!string.Equals(
-                    currentRole,
-                    profile.Role,
-                    StringComparison.Ordinal)
-                || !string.Equals(
-                    currentName,
-                    profile.FullName,
-                    StringComparison.Ordinal)
-                || !string.Equals(
-                    currentEmail,
-                    profile.Email,
-                    StringComparison.OrdinalIgnoreCase))
+            // Name and email can be refreshed in-place; an authorization role
+            // change above always forces a new login.
+            var currentName = context.Principal.FindFirstValue(ClaimTypes.Name);
+            var currentEmail = context.Principal.FindFirstValue(ClaimTypes.Email);
+            if (!string.Equals(currentName, profile.FullName, StringComparison.Ordinal)
+                || !string.Equals(currentEmail, profile.Email, StringComparison.OrdinalIgnoreCase))
             {
                 var claims = new List<Claim>
                 {
-                    new(
-                        ClaimTypes.NameIdentifier,
-                        authUserId),
-
-                    new(
-                        ClaimTypes.Email,
-                        profile.Email),
-
-                    new(
-                        ClaimTypes.Name,
-                        profile.FullName),
-
-                    new(
-                        ClaimTypes.Role,
-                        profile.Role)
+                    new(ClaimTypes.NameIdentifier, authUserId),
+                    new(ClaimTypes.Email, profile.Email),
+                    new(ClaimTypes.Name, profile.FullName),
+                    new(ClaimTypes.Role, profile.Role)
                 };
-
-                var identity = new ClaimsIdentity(
-                    claims,
-                    CookieAuthenticationDefaults.AuthenticationScheme);
-
-                context.ReplacePrincipal(
-                    new ClaimsPrincipal(identity));
+                context.ReplacePrincipal(new ClaimsPrincipal(new ClaimsIdentity(
+                    claims, CookieAuthenticationDefaults.AuthenticationScheme)));
             }
 
             context.Properties.Items[LastValidatedKey] =
@@ -121,14 +96,8 @@ public class AuthCookieEvents : CookieAuthenticationEvents
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(
-                ex,
-                "The signed-in account could not be revalidated. The existing session will be kept temporarily.");
-
-            context.Properties.Items[LastValidatedKey] =
-                now.ToUnixTimeSeconds().ToString();
-
-            context.ShouldRenew = true;
+            _logger.LogWarning(ex, "Account access could not be validated. Rejecting the request.");
+            await RejectPrincipalAsync(context);
         }
     }
 
