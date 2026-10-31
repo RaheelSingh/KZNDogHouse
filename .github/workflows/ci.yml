@@ -52,3 +52,29 @@ jobs:
           name: web-test-results
           path: tests/web/KZNDoghouse.Web.Tests/TestResults/
           if-no-files-found: ignore
+  mobile-check:
+    name: Check Expo mobile app
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/mobile/kzndoghouse-app
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: src/mobile/kzndoghouse-app/package-lock.json
+
+      - name: Install exact locked dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Check TypeScript
+        run: npx tsc --noEmit
+
+      - name: Check Expo SDK dependencies
+        run: npx --yes expo-doctor@1.21.5
