@@ -22,7 +22,7 @@
              class="portal-sidebar-brand-logo" />
 
         <span>
-            Doghouse
+            The KZN Doghouse
         </span>
 
     </a>
@@ -50,9 +50,8 @@
             </a>
 
             <a class="nav-link @(currentController == "Availability" ? "active" : "")"
-               asp-controller="Availability"
-               asp-action="Index">
-                Availability
+               asp-route="volunteer-applications">
+                Volunteers
             </a>
 
             <a class="nav-link @(currentController == "Inventory" ? "active" : "")"
@@ -60,6 +59,9 @@
                asp-action="Index">
                 Inventory
             </a>
+
+            <a class="nav-link @(currentController == "ContactInbox" ? "active" : "")"
+               asp-controller="ContactInbox" asp-action="Index">Contact Inbox</a>
 
             <a class="nav-link @(currentController == "FosterApplications" ? "active" : "")"
                asp-controller="FosterApplications"
@@ -122,3 +124,4 @@
     </div>
 
 </div>
+

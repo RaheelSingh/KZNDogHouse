@@ -1,22 +1,61 @@
-import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
+} from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useLiveScreen } from '@/lib/useLiveScreen';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { getCurrentProfileId } from '@/lib/profile';
 import { isStaff } from '@/lib/roles';
 import { getCategoryColor } from '@/lib/eventCategory';
+import {
+  EVENT_COLUMNS,
+  cancelEventSignup,
+  checkInToEvent,
+  fetchSignupCounts,
+  getSignupState,
+  hasStarted,
+  isActiveAssignment,
+  isCheckInOpen,
+  signUpForEvent,
+  spotsLabel,
+  toFriendlyMessage,
+} from '@/lib/events';
 import { colors, radius } from '@/theme';
 import { HeroHeader, PillButton, SectionTitle, Tag } from '@/components/ui';
-import { ChipGroup, Field, FieldLabel } from '@/components/form';
+import { ChipGroup, ErrorText, Field, FieldLabel } from '@/components/form';
 import DateTimeField from '@/components/DateTimeField';
 import type { CalendarEvent, EventAssignment, EventCategory } from '@/types/models';
 
 const CATEGORIES: readonly EventCategory[] = ['Shift', 'Vet & Care', 'Meeting', 'Public Event', 'Other'];
+const ASSIGNMENT_COLUMNS = 'id, event_id, profile_id, status, checked_in_at, created_at';
+const MAX_TITLE_LENGTH = 120;
+const MAX_VOLUNTEERS_LIMIT = 200;
+
+type BusyAction = 'signup' | 'cancel' | 'checkin' | 'delete' | `remove:${string}` | null;
 
 function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  return new Date(iso).toLocaleString([], {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function formatTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
 export default function EventDetailScreen() {
@@ -25,14 +64,18 @@ export default function EventDetailScreen() {
   const staff = isStaff(session?.role);
 
   const [event, setEvent] = useState<CalendarEvent | null>(null);
-  const [myAssignment, setMyAssignment] = useState<EventAssignment | null>(null);
-  const [allAssignments, setAllAssignments] = useState<EventAssignment[]>([]);
+  const [assignments, setAssignments] = useState<EventAssignment[]>([]);
+  const [myProfileId, setMyProfileId] = useState<string | null>(null);
+  const [signedUpCount, setSignedUpCount] = useState(0);
   const [relatedDogName, setRelatedDogName] = useState<string | null>(null);
   const [volunteerNames, setVolunteerNames] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isActing, setIsActing] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [busy, setBusy] = useState<BusyAction>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
+  // Edit form (staff only). Filled once when editing starts, so a refresh never wipes typing.
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editCategory, setEditCategory] = useState<EventCategory>('Shift');
@@ -40,29 +83,50 @@ export default function EventDetailScreen() {
   const [editLocation, setEditLocation] = useState('');
   const [editStartAt, setEditStartAt] = useState<string | null>(null);
   const [editEndAt, setEditEndAt] = useState<string | null>(null);
+  const [editSignupEnabled, setEditSignupEnabled] = useState(false);
+  const [editMaxVolunteers, setEditMaxVolunteers] = useState('');
+  const [editVolunteerStartAt, setEditVolunteerStartAt] = useState<string | null>(null);
+  const [editVolunteerEndAt, setEditVolunteerEndAt] = useState<string | null>(null);
+  const [editVolunteerNotes, setEditVolunteerNotes] = useState('');
+  const [editError, setEditError] = useState<string | null>(null);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
-    const profileId = await getCurrentProfileId();
 
-    const [eventRes, assignmentsRes] = await Promise.all([
-      supabase.from('calendar_events').select('*').eq('id', id).single(),
-      supabase.from('event_assignments').select('*').eq('event_id', id),
+    const [profileId, eventRes, assignmentsRes, counts] = await Promise.all([
+      getCurrentProfileId(),
+      supabase.from('calendar_events').select(EVENT_COLUMNS).eq('id', id).maybeSingle(),
+      supabase.from('event_assignments').select(ASSIGNMENT_COLUMNS).eq('event_id', id),
+      fetchSignupCounts([id]).catch((err) => {
+        console.warn('[event-detail] could not load spot count:', err);
+        return {} as Record<string, number>;
+      }),
     ]);
 
-    const eventData = eventRes.data as CalendarEvent | null;
-    setEvent(eventData);
+    if (eventRes.error) throw eventRes.error;
+    if (assignmentsRes.error) throw assignmentsRes.error;
 
-    const assignments = (assignmentsRes.data as EventAssignment[]) ?? [];
-    setAllAssignments(assignments);
-    setMyAssignment(assignments.find((a) => a.profile_id === profileId) ?? null);
+    const eventData = eventRes.data as unknown as CalendarEvent | null;
+    const rows = (assignmentsRes.data as EventAssignment[] | null) ?? [];
+
+    setMyProfileId(profileId);
+    setEvent(eventData);
+    setAssignments(rows);
+    setSignedUpCount(counts[id] ?? 0);
+
+    if (eventData?.dog_id) {
+      const { data: dogData } = await supabase.from('dogs').select('name').eq('id', eventData.dog_id).maybeSingle();
+      setRelatedDogName((dogData as { name: string } | null)?.name ?? null);
+    } else {
+      setRelatedDogName(null);
+    }
 
     if (staff) {
-      const activeIds = Array.from(
-        new Set(assignments.filter((a) => a.status !== 'Cancelled').map((a) => a.profile_id))
-      );
-      if (activeIds.length > 0) {
+      const activeIds = Array.from(new Set(rows.filter(isActiveAssignment).map((a) => a.profile_id)));
+      if (activeIds.length === 0) {
+        setVolunteerNames({});
+      } else {
         const { data: namesData, error: namesError } = await supabase.rpc('get_profile_names', {
           profile_ids: activeIds,
         });
@@ -70,103 +134,205 @@ export default function EventDetailScreen() {
           console.warn('[event-detail] could not load volunteer names:', namesError);
         } else {
           const map: Record<string, string> = {};
-          ((namesData as { id: string; first_name: string; last_name: string }[]) ?? []).forEach((p) => {
-            map[p.id] = `${p.first_name} ${p.last_name}`.trim();
+          ((namesData as { id: string; first_name: string; last_name: string }[] | null) ?? []).forEach((p) => {
+            map[p.id] = `${p.first_name} ${p.last_name}`.trim() || 'Volunteer';
           });
           setVolunteerNames(map);
         }
-      } else {
-        setVolunteerNames({});
-      }
-    }
-
-    if (eventData) {
-      setEditTitle(eventData.title);
-      setEditCategory(eventData.category);
-      setEditDescription(eventData.description ?? '');
-      setEditLocation(eventData.location ?? '');
-      setEditStartAt(eventData.start_at);
-      setEditEndAt(eventData.end_at);
-
-      if (eventData.dog_id) {
-        const { data: dogData } = await supabase.from('dogs').select('name').eq('id', eventData.dog_id).single();
-        setRelatedDogName((dogData as { name: string } | null)?.name ?? null);
-      } else {
-        setRelatedDogName(null);
       }
     }
   }, [id, staff]);
 
-  useEffect(() => {
-    setIsLoading(true);
-    load()
-      .catch((err) => console.warn('[event-detail] failed to load:', err))
-      .finally(() => setIsLoading(false));
+  const reload = useCallback(async () => {
+    try {
+      setLoadError(null);
+      await load();
+    } catch (err) {
+      console.warn('[event-detail] failed to load:', err);
+      setLoadError(toFriendlyMessage(err, 'Could not load this event. Pull down to try again.'));
+    }
   }, [load]);
+
+  useLiveScreen(async () => {
+    // Avoid replacing unsaved staff edits while another user updates the event.
+    if (isEditing) return;
+    try { await reload(); } finally { setIsLoading(false); }
+  }, ['calendar_events', 'event_assignments']);
 
   const onRefresh = useCallback(async () => {
     setIsRefreshing(true);
-    try {
-      await load();
-    } finally {
-      setIsRefreshing(false);
-    }
-  }, [load]);
+    await reload();
+    setIsRefreshing(false);
+  }, [reload]);
 
-  const handleSignUp = async () => {
-    if (!event) return;
-    setIsActing(true);
+  const runAction = async (key: BusyAction, action: () => Promise<unknown>, fallback: string) => {
+    setBusy(key);
+    setActionError(null);
     try {
-      const profileId = await getCurrentProfileId();
-      const { error } = await supabase
-        .from('event_assignments')
-        .insert({ event_id: event.id, profile_id: profileId, status: 'Registered' });
-      if (error) throw error;
-      await load();
+      await action();
+      await reload();
     } catch (err) {
-      console.warn('[event-detail] sign up failed:', err);
+      console.warn(`[event-detail] ${key} failed:`, err);
+      setActionError(toFriendlyMessage(err, fallback));
     } finally {
-      setIsActing(false);
+      setBusy(null);
     }
   };
 
-  const cancelAssignment = async (assignmentId: string) => {
-    setIsActing(true);
-    try {
-      const { error } = await supabase.from('event_assignments').update({ status: 'Cancelled' }).eq('id', assignmentId);
-      if (error) throw error;
-      await load();
-    } catch (err) {
-      console.warn('[event-detail] cancel failed:', err);
-    } finally {
-      setIsActing(false);
-    }
+  // ---- Volunteer actions ---------------------------------------------------
+
+  const handleSignUp = () => {
+    if (!event) return;
+    runAction('signup', () => signUpForEvent(event.id), 'Could not sign you up. Please try again.');
+  };
+
+  const handleCancel = () => {
+    if (!event) return;
+    Alert.alert('Cancel your spot?', `You'll be removed from "${event.title}".`, [
+      { text: 'Keep my spot', style: 'cancel' },
+      {
+        text: 'Cancel spot',
+        style: 'destructive',
+        onPress: () => runAction('cancel', () => cancelEventSignup(event.id), 'Could not cancel your spot.'),
+      },
+    ]);
+  };
+
+  const handleCheckIn = () => {
+    if (!event) return;
+    runAction('checkin', () => checkInToEvent(event.id), 'Could not check you in. Please try again.');
+  };
+
+  // ---- Staff actions -------------------------------------------------------
+
+  const handleRemoveVolunteer = (assignment: EventAssignment) => {
+    const name = volunteerNames[assignment.profile_id] ?? 'this volunteer';
+    Alert.alert('Remove volunteer?', `Remove ${name} from this event?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: () =>
+          runAction(
+            `remove:${assignment.id}`,
+            async () => {
+              const { error } = await supabase
+                .from('event_assignments')
+                .update({ status: 'Cancelled', checked_in_at: null })
+                .eq('id', assignment.id);
+              if (error) throw error;
+            },
+            'Could not remove this volunteer.'
+          ),
+      },
+    ]);
+  };
+
+  const handleDelete = () => {
+    if (!event) return;
+    Alert.alert('Delete event?', `"${event.title}" and all its sign-ups will be removed. This can't be undone.`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          setBusy('delete');
+          setActionError(null);
+          const { error } = await supabase.from('calendar_events').delete().eq('id', event.id);
+          setBusy(null);
+          if (error) {
+            console.warn('[event-detail] delete failed:', error);
+            setActionError(toFriendlyMessage(error, 'Could not delete this event.'));
+            return;
+          }
+          router.back();
+        },
+      },
+    ]);
+  };
+
+  const startEditing = () => {
+    if (!event) return;
+    setEditTitle(event.title);
+    setEditCategory(event.category);
+    setEditDescription(event.description ?? '');
+    setEditLocation(event.location ?? '');
+    setEditStartAt(event.start_at);
+    setEditEndAt(event.end_at);
+    setEditSignupEnabled(event.volunteer_signup_enabled);
+    setEditMaxVolunteers(event.max_volunteers != null ? String(event.max_volunteers) : '');
+    setEditVolunteerStartAt(event.volunteer_start_at);
+    setEditVolunteerEndAt(event.volunteer_end_at);
+    setEditVolunteerNotes(event.volunteer_notes ?? '');
+    setEditError(null);
+    setIsEditing(true);
   };
 
   const handleSaveEdit = async () => {
     if (!event) return;
+    setEditError(null);
+
+    const title = editTitle.trim();
+    if (!title) return setEditError('Title is required.');
+    if (title.length > MAX_TITLE_LENGTH) return setEditError(`Title must be ${MAX_TITLE_LENGTH} characters or fewer.`);
+    if (!editStartAt) return setEditError('Start date & time is required.');
+    if (editEndAt && new Date(editEndAt).getTime() <= new Date(editStartAt).getTime()) {
+      return setEditError('The end time must be after the start time.');
+    }
+
+    if (editSignupEnabled) {
+      if (!editVolunteerStartAt || !editVolunteerEndAt) {
+        return setEditError('Volunteer arrival and finish dates are required when signups are enabled.');
+      }
+      if (new Date(editVolunteerEndAt).getTime() <= new Date(editVolunteerStartAt).getTime()) {
+        return setEditError('Volunteer finish date must be after the arrival date.');
+      }
+      if (!editMaxVolunteers.trim()) {
+        return setEditError('Enter how many volunteers are needed.');
+      }
+    }
+
+    let max: number | null = null;
+    if (editSignupEnabled && editMaxVolunteers.trim()) {
+      max = Number(editMaxVolunteers.trim());
+      if (!Number.isInteger(max) || max < 1 || max > MAX_VOLUNTEERS_LIMIT) {
+        return setEditError(`Max volunteers must be a whole number from 1 to ${MAX_VOLUNTEERS_LIMIT}.`);
+      }
+      if (max < signedUpCount) {
+        return setEditError(`${signedUpCount} people are already signed up. Remove some first or raise the limit.`);
+      }
+    }
+
     setIsSavingEdit(true);
     try {
       const { error } = await supabase
         .from('calendar_events')
         .update({
-          title: editTitle.trim(),
+          title,
           category: editCategory,
           description: editDescription.trim() || null,
           location: editLocation.trim() || null,
           start_at: editStartAt,
           end_at: editEndAt,
+          volunteer_signup_enabled: editSignupEnabled,
+          max_volunteers: editSignupEnabled ? max : null,
+          volunteer_start_at: editSignupEnabled ? editVolunteerStartAt : null,
+          volunteer_end_at: editSignupEnabled ? editVolunteerEndAt : null,
+          volunteer_notes: editSignupEnabled ? editVolunteerNotes.trim() || null : null,
         })
         .eq('id', event.id);
       if (error) throw error;
       setIsEditing(false);
-      await load();
+      await reload();
     } catch (err) {
       console.warn('[event-detail] update failed:', err);
+      setEditError(toFriendlyMessage(err, 'Could not save your changes. Please try again.'));
     } finally {
       setIsSavingEdit(false);
     }
   };
+
+  // ---- Render --------------------------------------------------------------
 
   if (isLoading) {
     return (
@@ -179,27 +345,95 @@ export default function EventDetailScreen() {
   if (!event) {
     return (
       <View style={styles.center}>
-        <Text style={styles.empty}>This event could not be found.</Text>
+        <Text style={styles.empty}>{loadError ?? 'This event could not be found.'}</Text>
+        <PillButton label="Go back" variant="outline" onPress={() => router.back()} style={{ marginTop: 18 }} />
       </View>
     );
   }
 
   const color = getCategoryColor(event.category);
-  const activeAssignments = allAssignments.filter((a) => a.status !== 'Cancelled');
+  const myAssignment = assignments.find((a) => a.profile_id === myProfileId) ?? null;
+  const activeAssignments = assignments.filter((a) =>
+    ['Assigned', 'Registered', 'Confirmed'].includes(a.status)
+  );
   const checkedInCount = activeAssignments.filter((a) => a.checked_in_at).length;
-  const iAmIn = !!myAssignment && myAssignment.status !== 'Cancelled';
+  const signupState = getSignupState(event, myAssignment, signedUpCount);
+  const spots = spotsLabel(event, signedUpCount);
+  const started = hasStarted(event);
+
+  const renderVolunteerSection = () => {
+    switch (signupState) {
+      case 'joined':
+        return (
+          <View style={styles.statusCard}>
+            <View style={styles.statusRow}>
+              <Ionicons name="checkmark-circle" size={26} color={colors.gold} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.statusTitle}>You're confirmed</Text>
+                <Text style={styles.meta}>
+                  {myAssignment?.checked_in_at
+                    ? `Checked in at ${formatDateTime(myAssignment.checked_in_at)}`
+                    : `Please arrive ${formatDateTime(event.volunteer_start_at ?? event.start_at)}.${event.volunteer_notes ? ` ${event.volunteer_notes}` : ''}`}
+                </Text>
+              </View>
+            </View>
+
+            {!myAssignment?.checked_in_at && isCheckInOpen(event) ? (
+              <PillButton label="Check in" loading={busy === 'checkin'} onPress={handleCheckIn} style={{ marginTop: 16 }} />
+            ) : null}
+
+            {!started ? (
+              <PillButton
+                label="Cancel my spot"
+                variant="danger"
+                loading={busy === 'cancel'}
+                onPress={handleCancel}
+                style={{ marginTop: 12 }}
+              />
+            ) : null}
+          </View>
+        );
+      case 'pending':
+      case 'reserve':
+        return (
+          <View style={styles.statusCard}>
+            <Text style={styles.bodyText}>
+              {signupState === 'pending'
+                ? "Your application is awaiting staff review. We'll notify you when it has been reviewed."
+                : "You're on standby for this event. We'll contact you if a place opens up."}
+            </Text>
+            {!started ? (
+              <PillButton label="Withdraw application" variant="outline" loading={busy === 'cancel'}
+                onPress={handleCancel} style={{ marginTop: 12 }} />
+            ) : null}
+          </View>
+        );
+      case 'declined':
+        return <Text style={styles.bodyText}>Thank you for volunteering. All places have been filled for now; we'll be in touch if more help is needed.</Text>;
+      case 'open':
+        return <PillButton label="Apply to volunteer" loading={busy === 'signup'} onPress={handleSignUp} />;
+      case 'full':
+        return <Text style={styles.bodyText}>This event is full. Check back later in case a spot opens up.</Text>;
+      case 'started':
+        return <Text style={styles.bodyText}>This event has already started.</Text>;
+      case 'closed':
+      default:
+        return <Text style={styles.bodyText}>Sign-ups aren't open for this event.</Text>;
+    }
+  };
 
   return (
     <ScrollView
       style={styles.root}
       contentContainerStyle={{ paddingBottom: 60 }}
+      keyboardShouldPersistTaps="handled"
       refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor="#fff" />}
     >
       <HeroHeader
         height={270}
         title={isEditing ? 'Edit event' : event.title}
-        subtitle={isEditing ? undefined : formatDateTime(event.start_at)}
-        onBack={() => router.back()}
+        subtitle={isEditing ? undefined : `Event: ${formatDateTime(event.start_at)}`}
+        onBack={() => (isEditing ? setIsEditing(false) : router.back())}
       >
         {!isEditing ? (
           <View style={styles.tagRow}>
@@ -209,6 +443,9 @@ export default function EventDetailScreen() {
               bg={event.visibility === 'Public' ? '#f3e1c2' : '#dfe4dc'}
               fg={event.visibility === 'Public' ? '#8a5a12' : '#4d5c52'}
             />
+            {signupState === 'joined' ? <Tag label="CONFIRMED" bg={colors.gold} fg={colors.header} /> : null}
+            {signupState === 'pending' ? <Tag label="AWAITING REVIEW" bg={colors.gold} fg={colors.header} /> : null}
+            {signupState === 'reserve' ? <Tag label="ON STANDBY" bg={colors.gold} fg={colors.header} /> : null}
           </View>
         ) : null}
       </HeroHeader>
@@ -216,13 +453,52 @@ export default function EventDetailScreen() {
       <View style={styles.body}>
         {isEditing ? (
           <View>
-            <Field label="Title" value={editTitle} onChangeText={setEditTitle} />
+            <Field label="Title" value={editTitle} onChangeText={setEditTitle} maxLength={MAX_TITLE_LENGTH} />
             <FieldLabel>Category</FieldLabel>
             <ChipGroup options={CATEGORIES} value={editCategory} onChange={setEditCategory} />
             <DateTimeField label="Starts" value={editStartAt} onChange={setEditStartAt} />
-            <DateTimeField label="Ends (optional)" value={editEndAt} onChange={setEditEndAt} />
+            <DateTimeField
+              label="Ends (optional)"
+              value={editEndAt}
+              onChange={setEditEndAt}
+              minimumDate={editStartAt ? new Date(editStartAt) : undefined}
+            />
             <Field label="Location" value={editLocation} onChangeText={setEditLocation} />
             <Field label="Description" value={editDescription} onChangeText={setEditDescription} multiline numberOfLines={4} />
+
+            <View style={styles.switchCard}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.switchTitle}>Volunteers can sign up</Text>
+                <Text style={styles.meta}>Turning this off keeps existing sign-ups.</Text>
+              </View>
+              <Switch
+                value={editSignupEnabled}
+                onValueChange={setEditSignupEnabled}
+                trackColor={{ false: colors.line, true: colors.gold }}
+                thumbColor="#fff"
+                accessibilityLabel="Volunteers can sign up"
+              />
+            </View>
+            {editSignupEnabled ? (
+              <View>
+                <Field
+                  label="Number of volunteers needed"
+                  value={editMaxVolunteers}
+                  onChangeText={(text) => setEditMaxVolunteers(text.replace(/[^0-9]/g, ''))}
+                  placeholder="e.g. 5"
+                  keyboardType="number-pad"
+                  maxLength={3}
+                />
+                <DateTimeField label="Volunteers arrive" value={editVolunteerStartAt} onChange={setEditVolunteerStartAt} />
+                <DateTimeField label="Volunteers finish" value={editVolunteerEndAt} onChange={setEditVolunteerEndAt}
+                  minimumDate={editVolunteerStartAt ? new Date(editVolunteerStartAt) : undefined} />
+                <Field label="Volunteer instructions (optional)" value={editVolunteerNotes}
+                  onChangeText={setEditVolunteerNotes} multiline numberOfLines={3} />
+              </View>
+            ) : null}
+
+            <ErrorText text={editError} />
+
             <View style={styles.buttonRow}>
               <PillButton label="Cancel" variant="outline" style={styles.flex1} onPress={() => setIsEditing(false)} />
               <PillButton label="Save" style={styles.flex1} loading={isSavingEdit} onPress={handleSaveEdit} />
@@ -250,7 +526,29 @@ export default function EventDetailScreen() {
                   <Text style={styles.infoText}>Related dog: {relatedDogName}</Text>
                 </View>
               ) : null}
+              {spots ? (
+                <View style={styles.infoRow}>
+                  <Ionicons name="people-outline" size={20} color={colors.gold} />
+                  <Text style={styles.infoText}>{spots}</Text>
+                </View>
+              ) : null}
             </View>
+
+            {!staff && event.volunteer_signup_enabled ? (
+              <View>
+                <SectionTitle title={signupState === 'joined' ? 'Your confirmed volunteer shift' : signupState === 'reserve' ? 'Your standby shift' : 'Volunteer shift dates'} />
+                <View style={[styles.infoCard, (signupState === 'joined' || signupState === 'reserve') && styles.shiftHighlight]}>
+                  <View style={styles.infoRow}>
+                    <Ionicons name="time-outline" size={20} color={colors.gold} />
+                    <Text style={styles.infoText}>
+                      {event.volunteer_start_at ? formatDateTime(event.volunteer_start_at) : 'Start time to be confirmed'}
+                      {event.volunteer_end_at ? ` – ${formatDateTime(event.volunteer_end_at)}` : ''}
+                    </Text>
+                  </View>
+                  {event.volunteer_notes ? <Text style={styles.bodyText}>{event.volunteer_notes}</Text> : null}
+                </View>
+              </View>
+            ) : null}
 
             {event.description ? (
               <View>
@@ -259,13 +557,16 @@ export default function EventDetailScreen() {
               </View>
             ) : null}
 
-            {staff ? <PillButton label="Edit event" variant="outline" onPress={() => setIsEditing(true)} style={{ marginTop: 24 }} /> : null}
-
-            {staff ? (
+            {!staff ? (
+              <View>
+                <SectionTitle title="Your spot" />
+                {renderVolunteerSection()}
+              </View>
+            ) : (
               <View>
                 <SectionTitle title="Volunteers" />
                 <Text style={styles.meta}>
-                  {activeAssignments.length} signed up · {checkedInCount} checked in
+                  {activeAssignments.length} confirmed · {checkedInCount} checked in
                 </Text>
                 {activeAssignments.length === 0 ? (
                   <Text style={[styles.empty, { marginTop: 10 }]}>No one has signed up yet.</Text>
@@ -273,41 +574,42 @@ export default function EventDetailScreen() {
                   activeAssignments.map((a) => (
                     <View key={a.id} style={styles.assignRow}>
                       <View style={{ flex: 1 }}>
-                        <Text style={styles.assignName}>
-                          {volunteerNames[a.profile_id] ?? 'Volunteer'} · {a.status}
-                        </Text>
+                        <Text style={styles.assignName}>{volunteerNames[a.profile_id] ?? 'Volunteer'}</Text>
                         <Text style={styles.meta}>
-                          {a.checked_in_at ? `Checked in at ${formatDateTime(a.checked_in_at)}` : 'Not checked in yet'}
+                          {a.checked_in_at ? `Checked in at ${formatTime(a.checked_in_at)}` : 'Not checked in yet'}
                         </Text>
                       </View>
-                      <Pressable onPress={() => cancelAssignment(a.id)} disabled={isActing}>
-                        <Text style={styles.removeText}>Remove</Text>
+                      <Pressable
+                        onPress={() => handleRemoveVolunteer(a)}
+                        disabled={busy !== null}
+                        hitSlop={10}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Remove ${volunteerNames[a.profile_id] ?? 'volunteer'}`}
+                      >
+                        {busy === `remove:${a.id}` ? (
+                          <ActivityIndicator color={colors.dangerSoft} />
+                        ) : (
+                          <Text style={styles.removeText}>Remove</Text>
+                        )}
                       </Pressable>
                     </View>
                   ))
                 )}
-              </View>
-            ) : (
-              <View>
-                <SectionTitle title="Your spot" />
-                {iAmIn && myAssignment ? (
-                  <View>
-                    <Text style={styles.bodyText}>
-                      You're {myAssignment.status.toLowerCase()} for this {event.category === 'Shift' ? 'shift' : 'event'}.
-                    </Text>
-                    <PillButton
-                      label="Cancel my spot"
-                      variant="outline"
-                      loading={isActing}
-                      onPress={() => cancelAssignment(myAssignment.id)}
-                      style={{ marginTop: 16 }}
-                    />
-                  </View>
-                ) : (
-                  <PillButton label="Sign up" loading={isActing} onPress={handleSignUp} />
-                )}
+
+                <View style={[styles.buttonRow, { marginTop: 26 }]}>
+                  <PillButton label="Edit event" variant="outline" style={styles.flex1} onPress={startEditing} />
+                  <PillButton
+                    label="Delete"
+                    variant="danger"
+                    style={styles.flex1}
+                    loading={busy === 'delete'}
+                    onPress={handleDelete}
+                  />
+                </View>
               </View>
             )}
+
+            <ErrorText text={actionError} />
           </View>
         )}
       </View>
@@ -317,20 +619,45 @@ export default function EventDetailScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.page },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.page },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.page, padding: 24 },
   body: { paddingHorizontal: 20 },
   flex1: { flex: 1 },
-  tagRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
 
   infoCard: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: 16, gap: 14, marginTop: 18 },
   infoRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  shiftHighlight: { borderWidth: 1.5, borderColor: colors.gold },
   infoText: { flex: 1, color: '#fff', fontSize: 14, fontWeight: '600' },
+
+  statusCard: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: 16, borderWidth: 1.5, borderColor: colors.gold },
+  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  statusTitle: { color: '#fff', fontSize: 17, fontWeight: '800' },
+
+  switchCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radius.md,
+    padding: 16,
+    marginTop: 22,
+  },
+  switchTitle: { color: colors.fg, fontSize: 15, fontWeight: '800' },
 
   bodyText: { color: colors.fgMuted, fontSize: 14, lineHeight: 21 },
   meta: { color: colors.fgMuted, fontSize: 12, marginTop: 2 },
-  empty: { color: colors.fgMuted, fontSize: 14 },
+  empty: { color: colors.fgMuted, fontSize: 14, textAlign: 'center' },
 
-  assignRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: radius.md, padding: 14, marginTop: 10 },
+  assignRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    padding: 14,
+    marginTop: 10,
+  },
   assignName: { color: '#fff', fontSize: 14, fontWeight: '800' },
   removeText: { color: colors.dangerSoft, fontSize: 13, fontWeight: '800' },
   buttonRow: { flexDirection: 'row', gap: 12, marginTop: 20 },

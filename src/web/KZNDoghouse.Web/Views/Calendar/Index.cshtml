@@ -130,6 +130,10 @@
                                     && x.Status != EventAssignmentStatuses.Cancelled)
                                 .OrderBy(x => x.CreatedAt)
                                 .ToList();
+                            var confirmedCount = activeAssignments.Count(x =>
+                                EventAssignmentStatuses.CountsTowardCapacity(x.Status));
+                            var pendingCount = activeAssignments.Count(x =>
+                                x.Status == EventAssignmentStatuses.Pending);
 
                             <article class="portal-calendar-event"
                                      data-portal-row
@@ -158,10 +162,10 @@
                                         <div>
                                             <h3>@evt.Title</h3>
                                             <div class="portal-calendar-event-time">
-                                                @evt.StartAt.ToString("HH:mm")
+                                                @evt.StartAt.ToString("dd MMM yyyy, HH:mm")
                                                 @if (evt.EndAt.HasValue)
                                                 {
-                                                    <text> – @evt.EndAt.Value.ToString("HH:mm")</text>
+                                                    <text> – @evt.EndAt.Value.ToString("dd MMM yyyy, HH:mm")</text>
                                                 }
                                             </div>
                                         </div>
@@ -189,10 +193,14 @@
                                         <div class="portal-event-volunteer-summary">
                                             <div>
                                                 <strong>Volunteer signup:</strong>
-                                                <span>@activeAssignments.Count / @evt.MaxVolunteers filled</span>
+                                                <span>@confirmedCount / @evt.MaxVolunteers confirmed</span>
+                                                <span> · @pendingCount awaiting review</span>
                                                 @if (evt.VolunteerStartAt.HasValue && evt.VolunteerEndAt.HasValue)
                                                 {
-                                                    <span> · @evt.VolunteerStartAt.Value.ToString("dd MMM, HH:mm")–@evt.VolunteerEndAt.Value.ToString("HH:mm")</span>
+                                                    <span class="portal-volunteer-shift-range">
+                                                        · @evt.VolunteerStartAt.Value.ToString("dd MMM yyyy, HH:mm")
+                                                        to @evt.VolunteerEndAt.Value.ToString("dd MMM yyyy, HH:mm")
+                                                    </span>
                                                 }
                                             </div>
 
@@ -201,23 +209,15 @@
                                                 <div class="text-muted small mt-1">@evt.VolunteerNotes</div>
                                             }
 
-                                            @if (activeAssignments.Count > 0)
+                                            @if (pendingCount > 0)
                                             {
-                                                <details class="portal-volunteer-list mt-2">
-                                                    <summary>View registered volunteers</summary>
-                                                    <ul>
-                                                        @foreach (var assignment in activeAssignments)
-                                                        {
-                                                            var volunteerName = profilesById.TryGetValue(assignment.ProfileId, out var profile)
-                                                                ? profile.FullName
-                                                                : "Volunteer";
-                                                            <li>
-                                                                <span>@volunteerName</span>
-                                                                <small>@assignment.Status</small>
-                                                            </li>
-                                                        }
-                                                    </ul>
-                                                </details>
+                                                <a class="portal-volunteer-review-link"
+                                                   asp-controller="Availability"
+                                                   asp-action="Index"
+                                                   asp-route-event="@evt.Id">
+                                                    Review @pendingCount volunteer @(pendingCount == 1 ? "application" : "applications")
+                                                    <span aria-hidden="true">›</span>
+                                                </a>
                                             }
                                         </div>
                                     }
@@ -280,11 +280,11 @@
                 </div>
 
                 <div class="row g-2 mb-3">
-                    <div class="col-sm-6 col-xl-12 col-xxl-6">
+                    <div class="col-12">
                         <label class="form-label">Start</label>
                         <input type="datetime-local" name="startAt" class="form-control" required />
                     </div>
-                    <div class="col-sm-6 col-xl-12 col-xxl-6">
+                    <div class="col-12">
                         <label class="form-label">End</label>
                         <input type="datetime-local" name="endAt" class="form-control" />
                     </div>
@@ -375,7 +375,7 @@
                         </div>
 
                         <div class="row g-2 mb-3">
-                            <div class="col-sm-6 col-xl-12 col-xxl-6">
+                            <div class="col-12">
                                 <label class="form-label" for="volunteerStartAt">Volunteer start</label>
                                 <input type="datetime-local"
                                        id="volunteerStartAt"
@@ -383,7 +383,7 @@
                                        class="form-control"
                                        data-volunteer-required />
                             </div>
-                            <div class="col-sm-6 col-xl-12 col-xxl-6">
+                            <div class="col-12">
                                 <label class="form-label" for="volunteerEndAt">Volunteer end</label>
                                 <input type="datetime-local"
                                        id="volunteerEndAt"

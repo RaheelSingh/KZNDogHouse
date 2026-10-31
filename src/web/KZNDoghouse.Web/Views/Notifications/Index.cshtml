@@ -19,15 +19,19 @@
         <p class="text-muted mb-0">Notifications for your account.</p>
     </div>
 
-    @if (unreadCount > 1)
+    @if (Model.Any())
     {
-        <form asp-controller="Notifications"
-              asp-action="MarkAllRead"
-              method="post">
-            <button type="submit" class="btn btn-kzn-outline">
-                Mark all as read
-            </button>
-        </form>
+        <div class="d-flex gap-2 flex-wrap">
+            @if (unreadCount > 0)
+            {
+                <form asp-controller="Notifications" asp-action="MarkAllRead" method="post">
+                    <button type="submit" class="btn btn-kzn-outline">Mark all as read</button>
+                </form>
+            }
+            <form asp-controller="Notifications" asp-action="ClearAll" method="post" onsubmit="return confirm('Remove all notifications from your list?');">
+                <button type="submit" class="btn btn-kzn-outline">Clear all</button>
+            </form>
+        </div>
     }
 
 </div>
@@ -108,7 +112,7 @@
 </div>
 
 <div id="notificationRows"
-     class="portal-filter-results portal-filter-results-cards portal-record-scroll">
+     class="portal-filter-results portal-filter-results-cards portal-record-scroll portal-notifications-results">
 
     @foreach (var day in grouped)
     {
@@ -124,13 +128,16 @@
             {
                 var readState = notification.IsRead ? "Read" : "Unread";
 
-                <div class="portal-card portal-notification-item @(notification.IsRead ? "" : "portal-notification-unread") mb-2"
+                <div class="portal-card portal-notification-item portal-notification-item-dismissible @(notification.IsRead ? "" : "portal-notification-unread") mb-2"
                      data-portal-row
                      data-search="@notification.Title @notification.Body @notification.Category"
                      data-category="@notification.Category"
                      data-read="@readState"
                      data-date="@notification.CreatedAt.ToString("yyyy-MM-dd")">
 
+                    <form asp-controller="Notifications" asp-action="Clear" asp-route-id="@notification.Id" method="post" class="portal-notification-dismiss">
+                        <button type="submit" aria-label="Remove notification" title="Remove notification">&times;</button>
+                    </form>
                     <div class="portal-notification-content">
 
                         <div>
@@ -183,6 +190,7 @@
                                 </form>
                             }
 
+
                         </div>
 
                     </div>
@@ -195,15 +203,16 @@
 
 </div>
 
-<div id="notificationsEmpty"
-     class="portal-card portal-filter-empty"
-     hidden>
-    No notifications match the current search and filters.
-</div>
+@if (Model.Any())
+{
+    <div id="notificationsEmpty" class="portal-card portal-filter-empty" hidden>
+        No notifications match your filters.
+    </div>
+}
 
 @if (!Model.Any())
 {
-    <div class="portal-card text-center text-muted py-4">
-        No notifications yet.
+    <div class="portal-card portal-notifications-empty text-muted">
+        You're all caught up. New notifications will appear here.
     </div>
 }

@@ -23,7 +23,7 @@ public interface IVetAccessService
             string vetAuthUserId,
             Guid dogId);
 
-    Task<bool> AddMedicalRecordAsync(
+    Task<Guid?> AddMedicalRecordAsync(
         string vetAuthUserId,
         Guid dogId,
         string recordType,
@@ -38,17 +38,20 @@ public class VetAccessService : IVetAccessService
     private readonly IUserProfileRepository _userProfileRepository;
     private readonly IDogRepository _dogRepository;
     private readonly IDogMedicalService _dogMedicalService;
+    private readonly IDogDocumentService _documents;
 
     public VetAccessService(
         IVetAccessRepository vetAccessRepository,
         IUserProfileRepository userProfileRepository,
         IDogRepository dogRepository,
-        IDogMedicalService dogMedicalService)
+        IDogMedicalService dogMedicalService,
+        IDogDocumentService documents)
     {
         _vetAccessRepository = vetAccessRepository;
         _userProfileRepository = userProfileRepository;
         _dogRepository = dogRepository;
         _dogMedicalService = dogMedicalService;
+        _documents = documents;
     }
 
     public async Task<VetAccessViewModel?>
@@ -254,13 +257,12 @@ public class VetAccessService : IVetAccessService
         return new VetDogDetailsViewModel
         {
             Dog = dog,
-            MedicalRecords =
-                await _dogMedicalService
-                    .GetRecordsAsync(dogId)
+            MedicalRecords = await _dogMedicalService.GetRecordsAsync(dogId),
+            Documents = await _documents.GetForDogAsync(dogId)
         };
     }
 
-    public async Task<bool> AddMedicalRecordAsync(
+    public async Task<Guid?> AddMedicalRecordAsync(
         string vetAuthUserId,
         Guid dogId,
         string recordType,
@@ -272,7 +274,7 @@ public class VetAccessService : IVetAccessService
                 recordType)
             || string.IsNullOrWhiteSpace(title))
         {
-            return false;
+            return null;
         }
 
         var context =
@@ -281,7 +283,7 @@ public class VetAccessService : IVetAccessService
 
         if (context == null)
         {
-            return false;
+            return null;
         }
 
         var isAuthorized =
@@ -291,10 +293,10 @@ public class VetAccessService : IVetAccessService
 
         if (!isAuthorized)
         {
-            return false;
+            return null;
         }
 
-        await _dogMedicalService.AddRecordAsync(
+        var created = await _dogMedicalService.AddRecordAsync(
             dogId,
             recordType,
             title.Trim(),
@@ -305,7 +307,7 @@ public class VetAccessService : IVetAccessService
             nextActionDate,
             context.Value.UserProfile.Id);
 
-        return true;
+        return created.Id;
     }
 
     private async Task<(

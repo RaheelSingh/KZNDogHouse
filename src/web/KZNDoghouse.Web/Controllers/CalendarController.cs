@@ -13,6 +13,7 @@ public class CalendarController : Controller
     private readonly ICalendarEventService _calendarEventService;
     private readonly IUserProfileRepository _userProfileRepository;
     private readonly IEventAssignmentRepository _eventAssignmentRepository;
+    private readonly IEventRegistrationService _eventRegistrationService;
     private readonly IMediaStorageService _mediaStorageService;
     private readonly ILogger<CalendarController> _logger;
 
@@ -20,12 +21,14 @@ public class CalendarController : Controller
         ICalendarEventService calendarEventService,
         IUserProfileRepository userProfileRepository,
         IEventAssignmentRepository eventAssignmentRepository,
+        IEventRegistrationService eventRegistrationService,
         IMediaStorageService mediaStorageService,
         ILogger<CalendarController> logger)
     {
         _calendarEventService = calendarEventService;
         _userProfileRepository = userProfileRepository;
         _eventAssignmentRepository = eventAssignmentRepository;
+        _eventRegistrationService = eventRegistrationService;
         _mediaStorageService = mediaStorageService;
         _logger = logger;
     }
@@ -56,6 +59,32 @@ public class CalendarController : Controller
             return View(
                 Array.Empty<KZNDoghouse.Web.Models.CalendarEvent>());
         }
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ReviewVolunteer(Guid assignmentId, string status)
+    {
+        if (!EventAssignmentStatuses.ReviewOptions.Contains(status))
+        {
+            TempData["ErrorMessage"] = "Choose a valid volunteer status.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        try
+        {
+            var result = await _eventRegistrationService.ReviewAsync(assignmentId, status);
+            TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] = result.Message;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Could not review volunteer application {AssignmentId}", assignmentId);
+            TempData["ErrorMessage"] = ex.Message.Contains("volunteer places", StringComparison.OrdinalIgnoreCase)
+                ? "All volunteer places are currently filled. Put this applicant on standby instead."
+                : "Unable to update this volunteer right now. Check the database setup and try again.";
+        }
+
+        return RedirectToAction(nameof(Index));
     }
 
     [HttpPost]

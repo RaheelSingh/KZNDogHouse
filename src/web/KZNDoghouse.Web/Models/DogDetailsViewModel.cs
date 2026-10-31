@@ -3,6 +3,10 @@ namespace KZNDoghouse.Web.Models;
 public class DogDetailsViewModel
 {
     public Dog Dog { get; set; } = null!;
+    public IReadOnlyList<AdoptionRecord> AdoptionHistory { get; set; } = Array.Empty<AdoptionRecord>();
+    public IReadOnlyList<FosterApplication> FosterApplications { get; set; } = Array.Empty<FosterApplication>();
+    public IReadOnlyList<DogVideo> Videos { get; set; } = Array.Empty<DogVideo>();
+    public IReadOnlyList<DogDocument> Documents { get; set; } = Array.Empty<DogDocument>();
 
     public IReadOnlyList<DogMedicalRecord> MedicalRecords { get; set; } =
         Array.Empty<DogMedicalRecord>();

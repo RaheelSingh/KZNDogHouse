@@ -79,13 +79,20 @@ export interface CalendarEvent {
   dog_id: string | null;
   created_by: string | null;
   created_at: string;
+  volunteer_signup_enabled: boolean;
+  max_volunteers: number | null;
+  volunteer_start_at: string | null;
+  volunteer_end_at: string | null;
+  volunteer_notes: string | null;
 }
+
+export type AssignmentStatus = 'Pending' | 'Reserve' | 'Declined' | 'Assigned' | 'Registered' | 'Confirmed' | 'Cancelled';
 
 export interface EventAssignment {
   id: string;
   event_id: string;
   profile_id: string;
-  status: 'Assigned' | 'Registered' | 'Confirmed' | 'Cancelled';
+  status: AssignmentStatus;
   checked_in_at: string | null;
   created_at: string;
 }

@@ -10,14 +10,17 @@ public class PublicDogsController : Controller
     private const int MoreDogsCount = 4;
 
     private readonly IDogService _dogService;
+    private readonly IDogVideoService? _videoService;
     private readonly ILogger<PublicDogsController> _logger;
 
     public PublicDogsController(
         IDogService dogService,
-        ILogger<PublicDogsController> logger)
+        ILogger<PublicDogsController> logger,
+        IDogVideoService? videoService = null)
     {
         _dogService = dogService;
         _logger = logger;
+        _videoService = videoService;
     }
 
     [HttpGet("")]
@@ -75,6 +78,7 @@ public class PublicDogsController : Controller
             return View(new PublicDogDetailsViewModel
             {
                 Dog = dog,
+                Videos = _videoService == null ? Array.Empty<DogVideo>() : await _videoService.GetForDogAsync(id),
                 MoreDogs = await LoadMoreDogsAsync(id)
             });
         }

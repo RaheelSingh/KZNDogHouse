@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -14,6 +14,7 @@ import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { isStaff } from '@/lib/roles';
 import { getStatusColor } from '@/lib/dogStatus';
+import { useLiveScreen } from '@/lib/useLiveScreen';
 import { colors, radius } from '@/theme';
 import { IconBtn, ImageCard, PageHeader, SectionTitle, Tag, UnderlineTabs } from '@/components/ui';
 import type { Dog } from '@/types/models';
@@ -51,23 +52,21 @@ export default function DogsScreen() {
         )
         .neq('status', 'Adopted')
         .order('created_at', { ascending: false }),
-      supabase
+      staff ? supabase
         .from('dog_medical_records')
         .select('dog_id')
         .eq('status', 'Active')
-        .lte('next_action_date', todayDateOnly),
+        .lte('next_action_date', todayDateOnly) : Promise.resolve({ data: [] }),
     ]);
 
     setDogs((dogsRes.data as Dog[]) ?? []);
     setMedsDueIds(new Set(((medsRes.data as { dog_id: string }[]) ?? []).map((r) => r.dog_id)));
-  }, []);
+  }, [staff]);
 
-  useEffect(() => {
-    setIsLoading(true);
-    load()
-      .catch((err) => console.warn('[dogs] failed to load:', err))
-      .finally(() => setIsLoading(false));
-  }, [load]);
+  useLiveScreen(async () => {
+    await load();
+    setIsLoading(false);
+  }, staff ? ['dogs', 'dog_medical_records'] : ['dogs']);
 
   const onRefresh = useCallback(async () => {
     setIsRefreshing(true);
@@ -92,8 +91,8 @@ export default function DogsScreen() {
   }, [dogs, filter, search, sort]);
 
   const attention = useMemo(
-    () => (filter === 'All' && !search.trim() ? dogs.filter((d) => medsDueIds.has(d.id)) : []),
-    [dogs, medsDueIds, filter, search]
+    () => (staff && filter === 'All' && !search.trim() ? dogs.filter((d) => medsDueIds.has(d.id)) : []),
+    [dogs, medsDueIds, filter, search, staff]
   );
 
   const isNewIntake = (dog: Dog) => (Date.now() - new Date(dog.intake_date).getTime()) / 86_400_000 <= 7;

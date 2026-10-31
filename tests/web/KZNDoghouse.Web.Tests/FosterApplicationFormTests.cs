@@ -103,75 +103,25 @@ public class FosterApplicationFormTests
     }
 
     [Fact]
-    public void Validate_RejectsMissingAddress()
+    public void Validate_AcceptsContactOnlyWithoutHomeQuestionnaire()
     {
         var form = ValidForm();
-        form.HomeAddress = string.Empty;
-
-        Assert.True(HasErrorFor(Validate(form), nameof(form.HomeAddress)));
-    }
-
-    [Theory]
-    [InlineData("Castle")]
-    [InlineData("")]
-    public void Validate_RejectsUnknownHomeType(string homeType)
-    {
-        var form = ValidForm();
-        form.HomeType = homeType;
-
-        Assert.True(HasErrorFor(Validate(form), nameof(form.HomeType)));
-    }
-
-    [Theory]
-    [InlineData("Maybe")]
-    [InlineData("")]
-    public void Validate_RejectsUnknownFencedAnswer(string answer)
-    {
-        var form = ValidForm();
-        form.GardenFenced = answer;
-
-        Assert.True(HasErrorFor(Validate(form), nameof(form.GardenFenced)));
-    }
-
-    [Theory]
-    [InlineData("Yes")]
-    [InlineData("No")]
-    [InlineData("N/A")]
-    public void Validate_AcceptsEachFencedAnswer(string answer)
-    {
-        var form = ValidForm();
-        form.GardenFenced = answer;
-
-        Assert.False(HasErrorFor(Validate(form), nameof(form.GardenFenced)));
-    }
-
-    [Fact]
-    public void Validate_RequiresEveryYesOrNoQuestion_ToBeAnswered()
-    {
-        var form = ValidForm();
+        form.HomeType = "";
+        form.GardenFenced = "";
         form.HasGrassOrDailyWalks = null;
         form.SomeoneHomeDayAndNight = null;
         form.HasIndoorSleepingArea = null;
         form.HasOtherPets = null;
         form.HasChildren = null;
-
-        var results = Validate(form);
-
-        Assert.True(HasErrorFor(results, nameof(form.HasGrassOrDailyWalks)));
-        Assert.True(HasErrorFor(results, nameof(form.SomeoneHomeDayAndNight)));
-        Assert.True(HasErrorFor(results, nameof(form.HasIndoorSleepingArea)));
-        Assert.True(HasErrorFor(results, nameof(form.HasOtherPets)));
-        Assert.True(HasErrorFor(results, nameof(form.HasChildren)));
+        Assert.Empty(Validate(form));
     }
 
     [Fact]
-    public void Validate_AcceptsNoAnswers_ToTheYesOrNoQuestions()
+    public void Validate_AcceptsSelectedDogWithoutSizePreferences()
     {
         var form = ValidForm();
-        form.HasGrassOrDailyWalks = false;
-        form.HasOtherPets = false;
-        form.HasChildren = false;
-
+        form.DogId = Guid.NewGuid();
+        form.SizePreferences.Clear();
         Assert.Empty(Validate(form));
     }
 

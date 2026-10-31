@@ -19,9 +19,9 @@ import type { AppNotification, NotificationCategory } from '@/types/models';
 type Filter = 'All' | NotificationCategory;
 const TABS: { key: Filter; label: string }[] = [
   { key: 'All', label: 'All' },
-  { key: 'Medical', label: 'Medical' },
   { key: 'Calendar', label: 'Calendar' },
   { key: 'Tasks', label: 'Tasks' },
+  { key: 'Medical', label: 'Medical' },
   { key: 'Messages', label: 'Messages' },
 ];
 
@@ -64,7 +64,8 @@ function formatWhen(iso: string): string {
 }
 
 export default function AlertsScreen() {
-  const { notifications, unreadCount, isLoading, refresh, markAsRead, clearAll } = useNotifications();
+  const { notifications, unreadCount, isLoading, refresh, markAsRead, markAllAsRead, clearOne, clearAll } =
+    useNotifications();
   const [filter, setFilter] = useState<Filter>('All');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -94,6 +95,14 @@ export default function AlertsScreen() {
     }
   };
 
+  const onLongPressItem = (item: AppNotification) => {
+    const buttons: { text: string; style?: 'cancel' | 'destructive'; onPress?: () => void }[] = [];
+    if (!item.is_read) buttons.push({ text: 'Mark as read', onPress: () => markAsRead(item.id) });
+    buttons.push({ text: 'Clear', style: 'destructive', onPress: () => clearOne(item.id) });
+    buttons.push({ text: 'Cancel', style: 'cancel' });
+    Alert.alert(item.title, undefined, buttons);
+  };
+
   const onClearAll = () => {
     if (notifications.length === 0) return;
     Alert.alert('Clear all notifications', 'This removes every notification from your list.', [
@@ -108,9 +117,18 @@ export default function AlertsScreen() {
         title="Notifications"
         subtitle={unreadCount === 0 ? "You're all caught up" : `${unreadCount} new update${unreadCount === 1 ? '' : 's'}`}
         right={
-          <Pressable onPress={onClearAll} hitSlop={10}>
-            <Text style={styles.clearAll}>Clear all</Text>
-          </Pressable>
+          <>
+            {unreadCount > 0 ? (
+              <Pressable onPress={markAllAsRead} hitSlop={10} accessibilityRole="button">
+                <Text style={styles.headerAction}>Mark all read</Text>
+              </Pressable>
+            ) : null}
+            {notifications.length > 0 ? (
+              <Pressable onPress={onClearAll} hitSlop={10} accessibilityRole="button">
+                <Text style={styles.headerAction}>Clear all</Text>
+              </Pressable>
+            ) : null}
+          </>
         }
       >
         <UnderlineTabs tabs={TABS} active={filter} onChange={setFilter} />
@@ -131,21 +149,45 @@ export default function AlertsScreen() {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Ionicons name="notifications-off-outline" size={40} color={colors.fgFaint} />
-              <Text style={styles.emptyText}>No notifications yet.</Text>
+              <Text style={styles.emptyText}>
+                {filter === 'All' ? 'No notifications yet.' : `No ${filter.toLowerCase()} notifications.`}
+              </Text>
             </View>
           }
           renderItem={({ item }) => {
             const look = CATEGORY_STYLE[item.category] ?? CATEGORY_STYLE.General;
             return (
-              <Pressable style={[styles.card, !item.is_read && styles.cardUnread]} onPress={() => onPressItem(item)}>
+              <Pressable
+                style={({ pressed }) => [styles.card, !item.is_read && styles.cardUnread, pressed && { opacity: 0.85 }]}
+                onPress={() => onPressItem(item)}
+                onLongPress={() => onLongPressItem(item)}
+                delayLongPress={350}
+                accessibilityRole="button"
+                accessibilityLabel={`${item.is_read ? '' : 'Unread. '}${item.title}. ${item.body ?? ''}`}
+                accessibilityHint="Long press for more options"
+              >
                 <View style={[styles.iconBox, { backgroundColor: look.bg }]}>
                   <Ionicons name={look.icon} size={20} color={look.fg} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.cardTitle}>{item.title}</Text>
+                  <View style={styles.titleRow}>
+                    {!item.is_read ? <View style={styles.unreadDot} /> : null}
+                    <Text style={styles.cardTitle} numberOfLines={2}>
+                      {item.title}
+                    </Text>
+                  </View>
                   {item.body ? <Text style={styles.cardText}>{item.body}</Text> : null}
                   <Text style={styles.cardTime}>{formatWhen(item.created_at)}</Text>
                 </View>
+                <Pressable
+                  onPress={() => clearOne(item.id)}
+                  hitSlop={12}
+                  style={styles.clearBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Clear ${item.title}`}
+                >
+                  <Ionicons name="close" size={18} color={colors.fgFaint} />
+                </Pressable>
               </Pressable>
             );
           }}
@@ -158,7 +200,7 @@ export default function AlertsScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.page },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  clearAll: { color: colors.gold, fontSize: 14, fontWeight: '800' },
+  headerAction: { color: colors.gold, fontSize: 14, fontWeight: '800' },
   listContent: { paddingHorizontal: 20, paddingBottom: 40 },
   sectionHeader: { color: colors.fgFaint, fontSize: 12, fontWeight: '800', letterSpacing: 1, marginTop: 22, marginBottom: 12 },
   card: {
@@ -173,9 +215,12 @@ const styles = StyleSheet.create({
   },
   cardUnread: { borderColor: colors.gold },
   iconBox: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  cardTitle: { color: '#fff', fontSize: 15, fontWeight: '800' },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.gold },
+  cardTitle: { color: '#fff', fontSize: 15, fontWeight: '800', flexShrink: 1 },
   cardText: { color: colors.fgMuted, fontSize: 13, marginTop: 3, lineHeight: 18 },
   cardTime: { color: colors.fgFaint, fontSize: 11, marginTop: 6 },
+  clearBtn: { alignSelf: 'flex-start', padding: 2 },
   empty: { alignItems: 'center', paddingTop: 70, gap: 10 },
   emptyText: { color: colors.fgMuted, fontSize: 15 },
 });

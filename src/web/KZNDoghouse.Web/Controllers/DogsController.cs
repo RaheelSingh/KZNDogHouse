@@ -13,8 +13,13 @@ public class DogsController : Controller
 {
     private readonly IDogService _dogService;
     private readonly IDogImageService _dogImageService;
+    private readonly IDogVideoService? _videoService;
+    private readonly IAdoptionRecordRepository? _adoptions;
+    private readonly IFosterApplicationRepository? _fosterApplications;
     private readonly IUserProfileRepository _userProfileRepository;
     private readonly IDogMedicalService _dogMedicalService;
+    private readonly IDogDocumentService _documents;
+    private readonly IMedicalAlertService _medicalAlerts;
     private readonly IFosteringService _fosteringService;
     private readonly ILogger<DogsController> _logger;
 
@@ -23,13 +28,23 @@ public class DogsController : Controller
         IDogImageService dogImageService,
         IUserProfileRepository userProfileRepository,
         IDogMedicalService dogMedicalService,
+        IDogDocumentService documents,
+        IMedicalAlertService medicalAlerts,
         IFosteringService fosteringService,
-        ILogger<DogsController> logger)
+        ILogger<DogsController> logger,
+        IDogVideoService? videoService = null,
+        IAdoptionRecordRepository? adoptions = null,
+        IFosterApplicationRepository? fosterApplications = null)
     {
         _dogService = dogService;
         _dogImageService = dogImageService;
+        _videoService = videoService;
+        _adoptions = adoptions;
+        _fosterApplications = fosterApplications;
         _userProfileRepository = userProfileRepository;
         _dogMedicalService = dogMedicalService;
+        _documents = documents;
+        _medicalAlerts = medicalAlerts;
         _fosteringService = fosteringService;
         _logger = logger;
     }
@@ -61,7 +76,7 @@ public class DogsController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(
-        DogFormViewModel model)
+        DogFormViewModel model, IFormFile? video = null)
     {
         if (!ModelState.IsValid)
         {
@@ -90,14 +105,14 @@ public class DogsController : Controller
                 Gender = model.Gender,
                 Size = model.Size,
                 WeightKg = model.WeightKg,
-                EyeColour = model.EyeColour?.Trim(),
                 Temperament = model.Temperament?.Trim(),
                 About = model.About?.Trim(),
                 KennelLocation = model.KennelLocation?.Trim(),
                 IntakeDate = model.IntakeDate,
                 IntakeType = model.IntakeType,
                 Status = model.Status,
-                IsVaccinated = model.IsVaccinated
+                IsVaccinated = model.IsVaccinated,
+                IsSpayedNeutered = model.IsSpayedNeutered
             };
 
             var createdDog =
@@ -120,6 +135,12 @@ public class DogsController : Controller
             if (!upload.Success)
             {
                 TempData["ErrorMessage"] = upload.Message;
+            }
+
+            if (video != null && _videoService != null)
+            {
+                var videoResult = await _videoService.UploadAsync(createdDog.Id, video);
+                if (!videoResult.Success) TempData["ErrorMessage"] = videoResult.Message;
             }
 
             return RedirectToAction(
@@ -155,14 +176,14 @@ public class DogsController : Controller
             Gender = dog.Gender,
             Size = dog.Size,
             WeightKg = dog.WeightKg,
-            EyeColour = dog.EyeColour,
             Temperament = dog.Temperament,
             About = dog.About,
             KennelLocation = dog.KennelLocation,
             IntakeDate = dog.IntakeDate,
             IntakeType = dog.IntakeType,
             Status = dog.Status,
-            IsVaccinated = dog.IsVaccinated
+            IsVaccinated = dog.IsVaccinated,
+            IsSpayedNeutered = dog.IsSpayedNeutered
         };
 
         ViewData["DogId"] = dog.Id;
@@ -175,7 +196,7 @@ public class DogsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(
         Guid id,
-        DogFormViewModel model)
+        DogFormViewModel model, IFormFile? video = null)
     {
         if (!ModelState.IsValid)
         {
@@ -199,7 +220,6 @@ public class DogsController : Controller
             dog.Gender = model.Gender;
             dog.Size = model.Size;
             dog.WeightKg = model.WeightKg;
-            dog.EyeColour = model.EyeColour?.Trim();
             dog.Temperament = model.Temperament?.Trim();
             dog.About = model.About?.Trim();
             dog.KennelLocation = model.KennelLocation?.Trim();
@@ -207,6 +227,7 @@ public class DogsController : Controller
             dog.IntakeType = model.IntakeType;
             dog.Status = model.Status;
             dog.IsVaccinated = model.IsVaccinated;
+            dog.IsSpayedNeutered = model.IsSpayedNeutered;
             dog.UpdatedAt = DateTime.UtcNow;
 
             await _dogService.UpdateDogAsync(dog);
@@ -226,6 +247,12 @@ public class DogsController : Controller
                 {
                     TempData["ErrorMessage"] = upload.Message;
                 }
+            }
+
+            if (video != null && _videoService != null)
+            {
+                var videoResult = await _videoService.UploadAsync(dog.Id, video);
+                if (!videoResult.Success) TempData["ErrorMessage"] = videoResult.Message;
             }
 
             TempData["SuccessMessage"] =
@@ -332,9 +359,23 @@ public class DogsController : Controller
                 new { id });
         }
 
-        await _dogService.ChangeStatusAsync(
-            id,
-            status);
+        if (_adoptions != null && status != DogStatuses.Adopted
+            && (await _adoptions.GetForDogAsync(id)).Any(x => x.Status == "Adopted"))
+        {
+            TempData["ErrorMessage"] = "Use the Adoption tab to record a returned dog before changing its status.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        await _dogService.ChangeStatusAsync(id, status);
+        if (status == "Under Treatment")
+        {
+            try
+            {
+                var dog = await _dogService.GetDogAsync(id);
+                await _medicalAlerts.NotifyAssignedVetsAsync(id, dog?.Name ?? "A dog", "Care status changed to Under Treatment");
+            }
+            catch (Exception ex) { _logger.LogWarning(ex, "Dog status saved but assigned-vet alert failed."); }
+        }
 
         TempData["SuccessMessage"] =
             "Status updated.";
@@ -357,8 +398,12 @@ public class DogsController : Controller
         var model = new DogDetailsViewModel
         {
             Dog = dog,
-            MedicalRecords =
-                await _dogMedicalService.GetRecordsAsync(id),
+            AdoptionHistory = _adoptions == null ? Array.Empty<AdoptionRecord>() : await _adoptions.GetForDogAsync(id),
+            FosterApplications = _fosterApplications == null ? Array.Empty<FosterApplication>()
+                : (await _fosterApplications.GetAllAsync()).Where(x => x.DogId == id).ToList(),
+            Videos = _videoService == null ? Array.Empty<DogVideo>() : await _videoService.GetForDogAsync(id),
+            MedicalRecords = await _dogMedicalService.GetRecordsAsync(id),
+            Documents = await _documents.GetForDogAsync(id),
             Notes =
                 await _dogMedicalService.GetNotesAsync(id),
             FosteringHistory =
@@ -378,7 +423,8 @@ public class DogsController : Controller
         string title,
         string? details,
         string? vetName,
-        DateTime? nextActionDate)
+        DateTime? nextActionDate,
+        IFormFile? attachment)
     {
         if (!MedicalRecordTypes.All.Contains(recordType)
             || string.IsNullOrWhiteSpace(title))
@@ -398,7 +444,7 @@ public class DogsController : Controller
             return Challenge();
         }
 
-        await _dogMedicalService.AddRecordAsync(
+        var createdRecord = await _dogMedicalService.AddRecordAsync(
             dogId,
             recordType,
             title.Trim(),
@@ -407,8 +453,18 @@ public class DogsController : Controller
             nextActionDate,
             currentProfile.Id);
 
-        TempData["SuccessMessage"] =
-            "Medical record added.";
+        TempData["SuccessMessage"] = "Medical record added.";
+        if (attachment != null && attachment.Length > 0)
+        {
+            var result = await _documents.UploadAsync(dogId, createdRecord.Id, "Medical", attachment, currentProfile.Id);
+            if (!result.Success) TempData["ErrorMessage"] = result.Message;
+        }
+        try
+        {
+            var dog = await _dogService.GetDogAsync(dogId);
+            await _medicalAlerts.NotifyAssignedVetsAsync(dogId, dog?.Name ?? "A dog", title);
+        }
+        catch (Exception ex) { _logger.LogWarning(ex, "Medical record saved but vet notification failed."); }
 
         return RedirectToAction(
             nameof(Details),
@@ -422,6 +478,12 @@ public class DogsController : Controller
         Guid recordId)
     {
         await _dogMedicalService.ResolveRecordAsync(recordId);
+        try
+        {
+            var dog = await _dogService.GetDogAsync(dogId);
+            await _medicalAlerts.NotifyAssignedVetsAsync(dogId, dog?.Name ?? "A dog", "A medical record was resolved");
+        }
+        catch (Exception ex) { _logger.LogWarning(ex, "Record resolved but vet alert failed."); }
 
         TempData["SuccessMessage"] =
             "Medical record marked as resolved.";

@@ -30,6 +30,9 @@ public class ContactMessage : BaseModel
     [Column("submitted_by_user_id")]
     public Guid? SubmittedByUserId { get; set; }
 
+    [Column("status")]
+    public string Status { get; set; } = "New";
+
     [Column("is_handled")]
     public bool IsHandled { get; set; }
 

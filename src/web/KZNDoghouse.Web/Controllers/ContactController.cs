@@ -4,6 +4,7 @@ using KZNDoghouse.Web.Models;
 using KZNDoghouse.Web.Repositories;
 using KZNDoghouse.Web.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace KZNDoghouse.Web.Controllers;
 
@@ -13,15 +14,18 @@ public class ContactController : Controller
     private const int PrefilledMessageLimit = 500;
 
     private readonly IContactMessageService _contactMessageService;
+    private readonly INotificationService _notificationService;
     private readonly IUserProfileRepository _userProfileRepository;
     private readonly ILogger<ContactController> _logger;
 
     public ContactController(
         IContactMessageService contactMessageService,
+        INotificationService notificationService,
         IUserProfileRepository userProfileRepository,
         ILogger<ContactController> logger)
     {
         _contactMessageService = contactMessageService;
+        _notificationService = notificationService;
         _userProfileRepository = userProfileRepository;
         _logger = logger;
     }
@@ -52,6 +56,7 @@ public class ContactController : Controller
 
     [HttpPost("")]
     [ValidateAntiForgeryToken]
+    [EnableRateLimiting(RateLimitPolicies.Register)]
     public async Task<IActionResult> Index(ContactFormViewModel model)
     {
         if (!ModelState.IsValid)
@@ -76,6 +81,20 @@ public class ContactController : Controller
             return View(model);
         }
 
+        // The enquiry is saved even if notification delivery fails.
+        try
+        {
+            await _notificationService.NotifyActiveRoleAsync(
+                UserRoles.Staff, NotificationCategories.Messages,
+                "New contact enquiry", $"New {model.Topic} enquiry from {model.FirstName.Trim()} {model.LastName.Trim()}.");
+            await _notificationService.NotifyActiveRoleAsync(
+                UserRoles.Administrator, NotificationCategories.Messages,
+                "New contact enquiry", $"New {model.Topic} enquiry from {model.FirstName.Trim()} {model.LastName.Trim()}.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Contact message saved, but staff notification failed.");
+        }
         return RedirectToAction(nameof(Sent));
     }
 

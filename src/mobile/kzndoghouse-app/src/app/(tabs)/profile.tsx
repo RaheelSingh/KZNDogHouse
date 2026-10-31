@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { router } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { ActivityIndicator, Alert, Linking, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -25,9 +25,9 @@ export default function ProfileScreen() {
   const [phone, setPhone] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const profileId = await getCurrentProfileId();
-    const { data: userData } = await supabase.auth.getUser();
-    const metaPhone = userData.user?.user_metadata?.phone;
+    const [profileId, userRes] = await Promise.all([getCurrentProfileId(), supabase.auth.getUser()]);
+
+    const metaPhone = userRes.data.user?.user_metadata?.phone;
     setPhone(typeof metaPhone === 'string' && metaPhone.length > 0 ? metaPhone : null);
 
     if (!profileId) return;
@@ -38,7 +38,7 @@ export default function ProfileScreen() {
         .from('event_assignments')
         .select('id, calendar_events!inner(start_at)', { count: 'exact', head: true })
         .eq('profile_id', profileId)
-        .neq('status', 'Cancelled')
+        .in('status', ['Assigned', 'Registered', 'Confirmed'])
         .gte('calendar_events.start_at', nowIso),
       supabase
         .from('event_assignments')
@@ -51,17 +51,21 @@ export default function ProfileScreen() {
     setCompletedCount(completedRes.count ?? 0);
   }, []);
 
-  useEffect(() => {
-    setIsLoading(true);
-    load()
-      .catch((err) => console.warn('[profile] failed to load:', err))
-      .finally(() => setIsLoading(false));
-  }, [load]);
+  // Refresh the stats every time this tab is opened (e.g. after signing up for an event).
+  useFocusEffect(
+    useCallback(() => {
+      load()
+        .catch((err) => console.warn('[profile] failed to load:', err))
+        .finally(() => setIsLoading(false));
+    }, [load])
+  );
 
   const onRefresh = useCallback(async () => {
     setIsRefreshing(true);
     try {
       await load();
+    } catch (err) {
+      console.warn('[profile] refresh failed:', err);
     } finally {
       setIsRefreshing(false);
     }
@@ -78,6 +82,7 @@ export default function ProfileScreen() {
             await signOut();
           } catch (err) {
             console.warn('[profile] sign out failed:', err);
+            Alert.alert('Sign out failed', 'Please check your connection and try again.');
           }
         },
       },
@@ -122,11 +127,11 @@ export default function ProfileScreen() {
       <View style={styles.statsRow}>
         <View style={styles.statTile}>
           <Text style={styles.statValue}>{upcomingCount}</Text>
-          <Text style={styles.statLabel}>Upcoming shifts</Text>
+          <Text style={styles.statLabel}>Upcoming events</Text>
         </View>
         <View style={styles.statTile}>
           <Text style={styles.statValue}>{completedCount}</Text>
-          <Text style={styles.statLabel}>Shifts completed</Text>
+          <Text style={styles.statLabel}>Events attended</Text>
         </View>
       </View>
 
@@ -134,10 +139,10 @@ export default function ProfileScreen() {
         <ListRow icon="mail-outline" title="Email" subtitle={session?.email} />
         {phone ? <ListRow icon="call-outline" title="Phone" subtitle={phone} /> : null}
         <ListRow
-          icon="time-outline"
-          title="My availability"
-          subtitle="Set your hours"
-          onPress={() => router.push('/availability')}
+          icon="calendar-outline"
+          title="My events"
+          subtitle={upcomingCount > 0 ? `${upcomingCount} coming up` : 'Find an event to join'}
+          onPress={() => router.push('/(tabs)/calendar')}
         />
         <ListRow
           icon="notifications-outline"
@@ -151,6 +156,20 @@ export default function ProfileScreen() {
               </View>
             ) : undefined
           }
+        />
+        <ListRow
+          icon="shield-checkmark-outline"
+          title="Privacy policy"
+          subtitle="How your information is used"
+          onPress={() => Linking.openURL('https://kzn-doghouse.onrender.com/Home/Privacy')
+            .catch(() => Alert.alert('Unable to open link', 'Visit kzn-doghouse.onrender.com/Home/Privacy'))}
+        />
+        <ListRow
+          icon="person-remove-outline"
+          title="Request account deletion"
+          subtitle="Contact the shelter to remove your account"
+          onPress={() => Linking.openURL('https://kzn-doghouse.onrender.com/Home/AccountDeletion')
+            .catch(() => Alert.alert('Unable to open link', 'Visit kzn-doghouse.onrender.com/Home/AccountDeletion'))}
         />
         <ListRow icon="log-out-outline" title="Sign out" danger onPress={handleSignOut} />
       </View>

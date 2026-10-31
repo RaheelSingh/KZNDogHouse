@@ -13,6 +13,8 @@ public interface IFosterApplicationService
         FosterApplicationFormViewModel form, Guid applicantProfileId);
 
     Task<FosterApplicationDecisionResult> ApproveAsync(Guid applicationId, Guid reviewedByStaffId);
+    Task<FosterApplicationSubmitResult> SubmitGuestAsync(FosterApplicationFormViewModel form);
+    Task<FosterApplicationDecisionResult> StartReviewAsync(Guid applicationId, Guid reviewedByStaffId);
 
     Task<FosterApplicationDecisionResult> RejectAsync(
         Guid applicationId, Guid reviewedByStaffId, string rejectionReason);
@@ -41,6 +43,51 @@ public class FosterApplicationService : IFosterApplicationService
 
     public Task<IReadOnlyList<FosterApplication>> GetAllAsync() =>
         _applicationRepository.GetAllAsync();
+
+    public async Task<FosterApplicationDecisionResult> StartReviewAsync(Guid applicationId, Guid reviewedByStaffId)
+    {
+        var application = await _applicationRepository.GetByIdAsync(applicationId);
+        if (application == null || application.Status is not (FosterApplicationStatuses.Submitted or FosterApplicationStatuses.UnderReview))
+            return new(false, "This application is no longer awaiting review.");
+        await _applicationRepository.MarkUnderReviewAsync(applicationId, reviewedByStaffId);
+        return new(true, "Application marked as under review.");
+    }
+
+    public async Task<FosterApplicationSubmitResult> SubmitGuestAsync(FosterApplicationFormViewModel form)
+    {
+        var application = new FosterApplication
+        {
+            Id = Guid.NewGuid(),
+            ApplicantUserId = null,
+            ApplicantName = $"{form.FirstName.Trim()} {form.LastName.Trim()}",
+            ApplicantEmail = form.Email.Trim(),
+            ApplicantPhone = form.Phone.Trim(),
+            DogId = form.DogId,
+            ApplicationDetails = FosterApplicationDetailsBuilder.Build(form),
+            Status = FosterApplicationStatuses.Submitted,
+            SubmittedAt = DateTime.UtcNow
+        };
+        await _applicationRepository.CreateAsync(application);
+        await NotifyTeamOfSubmissionAsync(application);
+        return new(true, "Application submitted.");
+    }
+
+    private async Task NotifyTeamOfSubmissionAsync(FosterApplication application)
+    {
+        try
+        {
+            await _notificationService.NotifyActiveRoleAsync(
+                UserRoles.Staff, NotificationCategories.Messages,
+                "New foster application", $"{application.ApplicantName} submitted a foster application.");
+            await _notificationService.NotifyActiveRoleAsync(
+                UserRoles.Administrator, NotificationCategories.Messages,
+                "New foster application", $"{application.ApplicantName} submitted a foster application.");
+        }
+        catch (Exception)
+        {
+            // Submission is already persisted, so notification failure must not duplicate it.
+        }
+    }
 
     public async Task<FosterApplicationDecisionResult> ApproveAsync(
         Guid applicationId, Guid reviewedByStaffId)
@@ -108,6 +155,7 @@ public class FosterApplicationService : IFosterApplicationService
         };
 
         await _applicationRepository.CreateAsync(application);
+        await NotifyTeamOfSubmissionAsync(application);
 
         return new FosterApplicationSubmitResult(true, "Application submitted.");
     }

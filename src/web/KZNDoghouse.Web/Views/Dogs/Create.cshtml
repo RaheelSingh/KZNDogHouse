@@ -77,11 +77,6 @@
             </div>
 
             <div class="col-md-4">
-                <label asp-for="EyeColour" class="form-label"></label>
-                <input asp-for="EyeColour" class="form-control" />
-            </div>
-
-            <div class="col-md-4">
                 <label asp-for="KennelLocation" class="form-label"></label>
                 <input asp-for="KennelLocation" class="form-control" placeholder="e.g. Block B - Run 4" />
             </div>
@@ -120,6 +115,19 @@
             </div>
 
             <div class="col-12">
+                <div class="dog-health-checks" role="group" aria-label="Dog healthcare status">
+                    <label class="dog-health-check">
+                        <input asp-for="IsVaccinated" class="form-check-input" data-optional-field="true" />
+                        <span>Vaccinated</span>
+                    </label>
+                    <label class="dog-health-check">
+                        <input asp-for="IsSpayedNeutered" class="form-check-input" />
+                        <span>Spayed / neutered</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="col-12">
                 <label asp-for="About" class="form-label"></label>
                 <textarea asp-for="About" class="form-control" rows="3"></textarea>
             </div>
@@ -136,11 +144,12 @@
                 <div class="form-text">JPG, PNG or WebP. Up to 5 MB per image and 10 images per dog. The first uploaded image becomes the profile image.</div>
                 <span asp-validation-for="Images" class="text-danger small"></span>
             </div>
-
-            <div class="col-12 form-check">
-                <input asp-for="IsVaccinated" class="form-check-input" />
-                <label asp-for="IsVaccinated" class="form-check-label"></label>
+            <div class="col-12">
+                <label for="dogVideoUpload" class="form-label">Dog video (optional)</label>
+                <input id="dogVideoUpload" name="video" type="file" class="form-control" accept="video/mp4,video/webm,.mp4,.webm" data-max-file-bytes="26214400" />
+                <div class="form-text">MP4 or WebM, maximum 25 MB. Videos play only on the individual dog's page; they do not load in the full dogs listing.</div>
             </div>
+
 
         </div>
 

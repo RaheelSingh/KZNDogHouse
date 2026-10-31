@@ -5639,6 +5639,21 @@ label.is-required::after {
     font-weight: 700;
 }
 
+/* Registration and sign-in start without red asterisks. Display one only
+   when a required field is both blank and invalid. Checkboxes stay unmarked. */
+/* Login and registration labels do not display required markers by default.
+   Show one only when the corresponding required input is empty and invalid.
+   The opt-in checkboxes never display a required marker. */
+.auth-form label:not(.auth-empty-error)::after,
+.auth-form label.is-required:not(.auth-empty-error)::after {
+    content: none !important;
+}
+.auth-form label.auth-empty-error::after {
+    content: " *" !important;
+    color: var(--bs-danger, #b02a37);
+    font-weight: 700;
+}
+
 .file-validation-feedback {
     margin-top: 0.35rem;
     color: var(--bs-danger, #b02a37);
@@ -5686,3 +5701,295 @@ label.is-required::after {
 .portal-volunteer-list small {
     color: var(--bs-secondary-color, #6c757d);
 }
+
+/* Volunteer event management: consistent portal typography and review controls. */
+.volunteer-management .portal-page-title { margin-bottom: 0.3rem; }
+.volunteer-management .portal-card { font-family: inherit; }
+.volunteer-management .table { font-family: inherit; font-size: 0.88rem; color: var(--kzn-green-dark); }
+.volunteer-management .table thead th {
+    font-size: 0.79rem; font-weight: 750; letter-spacing: 0.01em;
+    white-space: nowrap; color: var(--kzn-green-dark);
+}
+.volunteer-management .table tbody td { vertical-align: middle; line-height: 1.45; }
+.volunteer-management .table tbody td strong { font-weight: 700; }
+.volunteer-management .table tbody td:last-child { min-width: 325px; }
+.volunteer-date-range { display: flex; flex-direction: column; gap: 0.12rem; white-space: nowrap; }
+.volunteer-range-divider { font-size: 0.72rem; font-weight: 600; color: #697b70; text-transform: lowercase; }
+.volunteer-status {
+    display: inline-block; padding: 0.3rem 0.65rem; border-radius: 999px;
+    border: 1px solid #d6e1d6; color: #284b36;
+    background: #f3f7f1; font-size: 0.78rem; font-weight: 700;
+    white-space: nowrap;
+}
+.volunteer-status-confirmed, .volunteer-status-assigned, .volunteer-status-registered { background: #d9eadf; }
+.volunteer-status-reserve { background: #fff3d9; border-color: #f1d9ac; color: #785310; }
+.volunteer-status-declined, .volunteer-status-cancelled { color: #626c65; background: #f3f4f2; }
+.volunteer-review-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.4rem; }
+.volunteer-review-button {
+    font: inherit; font-size: 0.78rem; font-weight: 700; min-height: 40px;
+    border: 1px solid #244d37; border-radius: 8px;
+    background: #fff; color: #153b28; padding: 0.35rem 0.35rem;
+    white-space: nowrap; cursor: pointer;
+    transition: color .15s ease, background-color .15s ease, border-color .15s ease;
+}
+.volunteer-review-button:hover:not(:disabled),
+.volunteer-review-button:focus-visible:not(:disabled) {
+    background: #143c2a; border-color: #143c2a; color: #fff;
+}
+/* A previously chosen decision remains visible but is not an active action. */
+.volunteer-review-button.is-selected,
+.volunteer-review-button.is-selected:disabled {
+    background: #f3f5f3;
+    border-color: #bbc5be;
+    color: #64736b;
+    opacity: 1;
+    cursor: default;
+}
+.volunteer-review-button:disabled:not(.is-selected) { opacity: .4; cursor: not-allowed; }
+.portal-volunteer-review-link {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    margin-top: 0.6rem; font-weight: 700; color: #164b32;
+    text-decoration: none; border-bottom: 1px solid transparent;
+}
+.portal-volunteer-review-link:hover, .portal-volunteer-review-link:focus-visible {
+    color: #0b3421; border-bottom-color: currentColor;
+}
+.portal-volunteer-shift-range { display: inline-block; }
+@media (max-width: 1050px) {
+    .volunteer-management .portal-list-card { overflow-x: auto; }
+    .volunteer-management .table { min-width: 1050px; }
+}
+
+/* Password visibility control shared by login and registration. */
+.auth-password-wrap { position: relative; }
+.auth-password-wrap > .form-control { padding-right: 3.35rem; }
+.auth-password-toggle {
+    position: absolute; inset-block: 0; right: 0; width: 3.05rem;
+    display: inline-flex; justify-content: center; align-items: center;
+    color: #456454; background: transparent; border: 0; cursor: pointer;
+    border-radius: 0 8px 8px 0;
+}
+.auth-password-toggle:hover { color: #143c2a; background: #edf3ed; }
+.auth-password-toggle:focus-visible { outline: 2px solid #1b593c; outline-offset: 2px; }
+.auth-password-toggle svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.auth-password-toggle[aria-pressed="true"] { background: #eaf0ea; color: #123523; }
+
+/* Staff portal: dashboard layout adapted from the approved Part 1 prototype.
+   Existing data, permissions and navigation are unchanged. */
+.portal-body { font-family: "Inter", Arial, Helvetica, sans-serif; }
+.portal-body .portal-main { background: #edf2e9; }
+.portal-body .portal-sidebar { background: #10271d; }
+.portal-body .portal-sidebar .nav-link.active { background: #304b3b; }
+.portal-body .portal-header { box-shadow: none; }
+.portal-header-greeting { font-size: 1rem; color: #192b20; }
+.portal-dashboard-heading { align-items: center; margin-bottom: 1.15rem; }
+.portal-dashboard-heading .portal-page-title { font: 600 1.25rem/1.2 "Inter", Arial, sans-serif; letter-spacing: -.025em; color: #16261d; }
+.portal-dashboard-heading .text-muted { font-size: .78rem; }
+.portal-dashboard-date { font-size: .78rem; }
+.portal-dashboard-stat-grid { gap: .9rem; margin-bottom: 1.2rem; }
+.portal-dashboard-stat-grid .portal-stat-card {
+    border-radius: 14px; padding: 1.15rem; min-height: 146px; position: relative;
+    box-shadow: none; border-color: #dce4d8; justify-content: end;
+}
+.portal-dashboard-stat-grid .portal-stat-card::before {
+    content: ""; display: block; position: absolute; top: 1rem; left: 1rem;
+    width: 30px; height: 30px; background: #ecf1e8; border-radius: 9px;
+}
+.portal-dashboard-stat-grid .portal-stat-card:hover { box-shadow: 0 5px 16px rgba(15,39,29,.07); }
+.portal-dashboard-stat-grid .portal-stat-card strong {
+    font: 700 1.85rem/1 "Inter", sans-serif; color: #1b2c21; margin: auto 0 .45rem;
+}
+.portal-dashboard-stat-grid .portal-stat-label { order: 2; color: #6d796e; font-size: .8rem; font-weight: 500; }
+.portal-dashboard-stat-grid .portal-stat-link { display: none; }
+.portal-dashboard-stat-grid .portal-stat-card-attention strong { color: #1b2c21; }
+.portal-dashboard-board { display: grid; grid-template-columns: minmax(0,1.6fr) minmax(300px,1fr); align-items: start; gap: 1rem; }
+.portal-dashboard-stack { display: grid; align-content: start; gap: 1rem; min-width: 0; }
+.portal-dashboard-board .portal-card {
+    border: 1px solid #dce4d8; border-radius: 15px; padding: 1.2rem 1.35rem;
+    min-height: 0; height: auto; background: #fff;
+}
+.portal-dashboard-board .portal-panel-heading { align-items: baseline; }
+.portal-dashboard-board .portal-panel-heading h2 { font: 600 1rem/1.3 "Inter", sans-serif; color: #192a1e; }
+.portal-dashboard-board .portal-panel-heading p { font-size: .74rem; }
+.portal-dashboard-board .portal-panel-heading > a { font-size: .75rem; }
+.portal-dashboard-board .portal-schedule-item { border-color: #e2e9df; }
+.portal-dashboard-board .portal-schedule-time { color: #273d2b; }
+.portal-dashboard-board .portal-quick-grid { grid-template-columns: repeat(4, minmax(0,1fr)); gap: .6rem; }
+.portal-dashboard-board .portal-quick-link {
+    min-width: 0; min-height: 106px; padding: .85rem .65rem; background: #eef3ea;
+    border: 1px solid #dce6d8; border-radius: 11px; justify-content: flex-end;
+}
+.portal-dashboard-board .portal-quick-link::before { content: ""; width: 24px; height: 24px; display: block; background: #1a402c; border-radius: 6px; margin-bottom: auto; }
+.portal-dashboard-board .portal-quick-link strong { font-size: .76rem; }
+.portal-dashboard-board .portal-quick-link span { font-size: .68rem; }
+.portal-dashboard-board .portal-attention-avatar { background: #183c2a; color: white; border-radius: 9px; }
+.portal-dashboard-board .portal-pending-list strong { color: #214732; }
+@media (max-width: 1150px) {
+    .portal-dashboard-board { grid-template-columns: minmax(0,1fr) minmax(280px,.85fr); }
+    .portal-dashboard-board .portal-quick-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 860px) {
+    .portal-dashboard-board { grid-template-columns: 1fr; }
+    .portal-dashboard-stat-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 480px) {
+    .portal-dashboard-stat-grid { grid-template-columns: 1fr; }
+    .portal-dashboard-heading { align-items: flex-start; flex-direction: column; }
+    .portal-dashboard-board .portal-quick-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+
+
+/* Dog care profile and veterinary workspace */
+.dog-health-checks { display:flex; flex-wrap:wrap; gap: .85rem 1.5rem; padding: .75rem 1rem; border: 1px solid #d8e3d8; border-radius: 10px; background: #f5f8f2; }
+.dog-health-check { display:inline-flex; align-items:center; gap: .6rem; cursor:pointer; font-weight:600; color:#183525; }
+.dog-health-check .form-check-input { margin: 0; float:none; flex:0 0 auto; }
+.vet-workspace { display:grid; gap:1rem; }
+.vet-summary-card { min-height:0; }
+.vet-summary-card dl { display:flex; flex-wrap:wrap; gap:0; margin:0; }
+.vet-summary-card dl > dt { width:16.6667%; flex:0 0 16.6667%; font-weight:600; color:#41594a; margin-bottom:.65rem; }
+.vet-summary-card dl > dd { width:16.6667%; flex:0 0 16.6667%; margin:0 0 .65rem; }
+.vet-detail-grid { display:grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items:start; gap:1rem; }
+.vet-detail-grid .portal-card { min-width:0; margin:0; }
+.vet-records-card { min-height:360px; }
+.vet-form-card { min-height:360px; }
+.portal-dashboard-stat-grid .portal-stat-card::before { display:none; }
+.portal-dashboard-stat-grid .portal-stat-icon { width:34px; height:34px; display:inline-flex; align-items:center; justify-content:center; border-radius:10px; background:#edf3e9; color:#234c33; margin-bottom:.75rem; }
+.portal-dashboard-stat-grid .portal-stat-icon svg { width:21px; height:21px; }
+@media (max-width: 991.98px) { .vet-detail-grid { grid-template-columns: 1fr; } }
+@media (max-width: 575.98px) { .vet-summary-card dl > dt { width:40%; flex-basis:40%; } .vet-summary-card dl > dd { width:60%; flex-basis:60%; } .dog-health-checks { flex-direction:column; } }
+
+/* Portal consistency: do not reserve empty list space or duplicate blank states. */
+.portal-main .portal-filter-results:empty,
+.portal-main .portal-record-scroll:empty { min-height: 0; }
+.portal-main .portal-record-scroll { min-height: 0; }
+.portal-main .portal-filter-empty[hidden] { display: none !important; }
+.portal-main .portal-card:has(> .portal-filter-empty[hidden]) { min-height: 0; }
+.portal-main .portal-filter-results-cards { min-height: 0; }
+.portal-notifications-empty { margin-top: 1rem; min-height: 110px; display:flex; align-items:center; justify-content:center; }
+.portal-notifications-results { max-height: 620px; min-height: 0; }
+.vet-detail-grid { grid-template-columns: minmax(0, 1.35fr) minmax(320px, .8fr); align-items:stretch; }
+.vet-records-card { min-height: 320px; }
+.vet-form-card { min-height: 0; }
+.portal-sidebar-brand { gap:.65rem; }
+.portal-sidebar-brand span { font-size: .95rem; line-height: 1.2; }
+.portal-quick-link::before { display: none !important; }
+.portal-quick-link { position:relative; padding-top:1rem; }
+.portal-quick-link svg { width:22px; height:22px; display:block; margin-bottom:.65rem; fill:none; stroke:#19402e; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+.portal-document-list { display:grid; gap:.6rem; padding:0; margin:1rem 0; list-style:none; }
+.portal-document-list li { display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap; padding:.75rem; border:1px solid #dce5df; border-radius:10px; }
+.portal-upload-help { font-size:.82rem; color:#53685a; margin-top:.5rem; }
+.portal-inbox-card { margin-bottom:.85rem; }
+.portal-inbox-card .portal-inbox-actions { display:flex; gap:.5rem; flex-wrap:wrap; }
+.portal-inline-datetime { display:flex; gap:.45rem; flex-wrap:wrap; }
+.portal-inline-datetime input[type=date] { min-width:165px; flex:1 1 170px; }
+.portal-inline-datetime input[type=time] { min-width:120px; flex:0 1 140px; }
+@media (max-width:991.98px){.vet-detail-grid { grid-template-columns:1fr; }}
+@media (max-width:575.98px){.portal-inline-datetime input[type=time] { flex:1 1 120px; }}
+
+/* Portal usability refinements */
+.portal-notification-item-dismissible { position: relative; padding-right: 3.25rem; }
+.portal-notification-dismiss { position: absolute; top: .9rem; right: .95rem; z-index: 2; }
+.portal-notification-dismiss button { border: 0; background: transparent; color: #728078; font-size: 15px; font-weight: 400; line-height: 1.4; padding: .1rem .35rem; border-radius: .4rem; cursor: pointer; }
+.portal-notification-dismiss button:hover, .portal-notification-dismiss button:focus-visible { background: #ecf1eb; color: #123827; }
+.portal-notification-actions { padding-right: .15rem; }
+.portal-inbox-card .portal-inbox-actions { justify-content: flex-end; margin-left: auto; }
+.portal-inbox-card .portal-inbox-actions form { display: inline-flex; }
+.portal-inbox-card [hidden], .public-side-photo-card[hidden], .public-side-photo-fallback[hidden], #fosterSizePreferences[hidden], #selectedFosterDogNote[hidden] { display: none !important; }
+.portal-workspace-form-card .row > [class*="col-"] { min-width: 0; }
+.portal-workspace-form-card input[type="datetime-local"], .portal-event-volunteer-config input[type="datetime-local"] { box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; font-size: .95rem; }
+.dog-medical-accordion { border-top: 1px solid #dce3da; padding: .7rem 0; }
+.dog-medical-accordion-heading { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem 1rem; align-items: baseline; cursor: pointer; padding: .2rem 0; }
+.dog-medical-accordion-heading:hover { color: #19412e; }
+.dog-medical-accordion-body { padding: .75rem 1rem; border-left: 3px solid #d4dfd1; overflow-wrap: anywhere; }
+.dog-detail-documents { min-width: 0; }
+.dog-detail-documents .portal-document-list li { display:flex; flex-wrap:wrap; gap:.5rem; justify-content:space-between; overflow-wrap:anywhere; }
+.dog-detail-documents .row > div { min-width: 0; }
+@media (max-width: 767.98px) { .portal-inbox-card .portal-inbox-actions { justify-content: flex-start; } .dog-medical-accordion-heading { flex-direction: column; } }
+
+.dog-detail-layout > .dog-detail-documents { grid-column: 1 / -1; width: 100%; }
+
+.dog-gallery-frame:is(video) { object-fit: contain; background:#10241a; width:100%; height:100%; }
+
+@media (min-width: 768px) {
+ .portal-inbox-card { display:grid; grid-template-columns:minmax(0,1fr) max-content; column-gap:1rem; }
+ .portal-inbox-card > .d-flex:first-child { grid-column:1 / -1; }
+ .portal-inbox-card > p, .portal-inbox-card > .d-flex:not(:first-child) { grid-column:1; }
+ .portal-inbox-card > .portal-inbox-actions { grid-column:2; grid-row:2 / span 2; align-self:center; }
+}
+
+/* Care records: contextual attachments and compact history rows */
+.foster-required { color:#c5293d; font-weight:700; }
+.foster-field-error:empty { display:none; }
+.foster-agreement-panel { border:1px solid #dce5da; border-radius:10px; padding:.6rem .75rem; max-width:480px; }
+.foster-agreement-panel summary { font-weight:600; cursor:pointer; }
+.foster-agreement-content { display:grid; gap:.65rem; margin-top:.65rem; }
+.foster-agreement-upload { display:grid; gap:.5rem; min-width:0; }
+.foster-agreement-upload input { width:100%; min-width:0; }
+.foster-agreement-upload button { justify-self:start; }
+.dog-medical-accordion { padding:.45rem 0; }
+.dog-medical-accordion-heading { align-items:center; padding:.4rem 0; }
+.dog-medical-summary-meta { display:inline-flex; align-items:center; gap:.6rem; margin-left:auto; }
+.dog-medical-accordion-heading::-webkit-details-marker { display:none; }
+.dog-medical-accordion-heading { list-style:none; }
+.dog-medical-chevron { font-size:1.2rem; display:inline-block; transition:transform .15s; }
+.dog-medical-accordion[open] .dog-medical-chevron { transform:rotate(180deg); }
+.dog-medical-accordion-body { display:grid; gap:.6rem; padding:.65rem .85rem; }
+.dog-medical-accordion-body .text-end { justify-self:end; }
+.medical-attachment-list,.record-linked-documents { display:flex; flex-wrap:wrap; gap:.5rem 1rem; align-items:center; border-top:1px solid #e2e9df; padding-top:.65rem; }
+.medical-attachment-list a,.record-linked-documents a { overflow-wrap:anywhere; }
+.adoption-record-details { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.45rem 1rem; }
+.adoption-record-details div { min-width:0; }
+.adoption-record-details dt { color:#526257; font-size:.8rem; }
+.adoption-record-details dd { overflow-wrap:anywhere; }
+.record-upload-row { display:flex; flex-wrap:wrap; gap:.5rem; }
+.record-upload-row input { flex:1 1 250px; min-width:0; }
+@media(max-width:740px) { .adoption-record-details { grid-template-columns:1fr; } .dog-medical-summary-meta { flex-wrap:wrap; justify-content:flex-end; } }
+/* Place medical status and actions together at the top right of the expanded record. */
+@media (min-width: 720px) {
+  .dog-medical-accordion-body { grid-template-columns:minmax(0,1fr) auto; align-items:start; }
+  .dog-medical-accordion-body > div:first-child { grid-column:1; grid-row:1; }
+  .dog-medical-accordion-body > div.text-end { grid-column:2; grid-row:1; }
+  .dog-medical-accordion-body > .medical-attachment-list { grid-column:1 / -1; }
+}
+
+/* Compact, accessible care history controls. The chevron belongs to the title,
+   and each status appears only once in the row heading. */
+.dog-record-title { display:inline-flex; align-items:center; gap:.55rem; min-width:0; }
+.dog-record-title .dog-medical-chevron { font-size:1.1rem; color:#52695b; flex:0 0 auto; }
+.dog-medical-accordion-heading { align-items:center; }
+.dog-medical-summary-meta { margin-left:auto; }
+.dog-record-actions { align-self:start; }
+.adoption-record-action { display:flex; justify-content:flex-end; align-items:center; gap:.5rem; }
+.adoption-return-form { width:100%; }
+.adoption-return-form > label { display:block; }
+.adoption-upload-form .record-upload-row { align-items:center; }
+.adoption-upload-form .record-upload-row > button { white-space:nowrap; flex:0 0 auto; }
+.adoption-history-entry .dog-medical-accordion-body { display:flex; flex-direction:column; align-items:stretch; }
+.adoption-history-entry .record-linked-documents { width:100%; }
+.foster-row-controls { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:.75rem; min-width:0; }
+.foster-row-agreements { min-width:min(210px,100%); max-width:350px; text-align:left; flex:1 1 230px; }
+.foster-row-buttons { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:.4rem; min-width:0; }
+.foster-row-buttons .collapse { flex-basis:100%; }
+.foster-row-agreements .foster-agreement-panel { width:100%; min-width:0; max-width:none; }
+.foster-row-agreements .foster-agreement-content { max-width:100%; overflow-wrap:anywhere; }
+.foster-row-agreements .foster-agreement-upload input { max-width:100%; }
+.foster-row-agreements .foster-agreement-panel summary { white-space:normal; }
+@media(max-width:900px) {
+  .foster-row-controls { flex-direction:column; align-items:stretch; }
+  .foster-row-buttons { justify-content:flex-start; }
+  .dog-medical-accordion-heading { flex-direction:row; align-items:center; }
+}
+
+/* Adoption/medical accordion chevrons match the foster disclosure controls. */
+.dog-medical-chevron { display:inline-block; font-size:1.05rem; font-weight:700; color:#1b402d; transform:rotate(0deg); transition:transform .15s ease; }
+.dog-medical-accordion[open] .dog-medical-chevron { transform:rotate(90deg); }
+.dog-medical-accordion-heading { cursor:pointer; }
+
+/* Keep medical forms' primary action consistently aligned. */
+.vet-form-card form > button[type="submit"] { display:block; margin-left:auto; }
+.vet-records-card .dog-record-title { display:inline-flex; align-items:center; gap:.45rem; }
+@media (max-width: 620px) { .adoption-record-action { flex-wrap:wrap; } }
+
+/* Medical record submit button stays right-aligned, including narrow viewports. */
+.dog-detail-layout #medical-tab form[enctype="multipart/form-data"] > .d-flex.justify-content-end { width:100%; }
+.vet-form-card form > .vet-record-submit { display:flex; justify-content:flex-end; width:100%; margin-top:1rem; }

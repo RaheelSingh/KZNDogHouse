@@ -41,14 +41,10 @@ public interface ICalendarEventService
 public class CalendarEventService : ICalendarEventService
 {
     private readonly ICalendarEventRepository _repository;
-    private readonly INotificationService _notificationService;
 
-    public CalendarEventService(
-        ICalendarEventRepository repository,
-        INotificationService notificationService)
+    public CalendarEventService(ICalendarEventRepository repository)
     {
         _repository = repository;
-        _notificationService = notificationService;
     }
 
     public Task<IReadOnlyList<CalendarEvent>> GetAllAsync() =>
@@ -154,18 +150,10 @@ public class CalendarEventService : ICalendarEventService
             CreatedAt = DateTime.UtcNow
         };
 
-        var created = await _repository.CreateAsync(calendarEvent);
-
-        var notificationBody = volunteerSignupEnabled
-            ? $"Volunteer help needed on {volunteerStartAt:dd MMM} from {volunteerStartAt:HH:mm} to {volunteerEndAt:HH:mm}."
-            : $"New {category.ToLowerInvariant()} on {startAt:dd MMM} at {startAt:HH:mm}.";
-
-        await _notificationService.NotifyActiveVolunteersAsync(
-            NotificationCategories.Calendar,
-            title,
-            notificationBody);
-
-        return created;
+        // The database's calendar_event_notifications trigger owns event
+        // announcements for both web and mobile creation. Broadcasting again
+        // here would produce two notifications for each volunteer.
+        return await _repository.CreateAsync(calendarEvent);
     }
 
     public Task UpdateImageAsync(

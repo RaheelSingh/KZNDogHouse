@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using KZNDoghouse.Web.Constants;
+using KZNDoghouse.Web.Repositories;
 using KZNDoghouse.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,11 +12,23 @@ namespace KZNDoghouse.Web.Controllers;
 public class VetDogsController : Controller
 {
     private readonly IVetAccessService _vetAccessService;
+    private readonly IDogDocumentService _documents;
+    private readonly IMedicalAlertService _medicalAlerts;
+    private readonly IUserProfileRepository _users;
+    private readonly ILogger<VetDogsController> _logger;
 
     public VetDogsController(
-        IVetAccessService vetAccessService)
+        IVetAccessService vetAccessService,
+        IDogDocumentService documents,
+        IMedicalAlertService medicalAlerts,
+        IUserProfileRepository users,
+        ILogger<VetDogsController> logger)
     {
         _vetAccessService = vetAccessService;
+        _documents = documents;
+        _medicalAlerts = medicalAlerts;
+        _users = users;
+        _logger = logger;
     }
 
     [HttpGet]
@@ -74,7 +87,8 @@ public class VetDogsController : Controller
         string recordType,
         string title,
         string? details,
-        DateTime? nextActionDate)
+        DateTime? nextActionDate,
+        IFormFile? attachment)
     {
         var authUserId =
             User.FindFirstValue(
@@ -86,7 +100,7 @@ public class VetDogsController : Controller
             return Challenge();
         }
 
-        var success =
+        var createdRecordId =
             await _vetAccessService
                 .AddMedicalRecordAsync(
                     authUserId,
@@ -96,7 +110,7 @@ public class VetDogsController : Controller
                     details,
                     nextActionDate);
 
-        if (!success)
+        if (!createdRecordId.HasValue)
         {
             TempData["ErrorMessage"] =
                 "The medical record could not be added.";
@@ -109,8 +123,22 @@ public class VetDogsController : Controller
                 });
         }
 
-        TempData["SuccessMessage"] =
-            "Medical record added.";
+        TempData["SuccessMessage"] = "Medical record added.";
+        if (attachment != null && attachment.Length > 0)
+        {
+            var profile = await _users.GetByAuthUserIdAsync(authUserId);
+            if (profile != null)
+            {
+                var result = await _documents.UploadAsync(dogId, createdRecordId, "Medical", attachment, profile.Id);
+                if (!result.Success) TempData["ErrorMessage"] = result.Message;
+            }
+        }
+        try
+        {
+            var dog = await _vetAccessService.GetAuthorizedDogDetailsAsync(authUserId, dogId);
+            await _medicalAlerts.NotifyStaffAsync(dog?.Dog.Name ?? "A dog", title);
+        }
+        catch (Exception ex) { _logger.LogWarning(ex, "Medical record saved but staff alerts failed."); }
 
         return RedirectToAction(
             nameof(Details),

@@ -31,10 +31,6 @@ public class DogFormViewModel : IValidatableObject
     [Range(0, 120, ErrorMessage = "Weight must be between 0 and 120 kg.")]
     public decimal? WeightKg { get; set; }
 
-    [Display(Name = "Eye colour")]
-    [StringLength(80)]
-    public string? EyeColour { get; set; }
-
     [StringLength(300)]
     public string? Temperament { get; set; }
 
@@ -63,6 +59,9 @@ public class DogFormViewModel : IValidatableObject
     [Display(Name = "Vaccinated")]
     public bool IsVaccinated { get; set; }
 
+    [Display(Name = "Spayed / neutered")]
+    public bool? IsSpayedNeutered { get; set; }
+
     [Display(Name = "Dog images")]
     public List<IFormFile> Images { get; set; } = [];
 
@@ -89,6 +88,17 @@ public class DogFormViewModel : IValidatableObject
             yield return new ValidationResult(
                 "Date of birth cannot be after the intake date.",
                 [nameof(DateOfBirth)]);
+        }
+
+        if (DateOfBirth.HasValue && EstimatedAgeYears.HasValue)
+        {
+            var years = (today - DateOfBirth.Value.Date).TotalDays / 365.2425;
+            if (Math.Abs(years - EstimatedAgeYears.Value) > 1.25)
+            {
+                yield return new ValidationResult(
+                    "Estimated age does not match the date of birth. Update the age or leave it blank if unsure.",
+                    [nameof(EstimatedAgeYears), nameof(DateOfBirth)]);
+            }
         }
 
         var selectedImages = Images

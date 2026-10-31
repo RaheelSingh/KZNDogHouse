@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -53,14 +54,34 @@ export function Field({
   style,
   ...props
 }: TextInputProps & { label?: string; error?: string | null }) {
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const isPassword = Boolean(props.secureTextEntry);
   return (
     <View style={{ marginTop: 16 }}>
       {label ? <Text style={s.label}>{label}</Text> : null}
-      <TextInput
-        placeholderTextColor={colors.fgFaint}
-        {...props}
-        style={[s.input, props.multiline && s.inputMulti, style]}
-      />
+      <View style={isPassword ? s.passwordRow : undefined}>
+        <TextInput
+          placeholderTextColor={colors.fgFaint}
+          {...props}
+          secureTextEntry={isPassword && !passwordVisible}
+          autoCapitalize={isPassword ? 'none' : props.autoCapitalize}
+          autoCorrect={isPassword ? false : props.autoCorrect}
+          spellCheck={isPassword ? false : props.spellCheck}
+          style={[s.input, props.multiline && s.inputMulti, isPassword && s.passwordInput, style]}
+        />
+        {isPassword ? (
+          <Pressable
+            onPress={() => setPasswordVisible((value) => !value)}
+            accessibilityRole="button"
+            accessibilityLabel={passwordVisible ? 'Hide password' : 'Show password'}
+            accessibilityState={{ selected: passwordVisible }}
+            hitSlop={8}
+            style={s.visibilityButton}
+          >
+            <Ionicons name={passwordVisible ? 'eye-off-outline' : 'eye-outline'} size={22} color={colors.fgMuted} />
+          </Pressable>
+        ) : null}
+      </View>
       {error ? <Text style={s.error}>{error}</Text> : null}
     </View>
   );
@@ -104,6 +125,9 @@ const s = StyleSheet.create({
     color: colors.fg,
   },
   inputMulti: { minHeight: 100, textAlignVertical: 'top' },
+  passwordRow: { position: 'relative', justifyContent: 'center' },
+  passwordInput: { width: '100%', paddingRight: 58 },
+  visibilityButton: { position: 'absolute', right: 3, top: 0, bottom: 0, width: 50, alignItems: 'center', justifyContent: 'center' },
   error: { color: colors.dangerSoft, fontSize: 12, marginTop: 6 },
   chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {

@@ -6,7 +6,9 @@
         .Distinct(StringComparer.OrdinalIgnoreCase)
         .ToList();
 
-    var hasMultiple = images.Count > 1;
+    var videos = Model.Variant == "detail" ? Model.VideoUrls.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().ToList() : new List<string>();
+    var totalFrames = images.Count + videos.Count;
+    var hasMultiple = totalFrames > 1;
 }
 
 <div class="dog-gallery dog-gallery-@Model.Variant"
@@ -16,7 +18,7 @@
 
     <div class="dog-gallery-stage">
 
-        @if (images.Count == 0)
+        @if (totalFrames == 0)
         {
             <div class="dog-gallery-placeholder"
                  aria-hidden="true">
@@ -33,6 +35,13 @@
                      data-gallery-frame
                      loading="@(index == 0 ? "eager" : "lazy")" />
             }
+            @for (var index = 0; index < videos.Count; index++)
+            {
+                <video class="dog-gallery-frame @(images.Count == 0 && index == 0 ? "is-active" : string.Empty)"
+                       data-gallery-frame controls preload="none" playsinline
+                       aria-label="Video @(index + 1) of @Model.DogName"
+                       src="@videos[index]"></video>
+            }
         }
 
         @if (hasMultiple)
@@ -40,14 +49,14 @@
             <button type="button"
                     class="dog-gallery-arrow dog-gallery-arrow-left"
                     data-gallery-previous
-                    aria-label="Previous photo of @Model.DogName">
+                    aria-label="Previous gallery item for @Model.DogName">
                 &#10094;
             </button>
 
             <button type="button"
                     class="dog-gallery-arrow dog-gallery-arrow-right"
                     data-gallery-next
-                    aria-label="Next photo of @Model.DogName">
+                    aria-label="Next gallery item for @Model.DogName">
                 &#10095;
             </button>
         }
@@ -59,12 +68,12 @@
         <div class="dog-gallery-indicators"
              aria-label="Photo position">
 
-            @for (var index = 0; index < images.Count; index++)
+            @for (var index = 0; index < totalFrames; index++)
             {
                 <button type="button"
                         class="dog-gallery-indicator @(index == 0 ? "is-active" : string.Empty)"
                         data-gallery-indicator="@index"
-                        aria-label="Show photo @(index + 1) of @Model.DogName">
+                        aria-label="Show gallery item @(index + 1) for @Model.DogName">
                 </button>
             }
 

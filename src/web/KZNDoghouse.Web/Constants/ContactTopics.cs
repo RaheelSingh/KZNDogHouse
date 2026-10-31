@@ -7,10 +7,12 @@ public static class ContactTopics
     public const string Adoption = "Adoption";
     public const string DonationsAndPartnerships = "Donations & partnerships";
     public const string SomethingElse = "Something else";
+    public const string AccountDeletion = "Account deletion";
 
     public static readonly string[] All =
     [
-        Fostering, Volunteering, Adoption, DonationsAndPartnerships, SomethingElse
+        Fostering, Volunteering, Adoption, DonationsAndPartnerships, SomethingElse,
+        AccountDeletion
     ];
 
     public static string? FromKey(string? key)
@@ -22,6 +24,7 @@ public static class ContactTopics
             "adoption" => Adoption,
             "donations" => DonationsAndPartnerships,
             "other" => SomethingElse,
+            "account-deletion" => AccountDeletion,
             _ => null
         };
     }

@@ -17,7 +17,7 @@ public class EventAssignment : BaseModel
     public Guid ProfileId { get; set; }
 
     [Column("status")]
-    public string Status { get; set; } = EventAssignmentStatuses.Assigned;
+    public string Status { get; set; } = EventAssignmentStatuses.Pending;
 
     [Column("created_at")]
     public DateTime CreatedAt { get; set; }

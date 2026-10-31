@@ -55,6 +55,9 @@ public class Dog : BaseModel
     [Column("is_vaccinated")]
     public bool IsVaccinated { get; set; }
 
+    [Column("is_spayed_neutered")]
+    public bool? IsSpayedNeutered { get; set; }
+
     [Column("photo_url")]
     public string? PhotoUrl { get; set; }
 

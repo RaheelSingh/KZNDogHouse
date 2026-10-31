@@ -1,9 +1,11 @@
 using System.Security.Claims;
 using KZNDoghouse.Web.Models;
+using KZNDoghouse.Web.Constants;
 using KZNDoghouse.Web.Repositories;
 using KZNDoghouse.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace KZNDoghouse.Web.Controllers;
 
@@ -51,7 +53,6 @@ public class FosterController : Controller
         return View(model);
     }
 
-    [Authorize]
     [HttpGet("apply")]
     public async Task<IActionResult> Apply(Guid? dogId)
     {
@@ -69,8 +70,8 @@ public class FosterController : Controller
         });
     }
 
-    [Authorize]
     [HttpPost("apply")]
+    [EnableRateLimiting(RateLimitPolicies.Register)]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Apply(FosterApplicationFormViewModel model)
     {
@@ -83,12 +84,10 @@ public class FosterController : Controller
         }
 
         var profile = await GetCurrentProfileAsync();
-
-        if (profile == null || !profile.IsActive)
+        if (User.Identity?.IsAuthenticated == true && (profile == null || !profile.IsActive))
         {
-            ModelState.AddModelError(
-                string.Empty,
-                "We could not find your account. Please sign out and sign in again.");
+            ModelState.AddModelError(string.Empty,
+                "We could not verify your account. Please sign out and sign in again.");
         }
 
         if (!ModelState.IsValid)
@@ -102,7 +101,9 @@ public class FosterController : Controller
 
         try
         {
-            result = await _fosterApplicationService.SubmitAsync(model, profile!.Id);
+            result = profile == null
+                ? await _fosterApplicationService.SubmitGuestAsync(model)
+                : await _fosterApplicationService.SubmitAsync(model, profile.Id);
         }
         catch (Exception ex)
         {
@@ -156,6 +157,8 @@ public class FosterController : Controller
     {
         try
         {
+            var allDogs = await _dogService.GetPublicDogsAsync();
+            ViewData["FosterDogChoices"] = allDogs.Where(x => !x.IsFostered).OrderBy(x => x.Name).ToList();
             if (dogId.HasValue)
             {
                 var dog = await _dogService.GetPublicDogAsync(dogId.Value);

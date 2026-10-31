@@ -23,7 +23,7 @@ let tokenSubscription: { remove: () => void } | null = null;
 async function ensureAndroidChannel(): Promise<void> {
   if (!Notifications || Platform.OS !== 'android') return;
   await Notifications.setNotificationChannelAsync(DEFAULT_CHANNEL_ID, {
-    name: 'KZN Doghouse alerts',
+    name: 'The KZN Doghouse alerts',
     importance: Notifications.AndroidImportance.HIGH,
     vibrationPattern: [0, 250, 250, 250],
     lightColor: '#16302a',

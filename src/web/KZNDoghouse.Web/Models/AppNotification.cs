@@ -22,6 +22,9 @@ public class AppNotification : BaseModel
     [Column("body")]
     public string? Body { get; set; }
 
+    [Column("cleared_at")]
+    public DateTime? ClearedAt { get; set; }
+
     [Column("is_read")]
     public bool IsRead { get; set; }
 

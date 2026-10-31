@@ -3,7 +3,8 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - KZN Doghouse</title>
+    <link rel="icon" type="image/x-icon" href="~/doghouse.ico" asp-append-version="true" />
+    <title>@ViewData["Title"] - The KZN Doghouse</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -11,7 +12,7 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
-<body class="public-body">
+<body class="public-body" data-auth-session="@(User.Identity?.IsAuthenticated == true)">
     <a class="skip-link" href="#main-content">Skip to main content</a>
 
     <header class="public-sticky-header">
@@ -30,4 +31,3 @@
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
-

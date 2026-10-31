@@ -1,6 +1,20 @@
--- KZN Doghouse web database schema
--- This file documents the tables used by the ASP.NET Core website,
--- internal portal and REST API.
+-- KZN Doghouse database schema.
+-- Consolidated and rerunnable schema for the existing KZN Doghouse database.
+-- Existing application rows are preserved. Run this single file after taking a backup.
+-- Existing application RLS policies and authentication triggers are retained.
+-- Known volunteer functions, private-document permissions, and media bucket settings
+-- are managed below; inspect live customisations before applying.
+-- Review any schema conflicts shown by PostgreSQL before proceeding.
+
+begin;
+set local lock_timeout = '10s';
+
+-- Record which tables already existed so security initialization only affects new tables.
+create temporary table kzn_preexisting_tables (name text primary key) on commit drop;
+insert into pg_temp.kzn_preexisting_tables(name)
+select format('%I.%I', schemaname, tablename)
+from pg_catalog.pg_tables
+where schemaname = 'public';
 
 create extension if not exists pgcrypto;
 
@@ -9,17 +23,11 @@ create extension if not exists pgcrypto;
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('public-media', 'public-media', true, 5242880, array['image/jpeg', 'image/png', 'image/webp'])
-on conflict (id) do update
-set public = excluded.public,
-    file_size_limit = excluded.file_size_limit,
-    allowed_mime_types = excluded.allowed_mime_types;
+on conflict (id) do nothing;
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('private-files', 'private-files', false, 10485760, array['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
-on conflict (id) do update
-set public = excluded.public,
-    file_size_limit = excluded.file_size_limit,
-    allowed_mime_types = excluded.allowed_mime_types;
+on conflict (id) do nothing;
 
 
 /* User profiles */
@@ -53,7 +61,8 @@ begin
     if not exists (
         select 1
         from pg_constraint
-        where conname = 'user_profiles_volunteer_request_status_check'
+        where conrelid = 'public.user_profiles'::regclass
+          and conname = 'user_profiles_volunteer_request_status_check'
     ) then
         alter table public.user_profiles
             add constraint user_profiles_volunteer_request_status_check
@@ -71,61 +80,70 @@ create index if not exists idx_user_profiles_active
 create index if not exists idx_user_profiles_volunteer_request
     on public.user_profiles(volunteer_request_status);
 
-alter table public.user_profiles enable row level security;
-revoke all on table public.user_profiles from anon;
-revoke all on table public.user_profiles from authenticated;
 grant all on table public.user_profiles to service_role;
 
 
-create or replace function public.handle_new_user()
-returns trigger
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-    wants_to_volunteer boolean := false;
+-- Do not overwrite existing sign-up integration functions or triggers.
+do $kzn_auth$
 begin
-    wants_to_volunteer :=
-        lower(coalesce(
-            new.raw_user_meta_data ->> 'volunteer_interest',
-            'false')) = 'true';
+    if to_regprocedure('public.handle_new_user()') is null then
+        execute $kzn_function$
+        create or replace function public.handle_new_user()
+        returns trigger
+        language plpgsql
+        security definer
+        set search_path = ''
+        as $kzn_body$
+        declare
+            wants_to_volunteer boolean := false;
+        begin
+            wants_to_volunteer :=
+                lower(coalesce(
+                    new.raw_user_meta_data ->> 'volunteer_interest',
+                    'false')) = 'true';
+        
+            insert into public.user_profiles (
+                auth_user_id,
+                first_name,
+                last_name,
+                email,
+                role,
+                volunteer_request_status,
+                volunteer_requested_at
+            )
+            values (
+                new.id,
+                coalesce(new.raw_user_meta_data ->> 'first_name', ''),
+                coalesce(new.raw_user_meta_data ->> 'last_name', ''),
+                coalesce(new.email, ''),
+                'Public',
+                case
+                    when wants_to_volunteer then 'Pending'
+                    else 'None'
+                end,
+                case
+                    when wants_to_volunteer then now()
+                    else null
+                end
+            );
+        
+            return new;
+        end;
+        $kzn_body$;
+        $kzn_function$;
+    end if;
 
-    insert into public.user_profiles (
-        auth_user_id,
-        first_name,
-        last_name,
-        email,
-        role,
-        volunteer_request_status,
-        volunteer_requested_at
-    )
-    values (
-        new.id,
-        coalesce(new.raw_user_meta_data ->> 'first_name', ''),
-        coalesce(new.raw_user_meta_data ->> 'last_name', ''),
-        coalesce(new.email, ''),
-        'Public',
-        case
-            when wants_to_volunteer then 'Pending'
-            else 'None'
-        end,
-        case
-            when wants_to_volunteer then now()
-            else null
-        end
-    );
-
-    return new;
+    if not exists (
+        select 1 from pg_catalog.pg_trigger
+        where tgrelid = 'auth.users'::regclass
+          and tgname = 'on_auth_user_created' and not tgisinternal
+    ) then
+        create trigger on_auth_user_created
+            after insert on auth.users
+            for each row execute function public.handle_new_user();
+    end if;
 end;
-$$;
-
-drop trigger if exists on_auth_user_created on auth.users;
-
-create trigger on_auth_user_created
-    after insert on auth.users
-    for each row
-    execute procedure public.handle_new_user();
+$kzn_auth$;
 
 
 /* Dogs */
@@ -152,11 +170,15 @@ create table if not exists public.dogs (
     status text not null default 'In Care'
         check (status in ('Available', 'In Care', 'Under Treatment', 'Fostered', 'Reserved', 'Adopted')),
     is_vaccinated boolean not null default false,
+    is_spayed_neutered boolean null,
     photo_url text null,
     created_by uuid null references public.user_profiles(id) on delete set null,
     created_at timestamptz not null default now(),
     updated_at timestamptz null
 );
+
+-- Existing dogs remain intact; a NULL value means sterilisation status is not recorded.
+alter table public.dogs add column if not exists is_spayed_neutered boolean null;
 
 create index if not exists idx_dogs_name
     on public.dogs(name);
@@ -164,9 +186,6 @@ create index if not exists idx_dogs_name
 create index if not exists idx_dogs_status
     on public.dogs(status);
 
-alter table public.dogs enable row level security;
-revoke all on table public.dogs from anon;
-revoke all on table public.dogs from authenticated;
 grant all on table public.dogs to service_role;
 
 
@@ -192,9 +211,6 @@ create unique index if not exists ux_dog_images_primary
     on public.dog_images(dog_id)
     where is_primary = true;
 
-alter table public.dog_images enable row level security;
-revoke all on table public.dog_images from anon;
-revoke all on table public.dog_images from authenticated;
 grant all on table public.dog_images to service_role;
 
 
@@ -221,9 +237,6 @@ create index if not exists idx_dog_medical_records_dog
 create index if not exists idx_dog_medical_records_status
     on public.dog_medical_records(status);
 
-alter table public.dog_medical_records enable row level security;
-revoke all on table public.dog_medical_records from anon;
-revoke all on table public.dog_medical_records from authenticated;
 grant all on table public.dog_medical_records to service_role;
 
 
@@ -238,9 +251,6 @@ create table if not exists public.dog_notes (
 create index if not exists idx_dog_notes_dog
     on public.dog_notes(dog_id);
 
-alter table public.dog_notes enable row level security;
-revoke all on table public.dog_notes from anon;
-revoke all on table public.dog_notes from authenticated;
 grant all on table public.dog_notes to service_role;
 
 
@@ -266,9 +276,6 @@ create index if not exists idx_fostering_records_dog
 create index if not exists idx_fostering_records_status
     on public.fostering_records(status);
 
-alter table public.fostering_records enable row level security;
-revoke all on table public.fostering_records from anon;
-revoke all on table public.fostering_records from authenticated;
 grant all on table public.fostering_records to service_role;
 
 
@@ -298,9 +305,6 @@ create index if not exists idx_foster_applications_applicant
 create index if not exists idx_foster_applications_dog
     on public.foster_applications(dog_id);
 
-alter table public.foster_applications enable row level security;
-revoke all on table public.foster_applications from anon;
-revoke all on table public.foster_applications from authenticated;
 grant all on table public.foster_applications to service_role;
 
 
@@ -329,9 +333,6 @@ create index if not exists idx_availability_slots_status
 create index if not exists idx_availability_slots_day
     on public.availability_slots(day_date);
 
-alter table public.availability_slots enable row level security;
-revoke all on table public.availability_slots from anon;
-revoke all on table public.availability_slots from authenticated;
 grant all on table public.availability_slots to service_role;
 
 
@@ -370,12 +371,19 @@ alter table public.calendar_events
     add column if not exists volunteer_end_at timestamptz null,
     add column if not exists volunteer_notes text null;
 
-alter table public.calendar_events
-    drop constraint if exists calendar_events_max_volunteers_check;
-
-alter table public.calendar_events
-    add constraint calendar_events_max_volunteers_check
-    check (max_volunteers is null or max_volunteers between 1 and 200);
+do $$
+begin
+    if not exists (
+        select 1 from pg_catalog.pg_constraint
+        where conrelid = 'public.calendar_events'::regclass
+          and conname = 'calendar_events_max_volunteers_check'
+    ) then
+        alter table public.calendar_events
+            add constraint calendar_events_max_volunteers_check
+            check (max_volunteers is null or max_volunteers between 1 and 200);
+    end if;
+end;
+$$;
 
 create index if not exists idx_calendar_events_start
     on public.calendar_events(start_at);
@@ -383,9 +391,6 @@ create index if not exists idx_calendar_events_start
 create index if not exists idx_calendar_events_visibility
     on public.calendar_events(visibility);
 
-alter table public.calendar_events enable row level security;
-revoke all on table public.calendar_events from anon;
-revoke all on table public.calendar_events from authenticated;
 grant all on table public.calendar_events to service_role;
 
 
@@ -393,18 +398,19 @@ create table if not exists public.event_assignments (
     id uuid primary key default gen_random_uuid(),
     event_id uuid not null references public.calendar_events(id) on delete cascade,
     profile_id uuid not null references public.user_profiles(id) on delete cascade,
-    status text not null default 'Assigned'
-        check (status in ('Assigned', 'Registered', 'Confirmed', 'Cancelled')),
+    status text not null default 'Pending'
+        check (status in ('Pending', 'Confirmed', 'Reserve', 'Declined', 'Cancelled', 'Assigned', 'Registered')),
+    checked_in_at timestamptz null,
     created_at timestamptz not null default now(),
     unique (event_id, profile_id)
 );
 
+alter table public.event_assignments
+    add column if not exists checked_in_at timestamptz null;
+
 create index if not exists idx_event_assignments_profile
     on public.event_assignments(profile_id);
 
-alter table public.event_assignments enable row level security;
-revoke all on table public.event_assignments from anon;
-revoke all on table public.event_assignments from authenticated;
 grant all on table public.event_assignments to service_role;
 
 
@@ -433,9 +439,6 @@ create index if not exists idx_inventory_items_name
 create index if not exists idx_inventory_items_category
     on public.inventory_items(category);
 
-alter table public.inventory_items enable row level security;
-revoke all on table public.inventory_items from anon;
-revoke all on table public.inventory_items from authenticated;
 grant all on table public.inventory_items to service_role;
 
 
@@ -455,9 +458,6 @@ create table if not exists public.inventory_transactions (
 create index if not exists idx_inventory_transactions_item
     on public.inventory_transactions(item_id);
 
-alter table public.inventory_transactions enable row level security;
-revoke all on table public.inventory_transactions from anon;
-revoke all on table public.inventory_transactions from authenticated;
 grant all on table public.inventory_transactions to service_role;
 
 
@@ -480,9 +480,6 @@ create index if not exists idx_notifications_recipient_created
 create index if not exists idx_notifications_recipient_unread
     on public.notifications(recipient_id, is_read);
 
-alter table public.notifications enable row level security;
-revoke all on table public.notifications from anon;
-revoke all on table public.notifications from authenticated;
 grant all on table public.notifications to service_role;
 
 
@@ -505,9 +502,6 @@ create table if not exists public.contact_messages (
 create index if not exists idx_contact_messages_created
     on public.contact_messages(created_at desc);
 
-alter table public.contact_messages enable row level security;
-revoke all on table public.contact_messages from anon;
-revoke all on table public.contact_messages from authenticated;
 grant all on table public.contact_messages to service_role;
 
 
@@ -534,16 +528,754 @@ create index if not exists idx_vet_dog_authorizations_vet
 create index if not exists idx_vet_dog_authorizations_dog
     on public.vet_dog_authorizations(dog_id);
 
-alter table public.vet_profiles enable row level security;
-alter table public.vet_dog_authorizations enable row level security;
 
-revoke all on table public.vet_profiles from anon;
-revoke all on table public.vet_profiles from authenticated;
-revoke all on table public.vet_dog_authorizations from anon;
-revoke all on table public.vet_dog_authorizations from authenticated;
 
 grant all on table public.vet_profiles to service_role;
 grant all on table public.vet_dog_authorizations to service_role;
 
--- Refresh PostgREST metadata after schema changes.
+/* Volunteer applications, review and capacity enforcement */
+
+-- Update the standard assignment status constraint only when necessary.
+-- Unknown custom status constraints are never silently removed.
+do $kzn_status$
+declare
+    v_definition text;
+    v_other_constraint text;
+begin
+    if exists (
+        select 1 from public.event_assignments
+        where status not in ('Pending', 'Confirmed', 'Reserve', 'Declined',
+                             'Cancelled', 'Assigned', 'Registered')
+    ) then
+        raise exception 'Unrecognised event assignment status. No schema changes committed.';
+    end if;
+
+    select c.conname into v_other_constraint
+    from pg_catalog.pg_constraint c
+    where c.conrelid = 'public.event_assignments'::regclass
+      and c.contype = 'c'
+      and c.conname <> 'event_assignments_status_check'
+      and pg_get_constraintdef(c.oid) ilike '%status%'
+    limit 1;
+    if v_other_constraint is not null then
+        raise exception 'Unexpected event assignment status constraint: %. Review it before updating.', v_other_constraint;
+    end if;
+
+    select pg_get_constraintdef(c.oid) into v_definition
+    from pg_catalog.pg_constraint c
+    where c.conrelid = 'public.event_assignments'::regclass
+      and c.conname = 'event_assignments_status_check';
+
+    if v_definition is null or not (
+        v_definition like '%Pending%'
+        and v_definition like '%Reserve%'
+        and v_definition like '%Declined%'
+        and v_definition like '%Confirmed%'
+        and v_definition like '%Cancelled%'
+        and v_definition like '%Assigned%'
+        and v_definition like '%Registered%'
+    ) then
+        if v_definition is not null then
+            alter table public.event_assignments
+                drop constraint event_assignments_status_check;
+        end if;
+        alter table public.event_assignments
+            add constraint event_assignments_status_check
+            check (status in ('Pending', 'Confirmed', 'Reserve', 'Declined',
+                              'Cancelled', 'Assigned', 'Registered'));
+    end if;
+end;
+$kzn_status$;
+
+-- New assignment records default to the review queue; existing rows remain unchanged.
+alter table public.event_assignments
+    alter column status set default 'Pending';
+
+create index if not exists idx_event_assignments_event_status
+    on public.event_assignments (event_id, status);
+
+
+-- Only install baseline volunteer routines if missing. Never replace working live
+-- function bodies during a schema refresh (for example, site-specific changes).
+-- Every event approval is serialized on the event row. The lock protects against
+-- concurrent reviewers filling the last vacancy at the same time.
+do $kzn_existing_review_volunteer_application$
+begin
+    if to_regprocedure('public.review_volunteer_application(uuid, text)') is null then
+        execute $kzn_ddl_review_volunteer_application$
+create or replace function public.review_volunteer_application(
+    p_assignment_id uuid,
+    p_status text
+)
+returns boolean
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+    v_event_id uuid;
+    v_event public.calendar_events%rowtype;
+    v_assignment public.event_assignments%rowtype;
+    v_confirmed_count integer;
+begin
+    if p_status not in ('Confirmed', 'Reserve', 'Declined') then
+        raise exception 'Invalid volunteer review status.' using errcode = 'P0001';
+    end if;
+
+    select event_id into v_event_id
+    from public.event_assignments where id = p_assignment_id;
+    if v_event_id is null then
+        raise exception 'Volunteer application not found.' using errcode = 'P0001';
+    end if;
+
+    select * into v_event from public.calendar_events
+    where id = v_event_id for update;
+    if not found then
+        raise exception 'Event not found.' using errcode = 'P0001';
+    end if;
+
+    select * into v_assignment from public.event_assignments
+    where id = p_assignment_id for update;
+    if not found or v_assignment.event_id <> v_event_id then
+        raise exception 'Volunteer application changed; please refresh.' using errcode = 'P0001';
+    end if;
+
+    if v_assignment.status = p_status then
+        return false;
+    end if;
+    if v_assignment.status = 'Cancelled' then
+        raise exception 'A cancelled application cannot be reviewed.' using errcode = 'P0001';
+    end if;
+    if v_event.start_at <= now() then
+        raise exception 'Past or started events cannot be reviewed.' using errcode = 'P0001';
+    end if;
+
+    if p_status = 'Confirmed' then
+        if not v_event.volunteer_signup_enabled or v_event.max_volunteers is null then
+            raise exception 'Volunteer registration is not configured for this event.' using errcode = 'P0001';
+        end if;
+        select count(*) into v_confirmed_count
+        from public.event_assignments
+        where event_id = v_event_id
+          and id <> p_assignment_id
+          and status in ('Confirmed', 'Assigned', 'Registered');
+        if v_confirmed_count >= v_event.max_volunteers then
+            raise exception 'All volunteer places are currently filled.' using errcode = 'P0001';
+        end if;
+    end if;
+
+    update public.event_assignments set status = p_status where id = p_assignment_id;
+    return true;
+end;
+$$;
+$kzn_ddl_review_volunteer_application$;
+    end if;
+end;
+$kzn_existing_review_volunteer_application$;
+
+-- Only trusted API requests using the service-role key may review volunteers.
+revoke all on function public.review_volunteer_application(uuid, text) from public, anon, authenticated;
+grant execute on function public.review_volunteer_application(uuid, text) to service_role;
+
+-- Mobile volunteers submit applications themselves. The function resolves the
+-- profile from the authenticated JWT, never from a caller-controlled profile ID.
+do $kzn_existing_request_volunteer_place$
+begin
+    if to_regprocedure('public.request_volunteer_place(uuid)') is null then
+        execute $kzn_ddl_request_volunteer_place$
+create or replace function public.request_volunteer_place(p_event_id uuid)
+returns public.event_assignments
+language plpgsql
+security definer
+set search_path = ''
+set timezone = 'UTC'
+as $$
+declare
+    v_profile public.user_profiles%rowtype;
+    v_event public.calendar_events%rowtype;
+    v_assignment public.event_assignments%rowtype;
+begin
+    if auth.uid() is null then
+        raise exception 'Sign in to volunteer.' using errcode = 'P0001';
+    end if;
+    select * into v_profile from public.user_profiles
+    where auth_user_id = (select auth.uid()) and role = 'Volunteer' and is_active = true;
+    if not found then
+        raise exception 'An active volunteer account is required.' using errcode = 'P0001';
+    end if;
+
+    select * into v_event from public.calendar_events
+    where id = p_event_id for update;
+    if not found or v_event.start_at <= now() then
+        raise exception 'This event is not accepting applications.' using errcode = 'P0001';
+    end if;
+    if not v_event.volunteer_signup_enabled or v_event.max_volunteers is null
+       or v_event.volunteer_start_at is null or v_event.volunteer_end_at is null
+       or v_event.volunteer_end_at <= v_event.volunteer_start_at then
+        raise exception 'Volunteer registration is not configured for this event.' using errcode = 'P0001';
+    end if;
+
+    select * into v_assignment from public.event_assignments
+    where event_id = p_event_id and profile_id = v_profile.id for update;
+    if found and v_assignment.status <> 'Cancelled' then
+        raise exception 'You have already applied for this event.' using errcode = 'P0001';
+    end if;
+
+    if v_assignment.id is not null then
+        update public.event_assignments set status = 'Pending'
+        where id = v_assignment.id returning * into v_assignment;
+    else
+        insert into public.event_assignments(event_id, profile_id, status)
+        values (p_event_id, v_profile.id, 'Pending')
+        returning * into v_assignment;
+    end if;
+    return v_assignment;
+end;
+$$;
+$kzn_ddl_request_volunteer_place$;
+    end if;
+end;
+$kzn_existing_request_volunteer_place$;
+revoke all on function public.request_volunteer_place(uuid) from public, anon;
+grant execute on function public.request_volunteer_place(uuid) to authenticated;
+
+do $kzn_existing_cancel_volunteer_application$
+begin
+    if to_regprocedure('public.cancel_volunteer_application(uuid)') is null then
+        execute $kzn_ddl_cancel_volunteer_application$
+create or replace function public.cancel_volunteer_application(p_event_id uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+    v_profile_id uuid;
+    v_assignment public.event_assignments%rowtype;
+begin
+    select id into v_profile_id from public.user_profiles
+    where auth_user_id = (select auth.uid()) and role = 'Volunteer' and is_active = true;
+    if v_profile_id is null then
+        raise exception 'An active volunteer account is required.' using errcode = 'P0001';
+    end if;
+    select * into v_assignment from public.event_assignments
+    where event_id = p_event_id and profile_id = v_profile_id for update;
+    if not found then
+        raise exception 'No volunteer application was found.' using errcode = 'P0001';
+    end if;
+    if v_assignment.status = 'Cancelled' then return false; end if;
+    update public.event_assignments set status = 'Cancelled'
+    where id = v_assignment.id;
+    return true;
+end;
+$$;
+$kzn_ddl_cancel_volunteer_application$;
+    end if;
+end;
+$kzn_existing_cancel_volunteer_application$;
+revoke all on function public.cancel_volunteer_application(uuid) from public, anon;
+grant execute on function public.cancel_volunteer_application(uuid) to authenticated;
+
+do $kzn_existing_get_confirmed_volunteer_counts$
+begin
+    if to_regprocedure('public.get_confirmed_volunteer_counts(uuid[])') is null then
+        execute $kzn_ddl_get_confirmed_volunteer_counts$
+create or replace function public.get_confirmed_volunteer_counts(p_event_ids uuid[])
+returns table(event_id uuid, signed_up bigint)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+    select a.event_id, count(*)::bigint
+    from public.event_assignments a
+    where a.event_id = any(p_event_ids)
+      and a.status in ('Confirmed', 'Assigned', 'Registered')
+      and (select auth.uid()) is not null
+    group by a.event_id;
+$$;
+$kzn_ddl_get_confirmed_volunteer_counts$;
+    end if;
+end;
+$kzn_existing_get_confirmed_volunteer_counts$;
+revoke all on function public.get_confirmed_volunteer_counts(uuid[]) from public, anon;
+grant execute on function public.get_confirmed_volunteer_counts(uuid[]) to authenticated;
+
+-- Protect capacity even when older clients write legacy Registered/Assigned
+-- statuses instead of using the staff review function.
+do $kzn_existing_enforce_volunteer_event_capacity$
+begin
+    if to_regprocedure('public.enforce_volunteer_event_capacity()') is null then
+        execute $kzn_ddl_enforce_volunteer_event_capacity$
+create or replace function public.enforce_volunteer_event_capacity()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+    v_max integer;
+    v_enabled boolean;
+    v_confirmed bigint;
+begin
+    if new.status not in ('Confirmed', 'Assigned', 'Registered') then
+        return new;
+    end if;
+    if tg_op = 'UPDATE' and old.status in ('Confirmed', 'Assigned', 'Registered')
+       and old.event_id = new.event_id then
+        return new;
+    end if;
+
+    select max_volunteers, volunteer_signup_enabled
+        into v_max, v_enabled
+    from public.calendar_events where id = new.event_id for update;
+    if not coalesce(v_enabled, false) or v_max is null then
+        raise exception 'Volunteer signup is not configured for this event.' using errcode = 'P0001';
+    end if;
+    select count(*) into v_confirmed
+    from public.event_assignments
+    where event_id = new.event_id
+      and id <> new.id
+      and status in ('Confirmed', 'Assigned', 'Registered');
+    if v_confirmed >= v_max then
+        raise exception 'All volunteer places are currently filled.' using errcode = 'P0001';
+    end if;
+    return new;
+end;
+$$;
+$kzn_ddl_enforce_volunteer_event_capacity$;
+    end if;
+end;
+$kzn_existing_enforce_volunteer_event_capacity$;
+do $$
+begin
+    if exists (
+        select 1 from pg_catalog.pg_trigger t
+        where t.tgrelid = 'public.event_assignments'::regclass
+          and t.tgname = 'check_volunteer_event_capacity'
+          and t.tgfoid <> 'public.enforce_volunteer_event_capacity()'::regprocedure
+    ) then
+        raise exception 'Unexpected existing volunteer capacity trigger. Review before updating.';
+    end if;
+    if not exists (
+        select 1 from pg_catalog.pg_trigger
+        where tgrelid = 'public.event_assignments'::regclass
+          and tgname = 'check_volunteer_event_capacity' and not tgisinternal
+    ) then
+        create trigger check_volunteer_event_capacity
+            before insert or update of event_id, status on public.event_assignments
+            for each row execute function public.enforce_volunteer_event_capacity();
+    end if;
+end;
+$$;
+
+
+-- Enable RLS only on tables created by this run. Existing tables keep their current RLS settings.
+do $kzn_rls$
+declare
+    v_name text;
+begin
+    foreach v_name in array array[
+        'public.user_profiles', 'public.dogs', 'public.dog_images',
+        'public.dog_medical_records', 'public.dog_notes',
+        'public.fostering_records', 'public.foster_applications',
+        'public.availability_slots', 'public.calendar_events',
+        'public.event_assignments', 'public.inventory_items',
+        'public.inventory_transactions', 'public.notifications',
+        'public.contact_messages', 'public.vet_profiles',
+        'public.vet_dog_authorizations'
+    ] loop
+        if not exists (
+            select 1 from pg_temp.kzn_preexisting_tables where name = v_name
+        ) then
+            execute format('alter table %s enable row level security', v_name);
+        end if;
+    end loop;
+end;
+$kzn_rls$;
+
+/* Private medical/foster/adoption documents and contact workflow */
+
+alter table public.notifications
+    add column if not exists cleared_at timestamptz null;
+create index if not exists idx_notifications_recipient_cleared
+    on public.notifications(recipient_id, cleared_at, created_at desc);
+
+alter table public.contact_messages
+    add column if not exists status text not null default 'New';
+update public.contact_messages
+    set status = 'Resolved'
+    where is_handled = true and status = 'New';
+
+-- Staff-controlled contact workflow. Database checks reject invalid statuses.
+do $$ begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'contact_messages_status_check'
+      and conrelid = 'public.contact_messages'::regclass
+  ) then
+    alter table public.contact_messages
+      add constraint contact_messages_status_check
+      check (status in ('New', 'Ongoing', 'Resolved'));
+  end if;
+end $$;
+create index if not exists idx_contact_messages_status_created
+    on public.contact_messages(status, created_at desc);
+
+-- Staff-managed adoption records. No existing dog or account rows are modified.
+create table if not exists public.adoption_records (
+    id uuid primary key default gen_random_uuid(),
+    dog_id uuid not null references public.dogs(id) on delete cascade,
+    adopter_name text not null,
+    adopter_email text null,
+    adopter_phone text not null,
+    adopter_address text not null,
+    notes text null,
+    status text not null default 'Pending paperwork' check (status in ('Pending paperwork','Adopted','Returned','Cancelled')),
+    adopted_at timestamptz null,
+    returned_at timestamptz null,
+    return_notes text null,
+    created_by uuid null references public.user_profiles(id) on delete set null,
+    created_at timestamptz not null default now()
+);
+-- Extend only the expected adoption status constraint; retain every existing record.
+DO $kzn_adoption_status$
+DECLARE v_definition text;
+BEGIN
+  SELECT pg_get_constraintdef(oid) INTO v_definition
+  FROM pg_constraint WHERE conrelid='public.adoption_records'::regclass
+    AND conname='adoption_records_status_check';
+  IF v_definition IS NOT NULL AND v_definition NOT LIKE '%Cancelled%' THEN
+    IF v_definition NOT LIKE '%Pending paperwork%' OR v_definition NOT LIKE '%Returned%'
+       OR v_definition NOT LIKE '%Adopted%' THEN
+      RAISE EXCEPTION 'Unexpected adoption status constraint; manual review required';
+    END IF;
+    ALTER TABLE public.adoption_records DROP CONSTRAINT adoption_records_status_check;
+    ALTER TABLE public.adoption_records ADD CONSTRAINT adoption_records_status_check
+      CHECK (status IN ('Pending paperwork','Adopted','Returned','Cancelled'));
+  END IF;
+END $kzn_adoption_status$;
+create index if not exists idx_adoption_records_dog on public.adoption_records(dog_id, created_at desc);
+create unique index if not exists idx_adoption_one_active_per_dog
+    on public.adoption_records(dog_id) where status in ('Pending paperwork','Adopted');
+alter table public.adoption_records enable row level security;
+revoke all on public.adoption_records from public, anon, authenticated;
+grant all on public.adoption_records to service_role;
+
+create table if not exists public.dog_documents (
+    id uuid primary key default gen_random_uuid(),
+    dog_id uuid not null references public.dogs(id) on delete cascade,
+    medical_record_id uuid null references public.dog_medical_records(id) on delete set null,
+    foster_application_id uuid null references public.foster_applications(id) on delete set null,
+    adoption_record_id uuid null references public.adoption_records(id) on delete set null,
+    category text not null check (category in ('Medical','Foster','Adoption')),
+    file_name text not null,
+    content_type text not null check (content_type in (
+        'application/pdf',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'image/jpeg', 'image/png', 'image/webp', 'image/gif')),
+    storage_path text not null unique,
+    uploaded_by uuid null references public.user_profiles(id) on delete set null,
+    created_at timestamptz not null default now()
+);
+alter table public.dog_documents add column if not exists foster_application_id uuid null references public.foster_applications(id) on delete set null;
+alter table public.dog_documents add column if not exists adoption_record_id uuid null references public.adoption_records(id) on delete set null;
+create index if not exists idx_dog_documents_adoption on public.dog_documents(adoption_record_id);
+
+-- Widen only the known dog-document content type constraint for DOCX and GIF.
+-- Existing files/rows are not changed. Unknown custom constraints cause a rollback.
+do $kzn_document_types$
+declare
+    v_definition text;
+begin
+    select pg_get_constraintdef(oid) into v_definition
+    from pg_catalog.pg_constraint
+    where conrelid = 'public.dog_documents'::regclass
+      and conname = 'dog_documents_content_type_check';
+
+    if v_definition is not null
+       and (v_definition not ilike '%application/pdf%'
+         or v_definition not ilike '%image/jpeg%'
+         or v_definition not ilike '%image/png%'
+         or v_definition not ilike '%image/webp%') then
+        raise exception 'Existing dog document content-type constraint is customised. Review before updating.';
+    end if;
+
+    if v_definition is null
+        or v_definition not ilike '%image/gif%'
+        or v_definition not ilike '%application/vnd.openxmlformats-officedocument.wordprocessingml.document%' then
+        if v_definition is not null then
+            alter table public.dog_documents drop constraint dog_documents_content_type_check;
+        end if;
+        alter table public.dog_documents
+          add constraint dog_documents_content_type_check
+          check (content_type in (
+            'application/pdf',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'image/jpeg', 'image/png', 'image/webp', 'image/gif'));
+    end if;
+end;
+$kzn_document_types$;
+
+create index if not exists idx_dog_documents_foster on public.dog_documents(foster_application_id);
+create index if not exists idx_dog_documents_dog on public.dog_documents(dog_id, created_at desc);
+alter table public.dog_documents enable row level security;
+-- The server exclusively accesses these sensitive records using its service-role key.
+revoke all on public.dog_documents from public, anon, authenticated;
+grant select, insert, update, delete on public.dog_documents to service_role;
+
+-- Medical and signed foster/adoption files must never use public-media storage.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'dog-private-documents', 'dog-private-documents', false, 10485760,
+  array['application/pdf','image/jpeg','image/png','image/webp']::text[]
+)
+on conflict (id) do nothing;
+-- Fail rather than allow an accidentally public bucket with the same identifier.
+do $$ begin
+  if exists (select 1 from storage.buckets where id = 'dog-private-documents' and public = true) then
+    raise exception 'dog-private-documents is public; change it to private before uploading sensitive files';
+  end if;
+end $$;
+
+/* Individual-dog video metadata and public media bucket.
+   Videos are only requested from individual public dog pages by application code.
+   Public storage means the video URL itself is public; this does not grant access
+   to private medical or agreement files. */
+create table if not exists public.dog_videos (
+    id uuid primary key default gen_random_uuid(),
+    dog_id uuid not null references public.dogs(id) on delete cascade,
+    storage_path text not null unique,
+    public_url text not null,
+    content_type text not null check (content_type in ('video/mp4','video/webm')),
+    created_at timestamptz not null default now()
+);
+create index if not exists idx_dog_videos_dog on public.dog_videos(dog_id);
+alter table public.dog_videos enable row level security;
+revoke all on public.dog_videos from public, anon, authenticated;
+grant all on public.dog_videos to service_role;
+
+
+-- The default public video bucket is created without modifying any pre-existing bucket.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('dog-videos', 'dog-videos', true, 26214400,
+        array['video/mp4','video/webm']::text[])
+on conflict (id) do nothing;
+
+-- A pre-existing bucket with different visibility would break public video URLs.
+-- Never silently make an existing private bucket public.
+do $kzn_video_bucket$
+begin
+    if exists (
+       select 1 from storage.buckets
+       where id = 'dog-videos' and public = false
+    ) then
+       raise exception 'Existing dog-videos bucket is private. Review its contents before using public video URLs.';
+    end if;
+end;
+$kzn_video_bucket$;
+
+-- Extend formats in the existing *private* document bucket, leaving its contents
+-- and its public/private status unchanged.
+update storage.buckets
+set allowed_mime_types = case
+    when allowed_mime_types is null then null
+    else ARRAY(
+        select distinct format_type
+        from unnest(allowed_mime_types || ARRAY[
+            'application/pdf',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'image/jpeg', 'image/png', 'image/webp', 'image/gif'
+        ]::text[]) as format_type
+    )
+end
+where id = 'dog-private-documents' and public = false;
+
+
+/* Confidential dog-care information.
+   This section is designed for the six EXISTING policies verified in the
+   KZN Doghouse database on 30 October 2026. It does not assume that all
+   signed-in users are permitted to see private medical/fostering data.
+   Unexpected or modified policies cause the WHOLE transaction to roll back. */
+DO $kzn_check_care_policies$
+DECLARE
+    v_unexpected text;
+    v_modified text;
+BEGIN
+    SELECT string_agg(tablename || '.' || policyname, ', ' ORDER BY tablename, policyname)
+      INTO v_unexpected
+    FROM pg_catalog.pg_policies
+    WHERE schemaname = 'public'
+      AND tablename IN ('dog_medical_records', 'fostering_records', 'dog_notes')
+      AND policyname NOT IN (
+        'mobile_medical_insert_staff', 'mobile_medical_select',
+        'mobile_medical_update_staff', 'mobile_notes_insert_staff',
+        'mobile_notes_select', 'mobile_fostering_select',
+        'kzn_care_medical_read', 'kzn_care_medical_add',
+        'kzn_care_notes_read', 'kzn_care_notes_add',
+        'kzn_care_fostering_read'
+      );
+    IF v_unexpected IS NOT NULL THEN
+        RAISE EXCEPTION 'Unknown existing dog-care policies: %. Review them before running this schema. No changes committed.', v_unexpected;
+    END IF;
+
+    -- The original mobile SELECT policies must be precisely the broad
+    -- kzn_is_member() rules that were inspected, not customised policies.
+    SELECT string_agg(tablename || '.' || policyname, ', ' ORDER BY tablename, policyname)
+      INTO v_modified
+    FROM pg_catalog.pg_policies
+    WHERE schemaname = 'public'
+      AND policyname IN ('mobile_medical_select', 'mobile_notes_select', 'mobile_fostering_select')
+      AND (tablename NOT IN ('dog_medical_records', 'dog_notes', 'fostering_records')
+           OR cmd <> 'SELECT'
+           OR permissive <> 'PERMISSIVE'
+           OR roles::text <> '{authenticated}'
+           OR btrim(qual) <> 'kzn_is_member()');
+    IF v_modified IS NOT NULL THEN
+        RAISE EXCEPTION 'Modified legacy dog-care read policies: %. Review before replacing. No changes committed.', v_modified;
+    END IF;
+END;
+$kzn_check_care_policies$;
+
+CREATE SCHEMA IF NOT EXISTS kzn_private;
+REVOKE ALL ON SCHEMA kzn_private FROM PUBLIC;
+GRANT USAGE ON SCHEMA kzn_private TO authenticated;
+
+-- Check the authenticated user's server-managed profile rather than
+-- client-editable JWT user_metadata. Function deliberately lives in a
+-- non-API-exposed schema and has an empty search_path.
+CREATE OR REPLACE FUNCTION kzn_private.staff_profile_id()
+RETURNS uuid
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = ''
+AS $function$
+  SELECT p.id
+  FROM public.user_profiles p
+  WHERE p.auth_user_id = (SELECT auth.uid())
+    AND p.is_active = true
+    AND p.role IN ('Staff', 'Administrator')
+  LIMIT 1;
+$function$;
+REVOKE ALL ON FUNCTION kzn_private.staff_profile_id() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION kzn_private.staff_profile_id() TO authenticated;
+
+-- Staff/admin can view medical records for all dogs. Vets can view
+-- ONLY records of dogs explicitly assigned to them in vet_dog_authorizations.
+CREATE OR REPLACE FUNCTION kzn_private.can_read_dog_medical(p_dog_id uuid)
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = ''
+AS $function$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.user_profiles p
+    WHERE p.auth_user_id = (SELECT auth.uid())
+      AND p.is_active = true
+      AND (
+        p.role IN ('Staff', 'Administrator')
+        OR (
+          p.role = 'Vet'
+          AND EXISTS (
+            SELECT 1
+            FROM public.vet_profiles vp
+            JOIN public.vet_dog_authorizations vda
+              ON vda.vet_profile_id = vp.id
+            WHERE vp.user_profile_id = p.id
+              AND vda.dog_id = p_dog_id
+          )
+        )
+      )
+  );
+$function$;
+REVOKE ALL ON FUNCTION kzn_private.can_read_dog_medical(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION kzn_private.can_read_dog_medical(uuid) TO authenticated;
+
+ALTER TABLE public.dog_medical_records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.dog_notes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.fostering_records ENABLE ROW LEVEL SECURITY;
+
+-- Remove anonymous access without removing the existing staff mobile
+-- INSERT/UPDATE permissions. PostgreSQL also enforces RLS on all grants.
+REVOKE ALL ON public.dog_medical_records, public.dog_notes,
+              public.fostering_records FROM PUBLIC, anon;
+GRANT SELECT, INSERT, UPDATE ON public.dog_medical_records TO authenticated;
+GRANT SELECT, INSERT ON public.dog_notes TO authenticated;
+GRANT SELECT ON public.fostering_records TO authenticated;
+
+-- Remove ONLY the three permissive SELECT policies that used
+-- kzn_is_member(), which included volunteers. Leave the existing
+-- medical INSERT/UPDATE and notes INSERT policies unchanged.
+DROP POLICY IF EXISTS mobile_medical_select ON public.dog_medical_records;
+DROP POLICY IF EXISTS mobile_notes_select ON public.dog_notes;
+DROP POLICY IF EXISTS mobile_fostering_select ON public.fostering_records;
+
+DROP POLICY IF EXISTS kzn_care_medical_read ON public.dog_medical_records;
+CREATE POLICY kzn_care_medical_read ON public.dog_medical_records
+  FOR SELECT TO authenticated
+  USING (kzn_private.can_read_dog_medical(dog_id));
+
+DROP POLICY IF EXISTS kzn_care_notes_read ON public.dog_notes;
+CREATE POLICY kzn_care_notes_read ON public.dog_notes
+  FOR SELECT TO authenticated
+  USING ((SELECT kzn_private.staff_profile_id()) IS NOT NULL);
+
+DROP POLICY IF EXISTS kzn_care_fostering_read ON public.fostering_records;
+CREATE POLICY kzn_care_fostering_read ON public.fostering_records
+  FOR SELECT TO authenticated
+  USING ((SELECT kzn_private.staff_profile_id()) IS NOT NULL);
+
+-- If installing into a fresh project with no legacy mobile INSERT
+-- policies, add equivalent staff-only INSERT policies. Re-running an
+-- existing project does not replace or broaden its write policies.
+DO $kzn_care_insert_policies$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_catalog.pg_policies
+    WHERE schemaname = 'public' AND tablename = 'dog_medical_records'
+      AND policyname = 'mobile_medical_insert_staff'
+  ) THEN
+    DROP POLICY IF EXISTS kzn_care_medical_add ON public.dog_medical_records;
+    CREATE POLICY kzn_care_medical_add ON public.dog_medical_records
+      FOR INSERT TO authenticated
+      WITH CHECK (created_by = (SELECT kzn_private.staff_profile_id()));
+  ELSE
+    DROP POLICY IF EXISTS kzn_care_medical_add ON public.dog_medical_records;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_catalog.pg_policies
+    WHERE schemaname = 'public' AND tablename = 'dog_notes'
+      AND policyname = 'mobile_notes_insert_staff'
+  ) THEN
+    DROP POLICY IF EXISTS kzn_care_notes_add ON public.dog_notes;
+    CREATE POLICY kzn_care_notes_add ON public.dog_notes
+      FOR INSERT TO authenticated
+      WITH CHECK (author_id = (SELECT kzn_private.staff_profile_id()));
+  ELSE
+    DROP POLICY IF EXISTS kzn_care_notes_add ON public.dog_notes;
+  END IF;
+END;
+$kzn_care_insert_policies$;
+
+-- Final transaction-level assertions. Existing record rows are untouched.
+DO $kzn_verify_care$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_catalog.pg_policies
+    WHERE schemaname = 'public'
+      AND policyname IN ('mobile_medical_select','mobile_notes_select','mobile_fostering_select')
+      AND tablename IN ('dog_medical_records','dog_notes','fostering_records')
+  ) THEN
+    RAISE EXCEPTION 'Insecure legacy dog-care SELECT policies remain; transaction cancelled';
+  END IF;
+  IF (SELECT count(*) FROM pg_catalog.pg_policies
+      WHERE schemaname='public'
+        AND policyname IN ('kzn_care_medical_read','kzn_care_notes_read','kzn_care_fostering_read')
+        AND tablename IN ('dog_medical_records','dog_notes','fostering_records')) <> 3 THEN
+    RAISE EXCEPTION 'Dog-care SELECT policy verification failed; transaction cancelled';
+  END IF;
+END;
+$kzn_verify_care$;
+
+-- Refresh API schema metadata only after all changes succeed.
 notify pgrst, 'reload schema';
+
+commit;

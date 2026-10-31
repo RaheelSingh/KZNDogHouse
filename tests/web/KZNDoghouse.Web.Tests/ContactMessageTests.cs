@@ -113,6 +113,7 @@ public class ContactMessageTests
     [InlineData(" adoption ", "Adoption")]
     [InlineData("donations", "Donations & partnerships")]
     [InlineData("other", "Something else")]
+    [InlineData("account-deletion", "Account deletion")]
     public void FromKey_ReturnsTheMatchingTopic(string key, string expected)
     {
         Assert.Equal(expected, ContactTopics.FromKey(key));
@@ -131,7 +132,7 @@ public class ContactMessageTests
     [Fact]
     public void FromKey_OnlyEverReturnsListedTopics()
     {
-        foreach (var key in new[] { "fostering", "volunteering", "adoption", "donations", "other" })
+        foreach (var key in new[] { "fostering", "volunteering", "adoption", "donations", "other", "account-deletion" })
         {
             Assert.Contains(ContactTopics.FromKey(key), ContactTopics.All);
         }

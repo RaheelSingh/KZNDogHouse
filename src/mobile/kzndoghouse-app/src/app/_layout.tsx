@@ -4,10 +4,10 @@ import { Notifications } from '@/lib/notificationsSafe';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { NotificationsProvider, useNotifications } from '@/context/NotificationsContext';
 
-
+/** Opens the right screen when the user taps a push notification. */
 function useNotificationTapNavigation(enabled: boolean) {
   const { markAsRead } = useNotifications();
-  
+
   const lastResponse = Notifications ? Notifications.useLastNotificationResponse() : null;
   const handled = useRef(new Set<string>());
 
@@ -29,17 +29,18 @@ function useNotificationTapNavigation(enabled: boolean) {
 
 function RootNavigator() {
   const { session, isLoading } = useAuth();
-  useNotificationTapNavigation(!isLoading && !!session);
+  // Prevent confidential screens from mounting during an unresolved/denied login.
+  const authorised = !!session && (session.role === 'staff' || session.role === 'volunteer');
+  useNotificationTapNavigation(!isLoading && authorised);
 
   if (isLoading) return null;
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Protected guard={!!session}>
+      <Stack.Protected guard={authorised}>
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="availability" options={{ presentation: 'modal', headerShown: false }} />
       </Stack.Protected>
-      <Stack.Protected guard={!session}>
+      <Stack.Protected guard={!authorised}>
         <Stack.Screen name="(auth)" />
       </Stack.Protected>
     </Stack>

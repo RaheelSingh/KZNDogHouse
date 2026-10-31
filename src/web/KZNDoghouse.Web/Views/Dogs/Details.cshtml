@@ -114,6 +114,10 @@
                     <dt>Vaccinated</dt>
                     <dd>@(dog.IsVaccinated ? "Yes" : "No")</dd>
                 </div>
+                <div>
+                    <dt>Spayed / neutered</dt>
+                    <dd>@(dog.IsSpayedNeutered.HasValue ? (dog.IsSpayedNeutered.Value ? "Yes" : "No") : "Not recorded")</dd>
+                </div>
 
             </dl>
 
@@ -170,6 +174,12 @@
                         aria-selected="false">
                     Fostering
                 </button>
+            </li>
+
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="adoption-tab-button" data-bs-toggle="tab"
+                        data-bs-target="#adoption-tab" type="button" role="tab"
+                        aria-controls="adoption-tab" aria-selected="false">Adoption</button>
             </li>
 
             <li class="nav-item" role="presentation">
@@ -281,104 +291,12 @@
                 <div class="portal-card mb-3">
 
                     <h5 class="kzn-card-title">
-                        Medical records
-                    </h5>
-
-                    @if (!Model.MedicalRecords.Any())
-                    {
-                        <p class="text-muted mb-0">
-                            No medical records yet.
-                        </p>
-                    }
-                    else
-                    {
-                        <div class="dog-detail-record-list">
-
-                            @foreach (var record in Model.MedicalRecords)
-                            {
-                                <div class="dog-detail-record dog-detail-medical-record">
-
-                                    <div>
-
-                                        <div class="fw-semibold">
-                                            @record.Title
-                                        </div>
-
-                                        <div class="text-muted small">
-
-                                            @record.RecordType
-
-                                            @if (!string.IsNullOrWhiteSpace(record.VetName))
-                                            {
-                                                <text> · @record.VetName</text>
-                                            }
-
-                                            @if (record.NextActionDate.HasValue)
-                                            {
-                                                <text>
-                                                    · due @record.NextActionDate.Value.ToString("dd MMM")
-                                                </text>
-                                            }
-
-                                        </div>
-
-                                        @if (!string.IsNullOrWhiteSpace(record.Details))
-                                        {
-                                            <div class="small mt-1">
-                                                @record.Details
-                                            </div>
-                                        }
-
-                                    </div>
-
-                                    <div class="text-end">
-
-                                        <span class="kzn-status-badge @(record.Status == MedicalRecordStatuses.Active ? "kzn-status-under-treatment" : "kzn-status-available")">
-                                            @record.Status
-                                        </span>
-
-                                        @if (record.Status == MedicalRecordStatuses.Active)
-                                        {
-                                            <form asp-controller="Dogs"
-                                                  asp-action="ResolveMedicalRecord"
-                                                  method="post"
-                                                  class="mt-2">
-
-                                                <input type="hidden"
-                                                       name="dogId"
-                                                       value="@dog.Id" />
-
-                                                <input type="hidden"
-                                                       name="recordId"
-                                                       value="@record.Id" />
-
-                                                <button type="submit"
-                                                        class="btn btn-kzn-outline btn-sm">
-                                                    Mark resolved
-                                                </button>
-
-                                            </form>
-                                        }
-
-                                    </div>
-
-                                </div>
-                            }
-
-                        </div>
-                    }
-
-                </div>
-
-                <div class="portal-card">
-
-                    <h5 class="kzn-card-title">
                         Log a new medical record
                     </h5>
 
                     <form asp-controller="Dogs"
                           asp-action="AddMedicalRecord"
-                          method="post">
+                          method="post" enctype="multipart/form-data">
 
                         <input type="hidden"
                                name="dogId"
@@ -455,12 +373,125 @@
 
                         </div>
 
-                        <button type="submit"
-                                class="btn btn-kzn-primary mt-3">
-                            Add record
-                        </button>
+                        <label class="form-label mt-2">Supporting document (optional)</label>
+                      <input type="file" name="attachment" class="form-control" accept=".pdf,.docx,.jpg,.jpeg,.png,.webp,.gif" />
+                      <small class="text-muted">PDF or image, 10 MB maximum</small>
+                      <div class="d-flex justify-content-end mt-3">
+                          <button type="submit" class="btn btn-kzn-primary">Add record</button>
+                      </div>
 
                     </form>
+
+                </div>
+
+                <div class="portal-card">
+
+                    <h5 class="kzn-card-title">
+                        Medical records
+                    </h5>
+
+                    @if (!Model.MedicalRecords.Any())
+                    {
+                        <p class="text-muted mb-0">
+                            No medical records yet.
+                        </p>
+                    }
+                    else
+                    {
+                        <div class="dog-detail-record-list">
+
+                            @foreach (var record in Model.MedicalRecords)
+                            {
+                                <details class="dog-medical-accordion">
+                                    <summary class="dog-medical-accordion-heading">
+                                        <span class="dog-record-title"><span class="fw-semibold">@record.Title</span><span class="dog-medical-chevron" aria-hidden="true">▸</span></span>
+                                        <span class="dog-medical-summary-meta"><span class="text-muted small">@record.RecordType · @record.CreatedAt.ToString("dd MMM yyyy")</span><span class="kzn-status-badge @(record.Status == MedicalRecordStatuses.Active ? "kzn-status-under-treatment" : "kzn-status-available")">@record.Status</span></span>
+                                    </summary>
+                                    <div class="dog-medical-accordion-body">
+
+                                    <div>
+
+                                        <div class="text-muted small">
+
+                                            @record.RecordType
+
+                                            @if (!string.IsNullOrWhiteSpace(record.VetName))
+                                            {
+                                                <text> · @record.VetName</text>
+                                            }
+
+                                            @if (record.NextActionDate.HasValue)
+                                            {
+                                                <text>
+                                                    · due @record.NextActionDate.Value.ToString("dd MMM")
+                                                </text>
+                                            }
+
+                                        </div>
+
+                                        @if (!string.IsNullOrWhiteSpace(record.Details))
+                                        {
+                                            <div class="small mt-1">
+                                                @record.Details
+                                            </div>
+                                        }
+
+                                    </div>
+
+                                    <div class="text-end dog-record-actions">
+                                        @if (record.Status == MedicalRecordStatuses.Active)
+                                        {
+                                            <form asp-controller="Dogs"
+                                                  asp-action="ResolveMedicalRecord"
+                                                  method="post"
+                                                  class="mt-2">
+
+                                                <input type="hidden"
+                                                       name="dogId"
+                                                       value="@dog.Id" />
+
+                                                <input type="hidden"
+                                                       name="recordId"
+                                                       value="@record.Id" />
+
+                                                <button type="submit"
+                                                        class="btn btn-kzn-outline btn-sm">
+                                                    Mark resolved
+                                                </button>
+
+                                            </form>
+                                        }
+
+                                    </div>
+
+                                        @{ var attached = Model.Documents.Where(x => x.MedicalRecordId == record.Id).ToList(); }
+                                        @if (attached.Count > 0)
+                                        {
+                                            <div class="medical-attachment-list">
+                                                <strong>Attached files:</strong>
+                                                @foreach (var document in attached)
+                                                {
+                                                    <a asp-controller="DogDocuments" asp-action="Download" asp-route-id="@document.Id">@document.FileName</a>
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+                                </details>
+                            }
+
+                        </div>
+                    }
+                    @{ var unlinkedMedical = Model.Documents.Where(d => d.Category == "Medical" && !d.MedicalRecordId.HasValue).ToList(); }
+                    @if (unlinkedMedical.Count > 0)
+                    {
+                        <div class="record-linked-documents mt-3">
+                            <strong>Other medical documents:</strong>
+                            @foreach (var document in unlinkedMedical)
+                            {
+                                <a asp-controller="DogDocuments" asp-action="Download" asp-route-id="@document.Id">@document.FileName</a>
+                            }
+                        </div>
+                    }
 
                 </div>
 
@@ -504,6 +535,22 @@
                                             · @record.Status
                                         </div>
 
+                                        @{ var matchingApplicationIds = Model.FosterApplications
+                                            .Where(a => a.FosteringRecordId == record.Id)
+                                            .Select(a => a.Id).ToHashSet();
+                                           var fosterPapers = Model.Documents.Where(d => d.Category == "Foster"
+                                                && d.FosterApplicationId.HasValue
+                                                && matchingApplicationIds.Contains(d.FosterApplicationId.Value)).ToList(); }
+                                        @if (fosterPapers.Count > 0)
+                                        {
+                                            <div class="record-linked-documents mt-2">
+                                                <strong>Signed foster paperwork:</strong>
+                                                @foreach (var doc in fosterPapers)
+                                                {
+                                                    <a asp-controller="DogDocuments" asp-action="Download" asp-route-id="@doc.Id">@doc.FileName</a>
+                                                }
+                                            </div>
+                                        }
                                         @if (!string.IsNullOrWhiteSpace(record.Feedback))
                                         {
                                             <div class="mt-1">
@@ -545,9 +592,154 @@
 
                         </div>
                     }
-
+                    @{ var linkedFosterIds = Model.FosterApplications.Where(a => a.FosteringRecordId.HasValue)
+                         .Select(a => a.Id).ToHashSet();
+                       var unmatchedFosterDocs = Model.Documents.Where(d => d.Category == "Foster"
+                         && (!d.FosterApplicationId.HasValue || !linkedFosterIds.Contains(d.FosterApplicationId.Value))).ToList(); }
+                    @if (unmatchedFosterDocs.Count > 0)
+                    {
+                        <div class="record-linked-documents mt-3">
+                            <strong>Other foster paperwork:</strong>
+                            @foreach (var document in unmatchedFosterDocs)
+                            {
+                                <a asp-controller="DogDocuments" asp-action="Download" asp-route-id="@document.Id">@document.FileName</a>
+                            }
+                        </div>
+                    }
                 </div>
 
+            </div>
+
+            <div class="tab-pane fade" id="adoption-tab" role="tabpanel"
+                 aria-labelledby="adoption-tab-button" tabindex="0">
+                <div class="portal-card mb-3">
+                    <h5 class="kzn-card-title">Adoption history</h5>
+                    @if (Model.AdoptionHistory.Count == 0)
+                    {
+                        <p class="text-muted mb-0">No adoption records have been entered.</p>
+                    }
+                    else
+                    {
+                        @foreach (var record in Model.AdoptionHistory)
+                        {
+                            <details class="dog-medical-accordion adoption-history-entry">
+                                <summary class="dog-medical-accordion-heading">
+                                    <span class="dog-record-title"><span class="fw-semibold">@record.AdopterName</span><span class="dog-medical-chevron" aria-hidden="true">▸</span></span>
+                                    <span class="dog-medical-summary-meta">
+                                        <span class="text-muted small">@record.CreatedAt.ToString("dd MMM yyyy")</span>
+                                        <span class="kzn-status-badge">@record.Status</span>
+                                    </span>
+                                </summary>
+                                <div class="dog-medical-accordion-body">
+                                    <dl class="adoption-record-details">
+                                        <div><dt>Phone</dt><dd>@record.AdopterPhone</dd></div>
+                                        <div><dt>Email</dt><dd>@(record.AdopterEmail ?? "Not provided")</dd></div>
+                                        <div><dt>Address</dt><dd>@record.AdopterAddress</dd></div>
+                                        @if (record.AdoptedAt.HasValue) { <div><dt>Adopted</dt><dd>@record.AdoptedAt.Value.ToString("dd MMM yyyy")</dd></div> }
+                                        @if (record.ReturnedAt.HasValue) { <div><dt>Returned</dt><dd>@record.ReturnedAt.Value.ToString("dd MMM yyyy")</dd></div> }
+                                    </dl>
+                                    @if (!string.IsNullOrWhiteSpace(record.Notes)) { <p>@record.Notes</p> }
+                                    @if (!string.IsNullOrWhiteSpace(record.ReturnNotes)) { <p><strong>Return notes:</strong> @record.ReturnNotes</p> }
+                                    @{ var papers = Model.Documents.Where(d => d.AdoptionRecordId == record.Id && d.Category == "Adoption").ToList(); }
+                                    <div class="record-linked-documents" data-adoption-files="@record.Id">
+                                        <strong>Signed adoption documents:</strong>
+                                        @if (papers.Count == 0) { <span class="text-muted small">No paperwork uploaded.</span> }
+                                        @foreach (var paper in papers) { <a asp-controller="DogDocuments" asp-action="Download" asp-route-id="@paper.Id">@paper.FileName</a> }
+                                    </div>
+                                    @if (record.Status == "Cancelled")
+                                    {
+                                        <div class="adoption-upload-form mt-3" aria-label="Document uploads disabled for cancelled adoption">
+                                            <label class="form-label">Additional signed documents</label>
+                                            <div class="record-upload-row">
+                                                <input type="file" class="form-control" disabled aria-disabled="true" />
+                                                <button class="btn btn-kzn-outline btn-sm" type="button" disabled>Upload</button>
+                                            </div>
+                                            <p class="text-muted small mb-0 mt-1">Cancelled adoption. Uploads are no longer permitted.</p>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                    <form asp-controller="AdoptionRecords" asp-action="UploadAgreement" method="post" enctype="multipart/form-data" class="adoption-upload-form mt-3" data-adoption-upload="@record.Id">
+                                        <input type="hidden" name="dogId" value="@dog.Id" />
+                                        <input type="hidden" name="recordId" value="@record.Id" />
+                                        <label class="form-label" for="adoption-upload-@record.Id">Additional signed documents (PDF, DOCX or image)</label>
+                                        <div class="record-upload-row">
+                                            <input id="adoption-upload-@record.Id" type="file" name="file" class="form-control" accept=".pdf,.docx,.jpg,.jpeg,.png,.webp,.gif" required />
+                                            <button class="btn btn-kzn-outline btn-sm" type="submit">Upload</button>
+                                        </div>
+                                    </form>
+                                    }
+                                    @if (record.Status == "Pending paperwork")
+                                    {
+                                        @if (papers.Count == 0)
+                                        {
+                                            <p class="text-muted small mb-1 text-end" data-adoption-paperwork-hint="@record.Id">Add signed paperwork to enable confirmation.</p>
+                                        }
+                                        <div class="adoption-record-action mt-3">
+                                            <form asp-controller="AdoptionRecords" asp-action="Cancel" method="post" onsubmit="return confirm('Cancel this pending adoption? This cannot be undone.');">
+                                                <input type="hidden" name="dogId" value="@dog.Id" />
+                                                <input type="hidden" name="recordId" value="@record.Id" />
+                                                <button type="submit" class="btn btn-kzn-outline btn-sm">Cancel adoption</button>
+                                            </form>
+                                            <form asp-controller="AdoptionRecords" asp-action="Confirm" method="post">
+                                                <input type="hidden" name="dogId" value="@dog.Id" />
+                                                <input type="hidden" name="recordId" value="@record.Id" />
+                                                <button type="submit" class="btn btn-kzn-primary btn-sm" data-adoption-confirm="@record.Id" disabled="@(papers.Count == 0)">Confirm adoption</button>
+                                            </form>
+                                        </div>
+                                    }
+                                    else if (record.Status == "Adopted")
+                                    {
+                                        <form asp-controller="AdoptionRecords" asp-action="Return" method="post" class="adoption-return-form mt-3" onsubmit="return confirm('Mark this dog as returned from adoption?');">
+                                            <input type="hidden" name="dogId" value="@dog.Id" />
+                                            <input type="hidden" name="recordId" value="@record.Id" />
+                                            <label class="form-label" for="adoption-return-@record.Id">Return notes (optional)</label>
+                                            <textarea id="adoption-return-@record.Id" name="returnNotes" class="form-control mb-2" rows="2" maxlength="2000"></textarea>
+                                            <div class="adoption-record-action"><button type="submit" class="btn btn-kzn-outline btn-sm">Mark returned</button></div>
+                                        </form>
+                                    }
+
+                                </div>
+                            </details>
+                        }
+                    }
+                </div>
+                @{ var unlinkedAdoptionDocs = Model.Documents.Where(d => d.Category == "Adoption" && !d.AdoptionRecordId.HasValue).ToList(); }
+                @if (unlinkedAdoptionDocs.Count > 0)
+                {
+                    <div class="portal-card mb-3">
+                        <h5 class="kzn-card-title">Previous adoption documents</h5>
+                        <div class="record-linked-documents">
+                            @foreach (var document in unlinkedAdoptionDocs)
+                            {
+                                <a asp-controller="DogDocuments" asp-action="Download" asp-route-id="@document.Id">@document.FileName</a>
+                            }
+                        </div>
+                    </div>
+                }
+                @if (!Model.AdoptionHistory.Any(x => x.Status is "Pending paperwork" or "Adopted") && dog.Status is not ("Fostered" or "Adopted"))
+                {
+                    <div class="portal-card">
+                        <h5 class="kzn-card-title">Add adoption record</h5>
+                        <p class="text-muted small">Record an in-person adoption arrangement. Signed paperwork is required before confirming the adoption.</p>
+                        <form asp-controller="AdoptionRecords" asp-action="Create" method="post" enctype="multipart/form-data" class="adoption-create-form" data-submit-once="true">
+                            <input type="hidden" name="dogId" value="@dog.Id" />
+                            <div class="row g-3">
+                                <div class="col-md-6"><label class="form-label">Adopter name *</label><input name="adopterName" class="form-control" required maxlength="160" /></div>
+                                <div class="col-md-6"><label class="form-label">Phone *</label><input name="adopterPhone" type="tel" class="form-control" required maxlength="30" /></div>
+                                <div class="col-md-6"><label class="form-label">Email *</label><input name="adopterEmail" type="email" class="form-control" required maxlength="180" autocomplete="email" /></div>
+                                <div class="col-md-6"><label class="form-label">Address *</label><input name="adopterAddress" class="form-control" required maxlength="400" /></div>
+                                <div class="col-12"><label class="form-label">Staff notes (optional)</label><textarea name="notes" class="form-control" rows="2" maxlength="2000"></textarea></div>
+                                <div class="col-12">
+                                    <label class="form-label" for="new-adoption-papers">Signed documents (optional at creation)</label>
+                                    <input id="new-adoption-papers" name="agreements" type="file" class="form-control" accept=".pdf,.docx,.jpg,.jpeg,.png,.webp,.gif" multiple />
+                                    <div class="form-text">Upload up to 5 files, 10 MB each. You can add more later. A signed agreement is required before confirming.</div>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-kzn-primary mt-3">Create adoption record</button>
+                        </form>
+                    </div>
+                }
             </div>
 
             <div class="tab-pane fade"
@@ -692,4 +884,92 @@
 
     </section>
 
+    @if (Model.Videos.Count > 0)
+    {
+        <section class="portal-card mt-3 dog-detail-documents" aria-label="Uploaded dog videos">
+            <h3 class="h5">Dog videos</h3>
+            <p class="text-muted small">These videos appear only on the public detail page, not in the dog list.</p>
+            <div class="d-flex flex-wrap gap-3">
+                @foreach (var video in Model.Videos)
+                {
+                    <video controls preload="none" playsinline style="width:min(100%,380px);max-height:280px;border-radius:12px" src="@video.PublicUrl"></video>
+                }
+            </div>
+        </section>
+    }
+
+
+
 </div>
+
+<script>
+// Keep the user in the Adoption tab after server redirects and progressively enhance uploads.
+document.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('tab') === 'adoption') {
+    const target = document.getElementById('adoption-tab-button');
+    if (target && window.bootstrap?.Tab) window.bootstrap.Tab.getOrCreateInstance(target).show();
+  }
+  document.querySelectorAll('form[data-adoption-upload]').forEach(form => {
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      if (!form.reportValidity()) return;
+      const recordId = form.dataset.adoptionUpload;
+      const button = form.querySelector('button[type="submit"]');
+      const previousLabel = button?.textContent;
+      if (button) { button.disabled = true; button.textContent = 'Uploading…'; }
+      try {
+        const response = await fetch(form.action, {
+          method: 'POST',
+          body: new FormData(form),
+          headers: { 'Accept': 'application/json' },
+          credentials: 'same-origin'
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.message || 'Upload failed.');
+        const attachments = document.querySelector(`[data-adoption-files="${recordId}"]`);
+        if (attachments) {
+          attachments.replaceChildren();
+          const label = document.createElement('strong');
+          label.textContent = 'Signed adoption documents:';
+          attachments.appendChild(label);
+          (data.documents || []).forEach(file => {
+            if (!file.url || !file.name) return;
+            const link = document.createElement('a');
+            link.href = file.url;
+            link.textContent = file.name;
+            attachments.appendChild(link);
+          });
+          const confirm = document.querySelector(`[data-adoption-confirm="${recordId}"]`);
+          if (confirm && data.documents?.length) confirm.disabled = false;
+          const hint = document.querySelector(`[data-adoption-paperwork-hint="${recordId}"]`);
+          if (hint && data.documents?.length) hint.remove();
+        }
+        form.reset();
+        // Announce success without moving from the expanded record.
+        let status = form.querySelector('[data-upload-status]');
+        if (!status) {
+          status = document.createElement('span');
+          status.dataset.uploadStatus = 'true';
+          status.setAttribute('role', 'status');
+          status.className = 'small ms-2';
+          form.appendChild(status);
+        }
+        status.textContent = 'Document uploaded.';
+      } catch (error) {
+        let status = form.querySelector('[data-upload-status]');
+        if (!status) {
+          status = document.createElement('span');
+          status.dataset.uploadStatus = 'true';
+          status.setAttribute('role', 'alert');
+          status.className = 'small text-danger ms-2';
+          form.appendChild(status);
+        }
+        status.textContent = error.message || 'Upload failed. Please try again.';
+      } finally {
+        if (button) { button.disabled = false; button.textContent = previousLabel; }
+      }
+    });
+  });
+});
+</script>

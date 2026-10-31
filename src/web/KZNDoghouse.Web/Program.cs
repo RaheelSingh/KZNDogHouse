@@ -29,6 +29,8 @@ builder.Services.AddResponseCompression(options =>
     options.EnableForHttps = true;
 });
 
+builder.Services.AddMemoryCache();
+
 builder.Services.AddScoped<
     ISupabaseClientFactory,
     SupabaseClientFactory>();
@@ -36,6 +38,10 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     IAuthService,
     AuthService>();
+
+builder.Services.AddSingleton<
+    IPasswordResetStateService,
+    PasswordResetStateService>();
 
 builder.Services.AddScoped<
     IApiAuthenticationService,
@@ -62,7 +68,9 @@ builder.Services
         options.SlidingExpiration = true;
         options.Cookie.HttpOnly = true;
         options.Cookie.SameSite = SameSiteMode.Lax;
-        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+            ? CookieSecurePolicy.SameAsRequest
+            : CookieSecurePolicy.Always;
         options.EventsType = typeof(AuthCookieEvents);
     });
 
@@ -118,6 +126,19 @@ builder.Services.AddRateLimiter(options =>
                 }));
 
     options.AddPolicy(
+        RateLimitPolicies.PasswordReset,
+        context =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: GetClientKey(context),
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 10,
+                    Window = TimeSpan.FromMinutes(15),
+                    QueueLimit = 0,
+                    AutoReplenishment = true
+                }));
+
+    options.AddPolicy(
         RateLimitPolicies.Api,
         context =>
             RateLimitPartition.GetFixedWindowLimiter(
@@ -148,13 +169,15 @@ builder.Services.AddRateLimiter(options =>
             return;
         }
 
-        var isRegister =
-            context.HttpContext.Request.Path
-                .StartsWithSegments(
-                    "/Auth/Register");
+        var path = context.HttpContext.Request.Path;
 
-        var target = isRegister
-            ? "/Auth/Register?rateLimited=true"
+        var target =
+            path.StartsWithSegments("/Auth/Register")
+                ? "/Auth/Register?rateLimited=true"
+            : path.StartsWithSegments("/Auth/ForgotPassword")
+                ? "/Auth/ForgotPassword?rateLimited=true"
+            : path.StartsWithSegments("/Auth/ResetCode")
+                ? "/Auth/ResetCode?rateLimited=true"
             : "/Auth/Login?rateLimited=true";
 
         context.HttpContext.Response.Redirect(target);
@@ -169,7 +192,11 @@ builder.Services.AddScoped<IDogService, DogService>();
 builder.Services.AddScoped<IDogMedicalRecordRepository, DogMedicalRecordRepository>();
 builder.Services.AddScoped<IDogNoteRepository, DogNoteRepository>();
 builder.Services.AddScoped<IDogMedicalService, DogMedicalService>();
+builder.Services.AddScoped<IDogDocumentService, DogDocumentService>();
+builder.Services.AddScoped<IDogVideoService, DogVideoService>();
+builder.Services.AddScoped<IMedicalAlertService, MedicalAlertService>();
 builder.Services.AddScoped<IFosteringRecordRepository, FosteringRecordRepository>();
+builder.Services.AddScoped<IAdoptionRecordRepository, AdoptionRecordRepository>();
 builder.Services.AddScoped<IFosteringService, FosteringService>();
 builder.Services.AddScoped<IAvailabilitySlotRepository, AvailabilitySlotRepository>();
 builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
@@ -202,6 +229,9 @@ app.Use(async (context, next) =>
 {
     context.Response.Headers["X-Content-Type-Options"] = "nosniff";
     context.Response.Headers["X-Frame-Options"] = "DENY";
+    context.Response.Headers["X-Permitted-Cross-Domain-Policies"] = "none";
+    context.Response.Headers["Permissions-Policy"] =
+        "camera=(), microphone=(), geolocation=()";
     context.Response.Headers["Referrer-Policy"] =
         "strict-origin-when-cross-origin";
 
