@@ -5989,3 +5989,7 @@ label.is-required::after {
 .vet-form-card form > button[type="submit"] { display:block; margin-left:auto; }
 .vet-records-card .dog-record-title { display:inline-flex; align-items:center; gap:.45rem; }
 @media (max-width: 620px) { .adoption-record-action { flex-wrap:wrap; } }
+
+/* Medical record submit button stays right-aligned, including narrow viewports. */
+.dog-detail-layout #medical-tab form[enctype="multipart/form-data"] > .d-flex.justify-content-end { width:100%; }
+.vet-form-card form > .vet-record-submit { display:flex; justify-content:flex-end; width:100%; margin-top:1rem; }

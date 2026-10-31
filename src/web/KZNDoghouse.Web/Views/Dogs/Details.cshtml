@@ -376,10 +376,9 @@
                         <label class="form-label mt-2">Supporting document (optional)</label>
                       <input type="file" name="attachment" class="form-control" accept=".pdf,.docx,.jpg,.jpeg,.png,.webp,.gif" />
                       <small class="text-muted">PDF or image, 10 MB maximum</small>
-                      <button type="submit"
-                                class="btn btn-kzn-primary mt-3">
-                            Add record
-                        </button>
+                      <div class="d-flex justify-content-end mt-3">
+                          <button type="submit" class="btn btn-kzn-primary">Add record</button>
+                      </div>
 
                     </form>
 
@@ -647,6 +646,19 @@
                                         @if (papers.Count == 0) { <span class="text-muted small">No paperwork uploaded.</span> }
                                         @foreach (var paper in papers) { <a asp-controller="DogDocuments" asp-action="Download" asp-route-id="@paper.Id">@paper.FileName</a> }
                                     </div>
+                                    @if (record.Status == "Cancelled")
+                                    {
+                                        <div class="adoption-upload-form mt-3" aria-label="Document uploads disabled for cancelled adoption">
+                                            <label class="form-label">Additional signed documents</label>
+                                            <div class="record-upload-row">
+                                                <input type="file" class="form-control" disabled aria-disabled="true" />
+                                                <button class="btn btn-kzn-outline btn-sm" type="button" disabled>Upload</button>
+                                            </div>
+                                            <p class="text-muted small mb-0 mt-1">Cancelled adoption. Uploads are no longer permitted.</p>
+                                        </div>
+                                    }
+                                    else
+                                    {
                                     <form asp-controller="AdoptionRecords" asp-action="UploadAgreement" method="post" enctype="multipart/form-data" class="adoption-upload-form mt-3" data-adoption-upload="@record.Id">
                                         <input type="hidden" name="dogId" value="@dog.Id" />
                                         <input type="hidden" name="recordId" value="@record.Id" />
@@ -656,6 +668,7 @@
                                             <button class="btn btn-kzn-outline btn-sm" type="submit">Upload</button>
                                         </div>
                                     </form>
+                                    }
                                     @if (record.Status == "Pending paperwork")
                                     {
                                         @if (papers.Count == 0)

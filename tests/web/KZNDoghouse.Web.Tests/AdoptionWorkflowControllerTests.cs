@@ -71,6 +71,53 @@ public class AdoptionWorkflowControllerTests
     }
 
     [Fact]
+    public async Task InitialUpload_UsesActualDatabaseIdNotDraftId()
+    {
+        var dogId = Guid.NewGuid();
+        var savedId = Guid.NewGuid();
+        var profileId = Guid.NewGuid();
+        var dogs = new Mock<IDogService>();
+        dogs.Setup(x => x.GetDogAsync(dogId)).ReturnsAsync(new Dog { Id = dogId, Status = DogStatuses.Available });
+        var adoptions = new Mock<IAdoptionRecordRepository>();
+        adoptions.Setup(x => x.GetForDogAsync(dogId)).ReturnsAsync((IReadOnlyList<AdoptionRecord>)Array.Empty<AdoptionRecord>());
+        adoptions.Setup(x => x.CreateAsync(It.IsAny<AdoptionRecord>()))
+            .ReturnsAsync((AdoptionRecord draft) => new AdoptionRecord { Id = savedId, DogId = dogId, Status = draft.Status });
+        var profiles = new Mock<IUserProfileRepository>();
+        profiles.Setup(x => x.GetByAuthUserIdAsync("test-auth")).ReturnsAsync(new UserProfile { Id = profileId });
+        var documents = new Mock<IDogDocumentService>();
+        documents.Setup(x => x.UploadAsync(dogId, null, "Adoption", It.IsAny<IFormFile?>(), profileId, null, savedId))
+            .ReturnsAsync(new DocumentUploadResult(true, "Document uploaded."));
+        var controller = Build(adoptions, dogs, documents, profiles);
+        controller.ControllerContext.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity(new[]
+        { new Claim(ClaimTypes.NameIdentifier, "test-auth") }, "test"));
+        var upload = new Mock<IFormFile>();
+        upload.SetupGet(x => x.Length).Returns(100);
+
+        await controller.Create(dogId, "Test Adopter", "071 234 5678", "Street", "person@example.com", null, [upload.Object]);
+
+        documents.Verify(x => x.UploadAsync(dogId, null, "Adoption", upload.Object, profileId, null, savedId), Times.Once);
+        adoptions.Verify(x => x.SetAdoptedAsync(savedId), Times.Once);
+        dogs.Verify(x => x.ChangeStatusAsync(dogId, DogStatuses.Adopted), Times.Once);
+    }
+
+    [Fact]
+    public async Task CancelledAdoption_RejectsFurtherDocumentUploads()
+    {
+        var dogId = Guid.NewGuid();
+        var recordId = Guid.NewGuid();
+        var repo = new Mock<IAdoptionRecordRepository>();
+        repo.Setup(x => x.GetAsync(recordId)).ReturnsAsync(new AdoptionRecord { Id = recordId, DogId = dogId, Status = "Cancelled" });
+        var documents = new Mock<IDogDocumentService>();
+        var controller = Build(repo, new Mock<IDogService>(), documents, new Mock<IUserProfileRepository>());
+
+        await controller.UploadAgreement(dogId, recordId, new Mock<IFormFile>().Object);
+
+        documents.Verify(x => x.UploadAsync(It.IsAny<Guid>(), It.IsAny<Guid?>(), It.IsAny<string>(),
+            It.IsAny<IFormFile?>(), It.IsAny<Guid>(), It.IsAny<Guid?>(), It.IsAny<Guid?>()), Times.Never);
+        Assert.Equal("Cancelled adoptions cannot accept additional documents.", controller.TempData["ErrorMessage"]);
+    }
+
+    [Fact]
     public async Task CreatingWithoutAgreement_RemainsPendingAndDoesNotChangeDogStatus()
     {
         var dogId = Guid.NewGuid();

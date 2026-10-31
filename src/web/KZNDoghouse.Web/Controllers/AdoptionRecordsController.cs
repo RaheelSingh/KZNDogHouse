@@ -58,7 +58,13 @@ public sealed class AdoptionRecordsController : Controller
             AdopterAddress = adopterAddress.Trim(), Notes = notes?.Trim(),
             CreatedBy = profile.Id, CreatedAt = DateTime.UtcNow, Status = "Pending paperwork"
         };
-        await _adoptions.CreateAsync(record);
+        // Use the ID returned by PostgreSQL, not the draft ID: the Postgrest
+        // model does not send an [PrimaryKey(..., false)] value on insert.
+        // Using the draft ID caused the immediate document FK insertion to fail.
+        var savedRecord = await _adoptions.CreateAsync(record);
+        var savedRecordId = savedRecord.Id;
+        if (savedRecordId == Guid.Empty)
+            throw new InvalidOperationException("The database did not return an adoption record ID.");
         // The record is created pending first, so a failed upload never incorrectly marks a dog Adopted.
         // Staff only submit documents that have already been signed and checked by the shelter.
         var requestedFiles = agreements?.Where(f => f.Length > 0).ToList() ?? [];
@@ -68,7 +74,7 @@ public sealed class AdoptionRecordsController : Controller
             try
             {
                 var result = await _documents.UploadAsync(dogId, null, "Adoption", agreement, profile.Id,
-                    adoptionRecordId: record.Id);
+                    adoptionRecordId: savedRecordId);
                 if (!result.Success) failedUploads.Add(result.Message);
             }
             catch (Exception)
@@ -86,7 +92,7 @@ public sealed class AdoptionRecordsController : Controller
             return await Back(dogId, "Adoption record created as Pending paperwork. Upload the signed agreement to continue.", true);
         try
         {
-            await _adoptions.SetAdoptedAsync(record.Id);
+            await _adoptions.SetAdoptedAsync(savedRecordId);
             await _dogs.ChangeStatusAsync(dogId, DogStatuses.Adopted);
         }
         catch (Exception)
@@ -101,6 +107,8 @@ public sealed class AdoptionRecordsController : Controller
     {
         var record = await _adoptions.GetAsync(recordId);
         if (record == null || record.DogId != dogId) return NotFound();
+        if (record.Status == "Cancelled")
+            return await Back(dogId, "Cancelled adoptions cannot accept additional documents.");
         // Keep records complete through adoption and after a return; never expose these documents publicly.
         var authId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         var profile = string.IsNullOrEmpty(authId) ? null : await _profiles.GetByAuthUserIdAsync(authId);

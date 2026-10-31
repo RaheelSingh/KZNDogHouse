@@ -158,7 +158,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: supaSession.user.email ?? '',
         });
         if (!active) return;
-        setSession(profile);
+        // Public accounts, unapproved volunteers and Vets are not allowed in
+        // the mobile app. Keep the password-recovery session guard above intact.
+        if (profile.role === 'pending') {
+          setSession(null);
+          await supabase.auth.signOut({ scope: 'local' });
+        } else {
+          setSession(profile);
+        }
         setIsLoading(false);
       }, 0);
     });
@@ -174,9 +181,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     recoveringRef.current = false;
     await AsyncStorage.removeItem(RECOVERY_PENDING_KEY).catch(() => undefined);
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
-    // session state updates via onAuthStateChange
+    if (!data.session || !data.user) throw new Error('Your session could not be established.');
+
+    // Authentication is not the same as authorisation. Validate the account
+    // role now rather than admitting anyone with a working Supabase password.
+    const profile = await fetchProfile(data.session.access_token, {
+      id: data.user.id,
+      email: data.user.email ?? email,
+    });
+    if (profile.role === 'pending') {
+      // Only remove THIS phone's session: do not log the user out of the website.
+      await supabase.auth.signOut({ scope: 'local' });
+      setSession(null);
+      throw new Error('The mobile app is for approved volunteers, staff and administrators only. Public and vet accounts should use the website.');
+    }
+    setSession(profile);
   };
 
   const register = async (details: RegisterDetails): Promise<RegisterResult> => {
@@ -214,7 +235,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       id: supaSession.user.id,
       email: supaSession.user.email ?? '',
     });
-    setSession(profile);
+    if (profile.role === 'pending') {
+      await supabase.auth.signOut({ scope: 'local' });
+      setSession(null);
+    } else {
+      setSession(profile);
+    }
   }, []);
 
   const signOut = async () => {

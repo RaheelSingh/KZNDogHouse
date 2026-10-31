@@ -29,16 +29,18 @@ function useNotificationTapNavigation(enabled: boolean) {
 
 function RootNavigator() {
   const { session, isLoading } = useAuth();
-  useNotificationTapNavigation(!isLoading && !!session);
+  // Prevent confidential screens from mounting during an unresolved/denied login.
+  const authorised = !!session && (session.role === 'staff' || session.role === 'volunteer');
+  useNotificationTapNavigation(!isLoading && authorised);
 
   if (isLoading) return null;
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Protected guard={!!session}>
+      <Stack.Protected guard={authorised}>
         <Stack.Screen name="(tabs)" />
       </Stack.Protected>
-      <Stack.Protected guard={!session}>
+      <Stack.Protected guard={!authorised}>
         <Stack.Screen name="(auth)" />
       </Stack.Protected>
     </Stack>
