@@ -10,6 +10,8 @@ using Microsoft.AspNetCore.RateLimiting;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
+builder.Services.AddHttpClient("KznAudit", client => client.Timeout = TimeSpan.FromSeconds(5));
+builder.Services.AddScoped<IWebAuditService, WebAuditService>();
 
 builder.Services.Configure<FormOptions>(options =>
 {
@@ -249,6 +251,9 @@ app.UseRateLimiter();
 app.UseAuthentication();
 
 app.UseAuthorization();
+
+// Audit successful, authenticated web mutations after cookie authentication.
+app.UseMiddleware<WebAuditMiddleware>();
 
 app.MapStaticAssets();
 

@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
+import { colors, radius } from '@/theme';
 
-const GREEN = '#16302a';
 
 type DateFieldProps = {
   label: string;
@@ -10,6 +10,7 @@ type DateFieldProps = {
   onChange: (value: string | null) => void;
   placeholder?: string;
   minimumDate?: Date;
+  maximumDate?: Date;
 };
 
 function toDateOnlyString(date: Date): string {
@@ -32,7 +33,7 @@ function formatDisplay(value: string): string {
   });
 }
 
-export default function DateField({ label, value, onChange, placeholder, minimumDate }: DateFieldProps) {
+export default function DateField({ label, value, onChange, placeholder, minimumDate, maximumDate }: DateFieldProps) {
   const [showPicker, setShowPicker] = useState(false); // iOS only — Android uses the imperative API below
 
   const currentDate = value ? parseDateOnlyString(value) : new Date();
@@ -49,6 +50,7 @@ export default function DateField({ label, value, onChange, placeholder, minimum
           if (selectedDate) onChange(toDateOnlyString(selectedDate));
         },
         minimumDate,
+        maximumDate,
       });
     } else {
       setShowPicker(true);
@@ -77,6 +79,7 @@ export default function DateField({ label, value, onChange, placeholder, minimum
             if (selectedDate) onChange(toDateOnlyString(selectedDate));
           }}
           minimumDate={minimumDate}
+          maximumDate={maximumDate}
         />
       ) : null}
     </View>
@@ -84,16 +87,16 @@ export default function DateField({ label, value, onChange, placeholder, minimum
 }
 
 const styles = StyleSheet.create({
-  label: { fontSize: 12, fontWeight: '600', color: GREEN, marginBottom: 6, marginTop: 10 },
+  label: { fontSize: 12, fontWeight: '600', color: colors.fgMuted, marginBottom: 6, marginTop: 10 },
   input: {
     borderWidth: 1,
-    borderColor: '#d9e0d9',
-    borderRadius: 10,
+    borderColor: colors.line,
+    borderRadius: radius.md,
     paddingHorizontal: 12,
     paddingVertical: 12,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
   },
-  valueText: { fontSize: 13, color: GREEN },
-  placeholderText: { fontSize: 13, color: '#8a9a8f' },
-  clearText: { fontSize: 11, color: '#b3261e', marginTop: 6 },
+  valueText: { fontSize: 13, color: colors.fg },
+  placeholderText: { fontSize: 13, color: colors.fgFaint },
+  clearText: { fontSize: 11, color: colors.dangerSoft, marginTop: 6 },
 });

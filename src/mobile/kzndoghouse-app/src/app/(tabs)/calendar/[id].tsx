@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -25,6 +25,7 @@ import {
   fetchSignupCounts,
   getSignupState,
   hasStarted,
+  hasEnded,
   isActiveAssignment,
   isCheckInOpen,
   signUpForEvent,
@@ -64,6 +65,8 @@ export default function EventDetailScreen() {
   const staff = isStaff(session?.role);
 
   const [event, setEvent] = useState<CalendarEvent | null>(null);
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => { const interval = setInterval(() => setNow(Date.now()), 15000); return () => clearInterval(interval); }, []);
   const [assignments, setAssignments] = useState<EventAssignment[]>([]);
   const [myProfileId, setMyProfileId] = useState<string | null>(null);
   const [signedUpCount, setSignedUpCount] = useState(0);
@@ -276,7 +279,8 @@ export default function EventDetailScreen() {
     if (!title) return setEditError('Title is required.');
     if (title.length > MAX_TITLE_LENGTH) return setEditError(`Title must be ${MAX_TITLE_LENGTH} characters or fewer.`);
     if (!editStartAt) return setEditError('Start date & time is required.');
-    if (editEndAt && new Date(editEndAt).getTime() <= new Date(editStartAt).getTime()) {
+    if (!editEndAt) return setEditError('End date & time is required.');
+    if (new Date(editEndAt).getTime() <= new Date(editStartAt).getTime()) {
       return setEditError('The end time must be after the start time.');
     }
 
@@ -357,11 +361,13 @@ export default function EventDetailScreen() {
     ['Assigned', 'Registered', 'Confirmed'].includes(a.status)
   );
   const checkedInCount = activeAssignments.filter((a) => a.checked_in_at).length;
-  const signupState = getSignupState(event, myAssignment, signedUpCount);
+  const signupState = getSignupState(event, myAssignment, signedUpCount, now);
   const spots = spotsLabel(event, signedUpCount);
-  const started = hasStarted(event);
+  const started = hasStarted(event, now);
+  const ended = hasEnded(event, now);
 
   const renderVolunteerSection = () => {
+    if (ended) return <Text style={styles.bodyText}>This event has ended.{myAssignment?.checked_in_at ? ' You checked in for this event.' : ''}</Text>;
     switch (signupState) {
       case 'joined':
         return (
@@ -415,7 +421,9 @@ export default function EventDetailScreen() {
       case 'full':
         return <Text style={styles.bodyText}>This event is full. Check back later in case a spot opens up.</Text>;
       case 'started':
-        return <Text style={styles.bodyText}>This event has already started.</Text>;
+        return <Text style={styles.bodyText}>This event is ongoing.</Text>;
+      case 'ended':
+        return <Text style={styles.bodyText}>This event has ended.</Text>;
       case 'closed':
       default:
         return <Text style={styles.bodyText}>Sign-ups aren't open for this event.</Text>;
@@ -443,7 +451,8 @@ export default function EventDetailScreen() {
               bg={event.visibility === 'Public' ? '#f3e1c2' : '#dfe4dc'}
               fg={event.visibility === 'Public' ? '#8a5a12' : '#4d5c52'}
             />
-            {signupState === 'joined' ? <Tag label="CONFIRMED" bg={colors.gold} fg={colors.header} /> : null}
+            {ended ? <Tag label="ENDED" bg="#dfe4dc" fg="#4d5c52" /> : started ? <Tag label="ONGOING" bg="#dce9df" fg="#204d36" /> : null}
+            {signupState === 'joined' && !ended ? <Tag label="CONFIRMED" bg={colors.gold} fg={colors.header} /> : null}
             {signupState === 'pending' ? <Tag label="AWAITING REVIEW" bg={colors.gold} fg={colors.header} /> : null}
             {signupState === 'reserve' ? <Tag label="ON STANDBY" bg={colors.gold} fg={colors.header} /> : null}
           </View>
@@ -458,7 +467,7 @@ export default function EventDetailScreen() {
             <ChipGroup options={CATEGORIES} value={editCategory} onChange={setEditCategory} />
             <DateTimeField label="Starts" value={editStartAt} onChange={setEditStartAt} />
             <DateTimeField
-              label="Ends (optional)"
+              label="Ends (required)"
               value={editEndAt}
               onChange={setEditEndAt}
               minimumDate={editStartAt ? new Date(editStartAt) : undefined}

@@ -17,6 +17,7 @@ import {
 import { colors, radius } from '@/theme';
 import { HeroHeader, IconBtn, PillButton, SectionTitle, Tag, UnderlineTabs } from '@/components/ui';
 import { ChipGroup, Field, FieldLabel } from '@/components/form';
+import DateField from '@/components/DateField';
 import type {
   Dog,
   DogImage,
@@ -112,7 +113,7 @@ export default function DogDetailScreen() {
   const [recordType, setRecordType] = useState<MedicalRecordType>('Treatment note');
   const [recordTitle, setRecordTitle] = useState('');
   const [recordDetails, setRecordDetails] = useState('');
-  const [recordNextAction, setRecordNextAction] = useState('');
+  const [recordNextAction, setRecordNextAction] = useState<string | null>(null);
   const [isSavingRecord, setIsSavingRecord] = useState(false);
 
   const load = useCallback(async () => {
@@ -268,13 +269,13 @@ export default function DogDetailScreen() {
         record_type: recordType,
         title: recordTitle.trim(),
         details: recordDetails.trim() || null,
-        next_action_date: recordNextAction.trim() || null,
+        next_action_date: recordNextAction,
         created_by: profileId,
       });
       if (error) throw error;
       setRecordTitle('');
       setRecordDetails('');
-      setRecordNextAction('');
+      setRecordNextAction(null);
       setShowRecordForm(false);
       await load();
     } catch (err) {
@@ -498,11 +499,11 @@ export default function DogDetailScreen() {
                     numberOfLines={3}
                     placeholder="Dosage, vet name, anything relevant"
                   />
-                  <Field
-                    label="Next action date (optional, YYYY-MM-DD)"
+                  <DateField
+                    label="Next action date (optional)"
                     value={recordNextAction}
-                    onChangeText={setRecordNextAction}
-                    placeholder="2026-08-05"
+                    onChange={setRecordNextAction}
+                    placeholder="Select a date"
                   />
                   <View style={styles.buttonRow}>
                     <PillButton label="Cancel" variant="outline" style={styles.flex1} onPress={() => setShowRecordForm(false)} />

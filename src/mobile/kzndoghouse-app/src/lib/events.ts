@@ -10,10 +10,10 @@ const CHECK_IN_OPENS_BEFORE_MS = 60 * 60 * 1000;
 /** Events without an end time are treated as lasting this long (must match SQL). */
 const DEFAULT_EVENT_LENGTH_MS = 12 * 60 * 60 * 1000;
 
-export type SignupState = 'joined' | 'pending' | 'reserve' | 'declined' | 'open' | 'full' | 'closed' | 'started';
+export type SignupState = 'joined' | 'pending' | 'reserve' | 'declined' | 'open' | 'full' | 'closed' | 'started' | 'ended';
 
 type EventTiming = Pick<CalendarEvent, 'start_at' | 'end_at'>;
-type EventSignupInfo = Pick<CalendarEvent, 'start_at' | 'volunteer_signup_enabled' | 'max_volunteers'>;
+type EventSignupInfo = Pick<CalendarEvent, 'start_at' | 'end_at' | 'volunteer_signup_enabled' | 'max_volunteers'>;
 
 // ---------------------------------------------------------------------------
 // Pure helpers (no network) - safe to call during render
@@ -25,6 +25,12 @@ export function isActiveAssignment(assignment: Pick<EventAssignment, 'status'> |
 
 export function hasStarted(event: Pick<CalendarEvent, 'start_at'>, now: number = Date.now()): boolean {
   return new Date(event.start_at).getTime() <= now;
+}
+
+export function hasEnded(event: EventTiming, now: number = Date.now()): boolean {
+  const start = new Date(event.start_at).getTime();
+  const end = event.end_at ? new Date(event.end_at).getTime() : start + DEFAULT_EVENT_LENGTH_MS;
+  return now >= end;
 }
 
 export function isCheckInOpen(event: EventTiming, now: number = Date.now()): boolean {
@@ -39,6 +45,7 @@ export function getSignupState(
   signedUpCount: number,
   now: number = Date.now()
 ): SignupState {
+  if (hasEnded(event, now)) return 'ended';
   if (myAssignment?.status === 'Pending') return 'pending';
   if (myAssignment?.status === 'Reserve') return 'reserve';
   if (myAssignment?.status === 'Declined') return 'declined';

@@ -16,6 +16,7 @@ public class CalendarController : Controller
     private readonly IEventRegistrationService _eventRegistrationService;
     private readonly IMediaStorageService _mediaStorageService;
     private readonly ILogger<CalendarController> _logger;
+    private readonly IWebAuditService _webAudit;
 
     public CalendarController(
         ICalendarEventService calendarEventService,
@@ -23,7 +24,8 @@ public class CalendarController : Controller
         IEventAssignmentRepository eventAssignmentRepository,
         IEventRegistrationService eventRegistrationService,
         IMediaStorageService mediaStorageService,
-        ILogger<CalendarController> logger)
+        ILogger<CalendarController> logger,
+        IWebAuditService webAudit)
     {
         _calendarEventService = calendarEventService;
         _userProfileRepository = userProfileRepository;
@@ -31,6 +33,7 @@ public class CalendarController : Controller
         _eventRegistrationService = eventRegistrationService;
         _mediaStorageService = mediaStorageService;
         _logger = logger;
+        _webAudit = webAudit;
     }
 
     [HttpGet]
@@ -312,6 +315,8 @@ public class CalendarController : Controller
             }
 
             await _calendarEventService.DeleteAsync(id);
+            if (Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var authUserId))
+                await _webAudit.RecordAsync(authUserId, "DELETE", "/Calendar/Delete", 200, id, "calendar_event_deleted");
 
             await _mediaStorageService
                 .DeletePublicImageAsync(calendarEvent.ImagePath);

@@ -55,7 +55,8 @@ export default function AddEventScreen() {
     if (new Date(startAt).getTime() <= Date.now()) {
       return { error: 'The start time must be in the future.', max: null };
     }
-    if (endAt && new Date(endAt).getTime() <= new Date(startAt).getTime()) {
+    if (!endAt) return { error: 'End date & time is required.', max: null };
+    if (new Date(endAt).getTime() <= new Date(startAt).getTime()) {
       return { error: 'The end time must be after the start time.', max: null };
     }
 
@@ -145,7 +146,7 @@ export default function AddEventScreen() {
         minimumDate={new Date()}
       />
       <DateTimeField
-        label="Ends (optional)"
+        label="Ends (required)"
         value={endAt}
         onChange={setEndAt}
         placeholder="Select end date & time"
