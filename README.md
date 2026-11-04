@@ -21,13 +21,15 @@ Team: Raheel Singh, Kaeden Samsunder, Akeev Sivai, Avikar Maharaj and Mohamed Sh
 
 ## About the Project
 
-KZN Doghouse is a dog shelter that used paper records, Google Docs, spreadsheets and messages to run its daily work. We built a digital platform to replace that. It keeps dog records, medical information, fostering, volunteers, events, inventory and user access in one place.
+KZN Doghouse is a dog shelter that previously relied on paper records, Google Docs, spreadsheets and messages for much of its daily work. We built a digital platform to bring those records and activities together. It helps the shelter manage dogs, medical information, fostering, adoptions, volunteers, events, inventory and access to the system.
 
-The platform has three parts that all use the same Supabase database:
+The platform has three connected parts:
 
-- Public website: what visitors see (dogs, fostering, events, contact)
-- Staff portal: for staff, administrators and vets (it is part of the same ASP.NET application as the website)
-- Mobile app: for volunteers and staff
+- Public website: for visitors to learn about the shelter, view dogs and events, make enquiries and apply to foster
+- Staff portal: for staff, administrators and authorised vets to manage the shelter's work. It is part of the same ASP.NET application as the public website
+- Mobile app: an Android-focused app for approved volunteers and staff to view dogs, follow events, manage event participation and receive alerts
+
+All three use the same Supabase project. The website handles its work through ASP.NET services and repositories, while the mobile app uses Supabase directly for many features and calls the ASP.NET API for certain actions.
 
 ---
 
@@ -35,23 +37,24 @@ The platform has three parts that all use the same Supabase database:
 
 There are five user roles:
 
-- Public: browses the public website, and can apply to foster after creating an account
-- Volunteer: uses the mobile app for availability, events and schedules
-- Staff: runs the shelter's day to day work in the portal
-- Administrator: can do everything staff can, and also manages users and roles
-- Vet: can only see the medical information of dogs they have been authorised for
+- Public: browses the website, creates an account and can submit a fostering application
+- Volunteer: uses the mobile app after an administrator approves their volunteer request
+- Staff: manages dogs, events and day-to-day shelter operations through the portal, with selected mobile tools
+- Administrator: has staff access and can also manage accounts, volunteer requests, roles and vet access
+- Vet: uses a separate web area to view and update the medical information of dogs they have been authorised to treat
 
 The main areas of the system are:
 
-- Dogs: records, photos and status (Available, In Care, Under Treatment, Fostered, Reserved, Adopted)
-- Medical records and notes (protected, not shown publicly)
-- Fostering: applications, placements and returns
-- Volunteers: availability slots and approvals
-- Events and calendar: events are either Public or Internal
-- Inventory: items, deliveries, usage, expiry dates and low stock
-- Notifications
+- Dogs: profiles, photos, videos, status, vaccination and sterilisation information
+- Medical care: records, notes, treatment status and supporting documents
+- Fostering: public applications, review, signed agreements, placements and returns
+- Adoptions: adopter details, agreements, confirmations and return history
+- Volunteers: account approval, event applications, confirmed places, standby places and check-in
+- Calendar and events: public and internal events, volunteer shifts and event details
+- Inventory: items, deliveries, usage, adjustments, low-stock levels and expiry information
+- Contact messages, notifications and user access management
 
-The shelter has some rules for foster homes: the property should be fully fenced, the dog needs grass or daily walks on grass, someone should be home day and night, and the dog needs an indoor place to sleep. The foster application form asks about all of these.
+KZN Doghouse has specific requirements for foster homes. The application asks about a fenced property, access to grass or daily walks on grass, someone being home day and night, and an indoor sleeping area for the dog.
 
 ---
 
@@ -61,20 +64,24 @@ Website and API:
 
 - ASP.NET Core MVC on .NET 10 (C#)
 - Razor views, Bootstrap, CSS and JavaScript
-- xUnit and Moq for tests
+- Controllers, services and repositories to keep the code organised
+- xUnit and Moq for automated web tests
 
 Mobile app:
 
 - React Native with Expo (SDK 57) and TypeScript
-- Expo Router for the screens
-- Supabase JavaScript client
+- Expo Router for navigation
+- Supabase JavaScript client, with Realtime updates on selected screens
+- Expo Application Services (EAS) for Android builds
 
 Backend services:
 
-- Supabase: PostgreSQL database, authentication and file storage
-- Firebase Cloud Messaging: push notifications (Android)
-- Render: hosting, using Docker
-- GitHub Actions: builds and tests every pull request
+- Supabase: PostgreSQL database, authentication, file storage and Realtime
+- Firebase Cloud Messaging: Android push notifications
+- Supabase Edge Function: `send-push` for push delivery
+- Render: hosting the website and API with Docker
+- GitHub Actions: web build/tests and mobile checks
+- Google Maps Embed: optional map on the Contact page
 
 ---
 
@@ -84,28 +91,30 @@ Backend services:
 KZNDoghouse.sln
 render.yaml
 .github/workflows
-  -> ci.yml (builds the website and runs the tests)
+  -> ci.yml (web build/tests and mobile checks)
   -> autograde.yaml (course autograder)
 
 src/web/KZNDoghouse.Web
-  -> Controllers (pages and the REST API)
-  -> Services (business rules)
-  -> Repositories (database queries)
+  -> Controllers (website, portal and REST API)
+  -> Services (business rules and workflows)
+  -> Repositories (database access)
   -> Models, DTOs, Constants, Helpers
-  -> Views (public site, staff portal, login)
-  -> Database/schema.sql (all tables, the sign-up trigger, storage buckets)
-  -> wwwroot (css, js, images)
+  -> Views (public site, staff portal, vet area and authentication)
+  -> Database/schema.sql (database tables and selected database functions/policies)
+  -> wwwroot (styles, scripts and images)
   -> Dockerfile
 
 src/mobile/kzndoghouse-app
-  -> src/app (one file per screen)
+  -> src/app (Expo Router screens)
   -> src/components, src/context, src/lib, src/types
   -> app.json, eas.json, package.json
 
+supabase/functions/send-push (push notification Edge Function)
 tests/web/KZNDoghouse.Web.Tests
+tests/mobile/event-lifecycle-smoke.cjs
 ```
 
-The website follows one pattern everywhere: a controller receives the request, a service applies the rules, and a repository talks to the database. Pages never query the database directly.
+The website follows a controller, service and repository structure. The mobile app is different: many of its screens read or update Supabase directly using the signed-in user's session. This means the database's access policies and functions are an important part of mobile security, not just the rules in the website.
 
 ---
 
@@ -115,31 +124,36 @@ The website follows one pattern everywhere: a controller receives the request, a
 
 - Git
 - .NET 10 SDK (check with `dotnet --version`)
-- Node.js and npm (mobile app only)
-- An Android phone or emulator (mobile app only)
-- A Supabase project (ours, or your own free one)
+- Node.js 22 and npm (for the mobile app)
+- An Android phone or emulator (for the mobile app)
+- Access to the configured KZN Doghouse Supabase project, or a Supabase project you have set up yourself
 - Docker Desktop (optional)
+- Access to the team's Expo/EAS project if you want to create native Android builds
 
 ### 1. Get the code
 
 ```bash
 git clone https://github.com/EMKNDW/insy7315-g1-2026-wil-g1-project-st10321249.git
 cd insy7315-g1-2026-wil-g1-project-st10321249
-git checkout develop
 ```
 
-The website is on the `develop` branch. The newest mobile app code is on the `mobile-core` branch and has not been merged into `develop` yet (see Known Issues).
+The final web and mobile source code is together in the uploaded `main` branch version. You do not need to switch to `mobile-core` to run the mobile app. The other branches are still part of the team's development history.
 
 ### 2. Set up Supabase
 
-If you do not have access to our Supabase project, create a free project at supabase.com.
+The simplest option is to use the team's existing Supabase project, with access provided by an administrator. It already contains database configuration that the mobile app expects.
 
-1. In the Supabase dashboard open SQL Editor and click New query.
-2. Paste in all of `src/web/KZNDoghouse.Web/Database/schema.sql` and press Run. It is safe to run more than once. It creates the tables, the sign-up trigger and two storage buckets (`public-media` for dog and event photos, and `private-files`).
-3. Open Project Settings, then API Keys, and copy the Project URL, the anon (publishable) key and the service role (secret) key.
-4. Make your first administrator. New accounts are always created as Public, and only an Administrator can change roles, so the first one is set by hand: open the Table Editor, open `user_profiles`, and change the `role` of your account to Administrator.
+For a separate project:
 
-Keep the service role key private. It skips all database security, so only the website's server uses it. It must never go into the mobile app or into Git. The mobile app only gets the Project URL and the anon key.
+1. Create a Supabase project at supabase.com.
+2. Read `src/web/KZNDoghouse.Web/Database/schema.sql` and take a backup before running it against an existing database. Use the Supabase SQL Editor to apply it.
+3. Set up the remaining mobile database functions, permissions and storage policies needed by the app. **The checked-in `schema.sql` is not a complete, one-command setup for a brand-new mobile backend.** Some functions and access rules exist in the team's configured Supabase project rather than in that file.
+4. In Supabase, copy the Project URL, the anon/publishable key and the service role key.
+5. Create your first account and make it an Administrator through a trusted database administration process. Normal registration does not let people grant themselves staff or administrator access.
+
+The schema includes the main application tables, sign-up handling, volunteer event functions and storage buckets for public media, private files, dog documents and videos. The mobile app also calls functions such as `current_profile_info`, `current_profile_id`, `register_device`, `deactivate_device`, `get_profile_names` and `check_in_to_event`. Those are not all defined in the checked-in schema. A fresh Supabase project needs the matching database setup before all mobile features will work.
+
+Keep the service role key private. Only trusted server-side code should use it. Never add it to the mobile `.env` file or commit it to Git. The mobile app uses the Project URL and anon/publishable key, with access controlled by the user's session and database rules.
 
 ### 3. Run the website
 
@@ -151,56 +165,76 @@ dotnet user-secrets set "Supabase:ServiceRoleKey" "your service role key"
 dotnet run
 ```
 
-Open http://localhost:5210. User secrets are stored outside the repository, so the keys cannot be committed by accident.
+Open http://localhost:5210. The exact address is also shown in the terminal. User secrets are stored outside the project files.
 
-To check that the app started without needing Supabase, open http://localhost:5210/api/health. It should return a small JSON message saying the API is healthy.
+You can check the application health endpoint at http://localhost:5210/api/health. It returns a JSON response showing that the API is running; it does not test every Supabase feature.
 
-The Contact page can show a Google map if you also set `GoogleMaps:EmbedApiKey` the same way. This is optional.
+The Contact page can show a Google map if you also set `GoogleMaps:EmbedApiKey`. This is optional.
 
 ### 4. Run the tests
 
-From the root of the repository:
+From the repository root:
 
 ```bash
 dotnet test tests/web/KZNDoghouse.Web.Tests
 ```
 
-At the time of writing this runs 185 tests. They use fake data instead of Supabase, so no keys are needed.
+The web tests cover areas such as dogs, public visibility, adoption and fostering workflows, volunteer event registration, inventory, calendar events, validation and API responses. Most use test data rather than a live Supabase connection.
+
+For the mobile checks, first install the mobile dependencies as shown in Step 6, then run these commands from the mobile app folder:
+
+```bash
+npx tsc --noEmit
+npx --yes expo-doctor@1.21.5
+```
+
+There is also a small event lifecycle test. Run this from the repository root after installing the mobile dependencies:
+
+```bash
+node tests/mobile/event-lifecycle-smoke.cjs
+```
 
 ### 5. Run with Docker (optional)
+
+From the repository root:
 
 ```bash
 docker build -f src/web/KZNDoghouse.Web/Dockerfile -t kzn-doghouse-web .
 docker run -p 10000:10000 -e Supabase__Url="https://your-project.supabase.co" -e Supabase__AnonKey="your anon key" -e Supabase__ServiceRoleKey="your service role key" kzn-doghouse-web
 ```
 
-Open http://localhost:10000. This is the same Dockerfile that Render uses.
+Open http://localhost:10000. This uses the same web Dockerfile as Render.
 
 ### 6. Run the mobile app
 
+From the repository root:
+
 ```bash
-git checkout mobile-core
 cd src/mobile/kzndoghouse-app
-npm install
+npm ci --legacy-peer-deps
 ```
 
-Copy `.env.example` to `.env` (`copy` on Windows, `cp` on Mac or Linux) and fill in:
+Copy `.env.example` to `.env` and fill in:
 
 - `EXPO_PUBLIC_SUPABASE_URL`: the Supabase Project URL
-- `EXPO_PUBLIC_SUPABASE_ANON_KEY`: the anon key only
-- `EXPO_PUBLIC_API_BASE_URL`: the address of the website. If you run the website on your own computer and test on a real phone, use your computer's IP address instead of localhost, and start the website with `dotnet run --urls http://0.0.0.0:5210`.
+- `EXPO_PUBLIC_SUPABASE_ANON_KEY`: the anon/publishable key, **not** the service role key
+- `EXPO_PUBLIC_API_BASE_URL`: the web API address used for role lookup and API-based features such as dog video uploads
 
-Then start the app and scan the QR code with Expo Go, or press `a` for an Android emulator:
+If you run the website on your computer and test on a real phone, use an address your phone can reach. `localhost` on the phone refers to the phone itself, not your laptop. Dog video uploads require a reachable **HTTPS** API address.
+
+Start the Expo development server:
 
 ```bash
 npx expo start
 ```
 
-Notes:
+You can use Expo Go for general screen testing, or open the app on an Android emulator. Expo Go does not support the app's remote push notification setup. For native Android functionality, use an EAS development or preview build, for example:
 
-- `npm install` uses the `.npmrc` file in the app folder, which sets `legacy-peer-deps=true` so npm does not fail on peer dependency errors.
-- Expo Go does not support push notifications. To test them you need a development build: run `npx eas-cli build --profile development --platform android`, install the APK on the phone, then run `npx expo start --dev-client`. The Expo project belongs to the team's Expo account (see `owner` in `app.json`), so your Expo account must be added to it first.
-- Push notifications only work on Android at the moment.
+```bash
+npx eas-cli build --profile development --platform android
+```
+
+You need access to the Expo project listed in `app.json`, and native push notifications also require working Firebase, Supabase token registration and Edge Function configuration. Push notifications are currently Android-only.
 
 ---
 
@@ -208,130 +242,143 @@ Notes:
 
 ### Public website
 
-Anyone can open these pages. Only the foster application needs a signed-in account.
+Visitors can use the public pages without signing in. A signed-in account is needed to submit a foster application.
 
-- Home: the shelter's story, the petition link, the newest dogs and ways to help
-- Meet the Dogs: dogs that are Available or Fostered, with size and status filters, sorting and a Load more button. Each dog has its own page with photos and details
-- Foster: how fostering works, what you need, dogs that need a foster, a FAQ and the application form
-- Get Involved: ways to help, the next events and partnership information
-- Events: upcoming and past public events, with category filters
-- Contact: a contact form, the shelter's details and a map
-- Login, Register and Privacy pages
+- Home: the shelter's story, featured dogs, the petition link and ways to help
+- Our Dogs: public dog profiles with status and size filters, sorting, photos and individual dog pages. Uploaded dog videos can also be shown on their pages
+- Foster: fostering information, requirements, frequently asked questions and an application form
+- Get Involved: volunteer and support information, events and partnerships
+- Events: public events, dates and category filters
+- Contact: shelter information, a contact form and an optional map
+- Login, Register, Forgot Password, Privacy and Account Deletion information
 
-How the public pages protect data:
-
-- Only Available and Fostered dogs are shown. The pages use small view models, so internal fields like kennel location and intake details are never sent to the browser.
-- Only events marked Public are shown.
-- Foster applications are saved to the database and linked to the signed-in person. A person can only have one open application at a time, and cannot apply for a dog that is already in foster care.
-- Contact messages are saved to the database. A hidden spam trap field on the form means bots that fill it in are ignored.
-- All forms are checked on the server as well as in the browser, and use anti-forgery tokens.
+Only dogs approved for public display and events marked Public are shown on these pages. Internal dog records and medical details are handled separately. Foster applications are linked to the signed-in applicant and saved for staff review, while contact enquiries go into the staff inbox.
 
 ### Staff portal
 
-For Staff and Administrators. It opens on a dashboard, with a menu to everything else.
+Staff and Administrators sign in through the website and open the internal portal. The dashboard and sidebar give access to the main areas.
 
-- Dogs: add and edit dogs, change status, search and filter. Up to 10 photos per dog (5 MB each, jpg, png or webp) with a main photo. Medical records, notes and returning a dog from fostering.
-- Calendar: create Public or Internal events with a picture. Creating an event notifies the active volunteers.
-- Availability: approve or reject the slots volunteers submit.
-- Inventory: items with quantity, unit, low stock level and a picture. Deliveries, usage and adjustments are recorded together with who made them.
-- Foster applications: approving one starts a fostering record and notifies the applicant. Rejecting needs a reason, which is sent to the applicant.
-- Notifications: unread count, mark as read.
-- Users and Access (Administrators only): change roles, switch accounts on or off, approve or reject volunteer requests. You cannot change your own role.
-- Vet access (Administrators only): choose which dogs each vet can see.
+- Dogs: create and edit profiles, update status, add photos and videos, manage basic health information and view a dog's history
+- Medical records: add treatment information and notes, attach supporting files, track active or resolved records and review medical alerts
+- Fostering: review application answers, assign a dog, upload signed agreements, confirm or reject applications and record returns
+- Adoptions: record adopter details, upload an agreement, confirm or cancel a placement and record a return where needed
+- Calendar: create Public or Internal events, set volunteer sign-up details and manage event information
+- Volunteers: review event applications and mark volunteers as Confirmed, Reserve (standby) or Declined, subject to the event's capacity
+- Inventory: manage items, quantities, images, deliveries, usage and adjustments, with low-stock and expiry information
+- Contact Inbox: read visitor messages and update their status
+- Notifications: view alerts and mark or clear them
+- Users & Access (Administrators only): manage roles and active accounts, approve or reject volunteer requests, and control vet permissions
+
+Private dog files include medical attachments and signed foster/adoption documents. They are stored separately from public photos and videos, with access checked when files are requested.
 
 ### Vet area
 
-Vets cannot open the general portal. They get their own pages showing only the dogs they are authorised for, where they can read details and add medical records.
+Vets do not receive general staff portal access. They open a separate web area containing only dogs assigned to them by an Administrator. They can review relevant medical records, download authorised medical attachments and add medical records, including supporting documents.
 
 ### Mobile app
 
-The app is for volunteers and staff. Anyone who is not Staff or an Administrator is treated as a volunteer.
+The current app is aimed at approved volunteers and Staff/Administrators on Android. It has five main tabs: Home, Dogs, Calendar, Alerts and Profile.
 
-- Sign in and register (volunteers register in two steps: details, then availability and interests)
-- Home: who is on duty today, dogs that need attention and today's schedule
-- Dogs: searchable list and a dog page with details, photos, medical flags, notes and fostering history. Staff can add dogs with a photo from the camera or gallery, manage photos, and add notes and medical records.
-- Calendar: a week strip with filters. Volunteers can sign up for an event and cancel. Staff can create and edit events, which notifies the volunteers.
-- Availability: volunteers tap the slots they can work each week, and staff approve them.
-- Alerts: notifications list with mark as read. Tapping a push notification opens the right screen.
-- Profile: shift numbers, contact details and sign out.
+- Sign in and registration: two-step volunteer application, account approval checks and email-based password recovery
+- Home: a view of the shelter's day, dog and event information, and the signed-in volunteer's next relevant shift or check-in
+- Dogs: browse, search and filter dogs. Staff can add dog profiles, upload photos or a video, manage images and add permitted notes or medical records
+- Calendar: browse events by week and category, see event details and volunteer shifts, and apply for an event or withdraw an application
+- Event places: volunteers can see whether an application is Pending, Confirmed, on standby or Declined. Confirmed volunteers can check in when the event's check-in window opens
+- Staff event tools: create or edit events, manage event details and remove a volunteer from an event where permitted
+- Alerts: read, mark as read or clear notifications; supported push notifications can open the relevant screen
+- Profile: view personal account information, event participation totals and sign out
 
-Most of the app reads and writes Supabase directly with the user's login. It only calls the website for `/api/me`, which returns the user's role.
+The app uses Supabase Realtime and screen refreshes for selected updates. It also uses Supabase database functions for volunteer event actions and check-in. Those functions and policies must be present in the configured database for the screens to work correctly.
+
+The older separate weekly availability feature still has models and API code in the repository, but it is not a tab in the current mobile app. The current volunteer experience centres on applying for scheduled events and shifts.
 
 ### REST API
 
-The API is part of the same ASP.NET application. Every response has `success`, `message` and `data`.
+The REST API runs inside the ASP.NET application. Most API responses use a `success`, `message` and `data` format.
 
-- `GET /api/health` is the health check (no login)
-- `GET /api/me` returns the name, email and role for the signed-in user
-- `/api/mobile/...` endpoints for dogs, events, availability, notifications and event registration. The caller sends the user's Supabase access token as a Bearer token.
+- `GET /api/health`: public application health endpoint
+- `GET /api/me`: looks up the signed-in user's profile and role from a Supabase Bearer token
+- `/api/mobile/...`: protected endpoints for dogs, events, availability, notifications and event registration
+- `POST /api/mobile/dogs/{dogId}/videos`: protected staff video upload endpoint
+
+Most mobile screens use the Supabase client directly rather than calling all these REST endpoints. The API endpoints remain available for supported workflows and server-validated actions.
 
 ---
 
 ## Security
 
-- Passwords are never stored by the website. Supabase Auth handles them. After login the website keeps an HttpOnly cookie session that lasts 8 hours.
-- Roles are checked on the server for every portal page. Hiding a link is not the only protection.
-- A public user cannot choose their own role when registering. The database trigger always creates a Public account.
-- Login, register and the API are rate limited (login 10 tries per 5 minutes, register 5 per 10 minutes, API 120 requests per minute).
-- Responses include the security headers `X-Content-Type-Options`, `X-Frame-Options` and `Referrer-Policy`. The site redirects to HTTPS, and Production also uses HSTS.
-- Every database table has row level security switched on, and normal logged-in users get no direct table access. The website's server code does the database work with the service role key.
-- Secrets are kept out of Git. The repository only has `.env.example` files showing the names of the values.
+- Supabase Auth manages passwords and authentication. The website uses an HttpOnly cookie session after login, with an eight-hour expiry and sliding renewal.
+- The web portal checks user roles on the server, not only by hiding buttons. Administrator and vet features have separate access checks.
+- A public or pending volunteer cannot grant themselves an elevated role during registration. Mobile sign-in also checks for an approved, active account.
+- Web login, registration, password reset and API requests have rate limits. The site uses anti-forgery protection for form submissions.
+- The site uses HTTPS redirection and security headers, with HSTS outside Development.
+- Private medical and document access is restricted by role and dog authorisation. Mobile direct database access also depends on properly configured Supabase Row Level Security and database functions.
+- The service role key is kept on the server. Mobile code uses only client-safe configuration values.
+- The web project includes audit logging for authenticated changes, but the matching database audit routines must also be installed for those records to be stored.
 
 ---
 
 ## Testing and Deployment
 
-Tests:
+Tests and checks:
 
-- 185 automated tests in `tests/web/KZNDoghouse.Web.Tests`. They cover the business rules (public dog visibility, filters, foster applications, events, contact messages, inventory, availability and more) and a check of the health endpoint.
+- Automated .NET tests cover the web services, controllers and important business rules.
+- A GitHub Actions workflow builds and tests the web project, checks mobile TypeScript and runs Expo Doctor.
+- The mobile repository also contains an event lifecycle smoke test for event status and check-in timing rules.
+- Native Android behaviour, push notifications and integrations with the live Supabase project still need device and service-level testing. Source code checks alone cannot verify these external services.
 
 GitHub Actions:
 
-- `ci.yml` runs on every push and pull request to `develop`, `test` and `main`. It builds the solution in Release mode, runs the tests and uploads the results.
-- `autograde.yaml` is the course autograder and runs when `main` is pushed.
+- `.github/workflows/ci.yml` runs for pushes and pull requests involving `develop`, `test`, `main` and `web-foundation`.
+- `.github/workflows/autograde.yaml` runs the course autograder on pushes to `main` and on `submit/*` tags.
 
 Render:
 
-- `render.yaml` describes one Docker web service called `kzn-doghouse`. It deploys from `develop` after the GitHub checks pass, and Render checks `/api/health` to see that it is running.
-- The keys are not in the file. They are set in the Render dashboard as `Supabase__Url`, `Supabase__AnonKey`, `Supabase__ServiceRoleKey` and `GoogleMaps__EmbedApiKey`.
-- It is on the free plan, so the first request after a quiet period can be slow.
+- `render.yaml` defines the `kzn-doghouse` Docker web service, with `main` as the deployment branch.
+- Render checks `/api/health` and can deploy after the required checks pass.
+- Supabase and Google Maps values are configured in the Render environment, not stored as working secrets in the repository.
+- The configuration uses Render's free plan, so a site that has been idle may take longer to respond on the first request.
+
+Android builds:
+
+- `eas.json` contains development and preview APK build profiles, plus a production build profile.
+- The app is connected to the team's Expo/EAS project and has Android Firebase configuration.
+- The Android release workflow uses EAS builds and Google Play Console. Internal testing and signed build configuration should not be confused with a public Play Store release.
 
 ---
 
 ## Team and Workflow
 
-The work was split like this:
+The main areas of work were divided as follows:
 
-- Raheel: the foundation, login, roles and access control, shared layouts, and the deployment setup
-- Akeev: the public website and the code behind it
-- Avikar: the staff portal operations (dogs, medical, calendar, availability, fostering, inventory)
-- Kaeden and Mohamed: the mobile app
+- Raheel: web foundation, authentication and access, shared styling, Google Maps, Supabase and Render integration
+- Akeev: the public website pages and related features
+- Avikar: staff portal operations, including dogs, fostering, events, volunteers and inventory
+- Kaeden: mobile app structure, navigation and core screens
+- Mohamed: mobile authentication, Supabase integration, notifications and other mobile features
 
-Branches:
+Branches used during development:
 
-- `main`: the stable version
-- `develop`: where finished work is joined together
-- `test`: for testing the joined system before `main`
-- `web-foundation`, `web-public`, `web-operations`, `mobile-core`, `mobile-features`: one branch per area of work
+- `main`: the final integrated branch in the uploaded project
+- `develop`: shared integration work during development
+- `test`: testing changes before release
+- `web-foundation`, `web-public`, `web-operations`, `mobile-core`, `mobile-features`: work split by area
 
-Everyone works on their own branch, opens a pull request into `develop`, and a teammate reviews it:
+We developed features on separate branches, used pull requests to combine changes and checked the integrated system before moving changes into `main`.
 
-```text
-member branch -> pull request -> review -> develop -> test -> main
-```
-
-Commit messages say what was done, for example `feat: add foster application form`, `fix: correct event visibility logic`, `test: add authentication tests` or `docs: update setup instructions`.
+Commit messages describe the work done, for example `feat: add foster application form`, `fix: correct event visibility logic`, `test: add authentication tests` or `docs: update setup instructions`.
 
 ---
 
 ## Known Issues
 
-We want to be upfront about what is not finished or does not fully match yet.
+The project is substantially more complete than it was in Part 2, but there are still a few setup and release limitations worth knowing about:
 
-- The mobile app and the database setup do not fully match. The app calls five database functions (`current_profile_id`, `current_profile_info`, `register_device`, `get_profile_names` and `notify_event_created`) that are not in `schema.sql`, and the schema has no table for phone push tokens. The schema also gives logged-in users no direct table access, while the app reads tables directly. So a new Supabase project built only from `schema.sql` will not work with the app until those functions and access rules are added to the file.
-- Mobile registration does not reach the volunteer approval list. The app sends `role: volunteer`, but the sign-up trigger now only looks at `volunteer_interest`, so app registrations become Public accounts with no pending request for an administrator.
-- The mobile app is on `mobile-core` and `mobile-features`, not in `develop`. The two branches have drifted apart (for example they use different Android package names) and need to be merged.
-- The app has no Forgot password feature, and push notifications are Android only.
-- Contact messages can only be read in the Supabase Table Editor. There is no staff screen for them yet.
-- The staff foster applications screen does not show the saved home and preference answers, only the applicant, dog, date and status.
-- Some figures on the public pages came from the design and still need to be confirmed by the shelter (for example "800+ dogs" and "120 active volunteers"). The shelter's opening hours are not shown.
+- **A fresh Supabase installation needs additional setup.** `schema.sql` includes the main tables and several important fixes, but it does not include every function, grant, policy and audit routine used by the configured project. In particular, mobile profile lookup, device registration, participant names and event check-in depend on database functions that are not all defined in that file. The app should not be described as ready to run against an empty Supabase project without those additions.
+- **Mobile availability has changed from the original design.** There is no separate weekly availability screen in the current mobile navigation. Volunteers currently use event applications, confirmed places, standby places and scheduled shifts. Older availability services and API endpoints are still in the code.
+- **Push notifications need external configuration.** Android push requires a native build, Firebase setup, token registration and the deployed `send-push` function. Push is not supported through Expo Go, and iOS push is not part of this release.
+- **Some mobile operations require the web API.** In particular, dog video uploads need `EXPO_PUBLIC_API_BASE_URL` set to a reachable HTTPS endpoint.
+- **Distribution is Android-focused.** EAS and Google Play build/testing configuration is present, but the repository alone does not prove that the app has been publicly published or that an iOS release has been tested.
+- **Some displayed shelter information needs owner confirmation.** Any public statistics, contact details, opening times or other shelter-supplied content should be checked with KZN Doghouse before wider release.
+
+The source code, deployed database, native build configuration and external services all need to match for the complete system to work. The README describes the uploaded source, not a guarantee that every external deployment setting has been independently tested.
