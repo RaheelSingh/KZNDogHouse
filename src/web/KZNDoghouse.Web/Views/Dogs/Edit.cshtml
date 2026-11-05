@@ -122,7 +122,7 @@
                         <span>Vaccinated</span>
                     </label>
                     <label class="dog-health-check">
-                        <input asp-for="IsSpayedNeutered" class="form-check-input" />
+                        @Html.CheckBox("IsSpayedNeutered", Model.IsSpayedNeutered == true, new { @class = "form-check-input" })
                         <span>Spayed / neutered</span>
                     </label>
                 </div>
